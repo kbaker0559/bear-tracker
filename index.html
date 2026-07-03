@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bear Tracker v1.5</title>
+  <title>Bear Tracker v1.6</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f3ea;color:#1f2933}
     header{background:#27391c;color:#fff;padding:18px 16px;text-align:center}
@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-<header><h1>Bear Tracker</h1><div class="sub">v1.4 · Saturday Stableford & Quota League</div></header>
+<header><h1>Bear Tracker</h1><div class="sub">v1.6 · Saturday Stableford & Quota League</div></header>
 <main>
 <section><h2>Saturday Ready Checklist</h2><div class="grid">
   <div class="card"><span class="pill">1</span><h3>Round Setup</h3><p>Set round date, course, active players, guests, and notes.</p><p class="ok">Ready</p></div>
@@ -83,6 +83,19 @@
 <section class="card">
   <h2>Finalize Round Checklist</h2>
   <p>Before quota updates and money totals are posted, the admin should review missing scores, skins, payouts, and quota-change preview.</p>
+</section>
+
+
+<section class="card">
+  <h2>v1.6 Live Database Setup Wizard</h2>
+  <p>This release adds the files needed to seed Supabase with the Black Bear course and the current Saturday player list.</p>
+  <ul>
+    <li><strong>supabase-schema.sql</strong> creates the starter database tables.</li>
+    <li><strong>seed-black-bear.sql</strong> loads Black Bear holes and current players.</li>
+    <li><strong>SUPABASE_QUICKSTART.md</strong> walks through the setup steps.</li>
+    <li><strong>config.example.js</strong> shows where the public Supabase URL/key will go.</li>
+  </ul>
+  <p><strong>Next milestone:</strong> turn on actual read/write syncing between the app and Supabase.</p>
 </section>
 
 </main>
