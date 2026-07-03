@@ -76,3 +76,4 @@
 @media (max-width: 800px) {
   .setupGrid, .roundRoster { grid-template-columns: 1fr; }
 }
+.reviewGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}.reviewMissing{background:#f5f7f0;border:1px solid #dfe6d5;border-radius:14px;padding:12px}.reviewMissing span{display:block;color:#68755f;font-size:13px;margin:4px 0 8px}.smallButtons button{padding:7px 9px}.scoreReviewTableWrap{overflow:auto;border:1px solid #dfe6d5;border-radius:14px}.scoreReviewTable{min-width:1050px}.scoreReviewTable td{vertical-align:top}.scoreReviewTable select{width:58px;border:1px solid #dbe2d0;border-radius:8px;padding:6px}.scoreReviewTable small{display:block;color:#68755f;margin-top:4px;font-size:11px}

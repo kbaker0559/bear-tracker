@@ -1,6 +1,7 @@
 export type Hole = { hole: number; par: number; strokeIndex: number };
 export type Player = { id: string; name: string; handicap: number; quota: number; active: boolean; pin: string; isAdmin?: boolean; isGuest?: boolean };
 export type Score = { playerId: string; hole: number; gross: number };
+export type ScoreAuditEntry = { id: string; playerId: string; hole: number; oldGross: number | null; newGross: number | null; changedByName: string; changedAt: string };
 export type Group = { id: string; name: string; playerIds: string[]; scorekeeperIds: string[] };
 export type PlayerResult = { player: Player; gross: number; net: number; points: number; quotaDiff: number; thru: number; holesRemaining: number; projectedDiff: number };
 export type SkinResult = { hole: number; winnerId: string | null; netScore: number | null; status: 'pending' | 'no-skin' | 'won' };

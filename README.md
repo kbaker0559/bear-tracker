@@ -1,15 +1,15 @@
-# Bear Tracker Real v0.8
+# Bear Tracker Real v0.9
 
 Real React/TypeScript implementation.
 
-## Added in v0.8
+## Added in v0.9
 
-- Round Setup tab
-- round name/date/course/notes
-- active/inactive player selection for the current Saturday round
-- one-time guest golfer entry
-- guest/member labels in the roster
-- backup/restore now includes round setup data
+- Admin Score Review tab
+- missing-score checklist for every active golfer
+- full scorecard correction grid
+- admin-only score corrections
+- local correction/audit log
+- backup/restore now includes correction log data
 
 ## Run locally
 
