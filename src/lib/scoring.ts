@@ -1,4 +1,4 @@
-import type { Hole, HoleScoreDetail, Player, PlayerResult, Score, SkinResult } from '../types';
+import type { Hole, HoleScoreDetail, PlacePayout, Player, PlayerResult, PayoutSettings, QuotaPreview, Score, SkinResult } from '../types';
 
 export function strokesOnHole(handicap: number, strokeIndex: number): number {
   if (handicap <= 0) return 0;
@@ -79,4 +79,82 @@ export function quotaAdjustment(diff: number, inMoney: boolean): number {
   if (diff <= 6) return 3;
   if (diff <= 9) return 4;
   return Math.ceil(diff / 2);
+}
+
+
+export function paidPlacesForPlayerCount(playerCount: number): number {
+  if (playerCount >= 16) return 5;
+  if (playerCount >= 9) return 4;
+  return 0;
+}
+
+export function defaultPlacePercentages(placesPaid: number): number[] {
+  if (placesPaid === 5) return [0.34, 0.25, 0.18, 0.13, 0.10];
+  if (placesPaid === 4) return [0.40, 0.30, 0.20, 0.10];
+  return [];
+}
+
+export function placePrizeAmounts(placePurse: number, placesPaid: number): number[] {
+  const percentages = defaultPlacePercentages(placesPaid);
+  const base = percentages.map(p => Math.floor(placePurse * p));
+  const used = base.reduce((sum, n) => sum + n, 0);
+  if (base.length) base[0] += Math.max(0, placePurse - used);
+  return base;
+}
+
+export function calculatePlacePayouts(results: PlayerResult[], placePurse: number): PlacePayout[] {
+  const completed = results.filter(r => r.thru === 18);
+  const placesPaid = paidPlacesForPlayerCount(completed.length);
+  if (!placesPaid) return [];
+  const prizes = placePrizeAmounts(placePurse, placesPaid);
+  const payouts: PlacePayout[] = [];
+  let currentPlace = 1;
+  let index = 0;
+
+  while (index < completed.length && currentPlace <= placesPaid) {
+    const tied = completed.filter(r => r.quotaDiff === completed[index].quotaDiff);
+    const tiedAtOrAfter = tied.filter(r => completed.findIndex(x => x.player.id === r.player.id) >= index);
+    const tieCount = tiedAtOrAfter.length;
+    const placesCovered = Array.from({ length: tieCount }, (_, i) => currentPlace + i).filter(place => place <= placesPaid);
+    const moneyPool = placesCovered.reduce((sum, place) => sum + (prizes[place - 1] ?? 0), 0);
+    const amountEach = tieCount ? Math.floor(moneyPool / tieCount) : 0;
+    if (amountEach > 0) {
+      payouts.push({
+        placeLabel: tieCount === 1 ? `${currentPlace}` : `${currentPlace}-${currentPlace + tieCount - 1}`,
+        playerIds: tiedAtOrAfter.map(r => r.player.id),
+        amountEach,
+        placesCovered
+      });
+    }
+    currentPlace += tieCount;
+    index += tieCount;
+  }
+  return payouts;
+}
+
+export function calculateQuotaPreview(results: PlayerResult[], skins: SkinResult[], settings: PayoutSettings): QuotaPreview[] {
+  const placePayouts = calculatePlacePayouts(results, settings.placePurse);
+  const skinWins = new Map<string, number>();
+  for (const skin of skins) {
+    if (skin.status === 'won' && skin.winnerId) skinWins.set(skin.winnerId, (skinWins.get(skin.winnerId) ?? 0) + 1);
+  }
+  return results.map(result => {
+    const place = placePayouts.find(p => p.playerIds.includes(result.player.id));
+    const placeMoney = place?.amountEach ?? 0;
+    const skinMoney = (skinWins.get(result.player.id) ?? 0) * settings.skinValue;
+    const inMoney = placeMoney > 0;
+    const adjustment = quotaAdjustment(result.quotaDiff, inMoney);
+    return {
+      playerId: result.player.id,
+      currentQuota: result.player.quota,
+      points: result.points,
+      quotaDiff: result.quotaDiff,
+      inMoney,
+      adjustment,
+      nextQuota: Math.max(0, result.player.quota + adjustment),
+      placeMoney,
+      skinMoney,
+      totalMoney: placeMoney + skinMoney
+    };
+  });
 }
