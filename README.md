@@ -1,23 +1,21 @@
-# Bear Tracker Real v0.3
+# Bear Tracker Real v0.4
 
-This is the next real React/TypeScript milestone.
+This milestone adds the first real round scoring experience.
 
-## Added in v0.3
+## Added
+- Group score entry component
+- Per-hole score summaries for gross, net, and Stableford points
+- Net score labels such as birdie, par, bogey, eagle
+- Live leaderboard component sorted by quota +/-
+- Projected quota +/- based on current scoring pace
+- Round progress count
+- Net skins component with won/cancelled/pending counts
 
-- Drag-and-drop group assignment
-- Add/delete/rename groups
-- Assign one or more scorekeepers per group
-- Scorekeeper restrictions on group score entry
-- Group selector in scoring view
-- Saved group assignments in local browser storage
-
-## How to run locally
-
+## Run locally
 ```bash
 npm install
 npm run dev
 ```
 
-## Admin seed
-
-Kevin Baker has admin rights in the seed data.
+## Suggested commit message
+`Add real scoring engine v0.4`

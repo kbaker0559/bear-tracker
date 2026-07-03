@@ -3,11 +3,14 @@ import { blackBearCourse } from './data/course';
 import { initialPlayers } from './data/players';
 import { initialGroups } from './data/groups';
 import type { Group, Player, Score, Session } from './types';
-import { calculateResults, calculateSkins, strokesOnHole } from './lib/scoring';
+import { calculateResults, calculateSkins } from './lib/scoring';
 import { loadJson, saveJson } from './lib/storage';
 import { Login } from './components/Login';
 import { PlayerAdmin } from './components/PlayerAdmin';
 import { GroupAdmin } from './components/GroupAdmin';
+import { ScoringPanel } from './components/ScoringPanel';
+import { Leaderboard } from './components/Leaderboard';
+import { SkinsPanel } from './components/SkinsPanel';
 import './styles.css';
 
 export default function App() {
@@ -32,7 +35,6 @@ export default function App() {
   const canAdmin = !!session?.isAdmin;
   const scorerGroups = session ? groups.filter(g => g.scorekeeperIds.includes(session.playerId) || session.isAdmin) : [];
   const selectedGroup = groups.find(g => g.id === selectedGroupId) ?? scorerGroups[0] ?? groups[0];
-  const groupPlayers = selectedGroup?.playerIds.map(id => players.find(p => p.id === id)).filter(Boolean) as Player[] ?? [];
   const canScoreSelectedGroup = !!session && (!!session.isAdmin || !!selectedGroup?.scorekeeperIds.includes(session.playerId));
 
   function saveScore(playerId: string, gross: number) {
@@ -55,7 +57,7 @@ export default function App() {
   }
 
   return <div className="app">
-    <header><h1>Bear Tracker</h1><p>Real implementation v0.3 · Group Assignment</p><Login players={players} session={session} onLogin={login} onLogout={()=>setSession(null)} /></header>
+    <header><h1>Bear Tracker</h1><p>Real implementation v0.4 · Scoring engine and live leaderboard</p><Login players={players} session={session} onLogin={login} onLogout={()=>setSession(null)} /></header>
     <nav className="tabs">
       <button className={tab==='scoring'?'active':''} onClick={()=>setTab('scoring')}>Group Scoring</button>
       <button className={tab==='leaderboard'?'active':''} onClick={()=>setTab('leaderboard')}>Leaderboard</button>
@@ -64,16 +66,9 @@ export default function App() {
       <button className={tab==='admin'?'active':''} onClick={()=>setTab('admin')}>Players</button>
     </nav>
     <main className="grid">
-      {tab === 'scoring' && <section className="card full"><div className="sectionHeader"><div><h2>Group Scoring</h2><p>{currentUser ? `Signed in as ${currentUser.name}` : 'Sign in to enter scores.'}</p></div><label>Group <select value={selectedGroup?.id} onChange={e=>setSelectedGroupId(e.target.value)}>{(session?.isAdmin ? groups : scorerGroups).map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label></div>
-        <h3>{selectedGroup?.name ?? 'No Group'} · Hole {hole} · Par {currentHole.par} · Stroke Index {currentHole.strokeIndex}</h3>
-        {!canScoreSelectedGroup && <p className="warning">You can view this card, but only the assigned scorekeeper or admin can save scores.</p>}
-        <div className="scoreRows">{groupPlayers.map(p=>{
-          const strokes = strokesOnHole(p.handicap,currentHole.strokeIndex);
-          const existing = scores.find(s=>s.playerId===p.id&&s.hole===hole)?.gross;
-          return <div className="scoreRow" key={p.id}><div><b>{p.name}</b><span>HDCP {p.handicap} · Quota {p.quota} · Gets {strokes} stroke{strokes!==1?'s':''}</span></div><div className="buttons">{[2,3,4,5,6,7,8,9,10].map(n=><button disabled={!canScoreSelectedGroup} className={existing===n?'selected':''} onClick={()=>saveScore(p.id,n)} key={n}>{n}</button>)}</div></div>
-        })}</div><div className="nav"><button disabled={hole===1} onClick={()=>setHole(h=>h-1)}>Previous</button><button disabled={hole===18} onClick={()=>setHole(h=>h+1)}>Next Hole</button><button onClick={resetScores}>Reset Scores</button></div></section>}
-      {tab === 'leaderboard' && <section className="card full"><h2>Live Leaderboard</h2><table><thead><tr><th>Pos</th><th>Player</th><th>Thru</th><th>Gross</th><th>Net</th><th>Pts</th><th>Quota</th><th>+/-</th></tr></thead><tbody>{results.map((r,i)=><tr key={r.player.id}><td>{i+1}</td><td>{r.player.name}</td><td>{r.thru}</td><td>{r.gross || '-'}</td><td>{r.net || '-'}</td><td>{r.points}</td><td>{r.player.quota}</td><td className={r.quotaDiff>=0?'good':'bad'}>{r.quotaDiff>0?'+':''}{r.quotaDiff}</td></tr>)}</tbody></table></section>}
-      {tab === 'skins' && <section className="card full"><h2>Net Skins</h2><div className="skins">{skins.map(s=><div key={s.hole}><b>#{s.hole}</b> {s.status==='pending'?'Pending':s.status==='no-skin'?'No skin':players.find(p=>p.id===s.winnerId)?.name} {s.netScore !== null && <span>Net {s.netScore}</span>}</div>)}</div></section>}
+      {tab === 'scoring' && <ScoringPanel players={players} groups={groups} scores={scores} selectedGroupId={selectedGroup?.id ?? selectedGroupId} hole={hole} currentHole={currentHole} currentUserName={currentUser?.name ?? null} canScoreSelectedGroup={canScoreSelectedGroup} scorerGroups={scorerGroups} isAdmin={!!session?.isAdmin} onGroupChange={setSelectedGroupId} onSaveScore={saveScore} onHoleChange={setHole} onResetScores={resetScores} />}
+      {tab === 'leaderboard' && <Leaderboard results={results} />}
+      {tab === 'skins' && <SkinsPanel players={players} skins={skins} />}
       {tab === 'groups' && (canAdmin ? <GroupAdmin players={players} groups={groups} onChange={setGroups} /> : <section className="card full"><h2>Groups</h2><p>Sign in as admin to assign groups and scorekeepers.</p></section>)}
       {tab === 'admin' && (canAdmin ? <PlayerAdmin players={players} onChange={setPlayers} /> : <section className="card full"><h2>Players</h2><p>Sign in as an admin to edit players. Kevin Baker has admin access in the seed data.</p></section>)}
     </main>
