@@ -1,13 +1,12 @@
-# Bear Tracker v0.7
+# Bear Tracker v0.8
 
-Adds backup, restore, printable reports, and copyable results summaries to the local prototype.
+Adds installable Progressive Web App support and offline-ready static files.
 
-## New in v0.7
-- Export full local data backup as JSON
-- Restore from a backup JSON file
-- Copy results summary to clipboard
-- Print current results report
-- Data status panel
+## New in v0.8
+- Web app manifest for Add to Home Screen
+- Service worker for offline shell caching
+- iPhone/Android install guidance on the Home screen
+- Migrates local data from v0.7 to v0.8 storage
 
 ## Commit message
-Add backups and printable reports v0.7
+Add PWA install support v0.8
