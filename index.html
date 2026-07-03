@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bear Tracker v1.0 RC</title>
+  <title>Bear Tracker v1.3</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f3ea;color:#1f2933}
     header{background:#27391c;color:#fff;padding:18px 16px;text-align:center}
@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-<header><h1>Bear Tracker</h1><div class="sub">v1.0 Release Candidate · Saturday Stableford & Quota League</div></header>
+<header><h1>Bear Tracker</h1><div class="sub">v1.3 · Saturday Stableford & Quota League</div></header>
 <main>
 <section><h2>Saturday Ready Checklist</h2><div class="grid">
   <div class="card"><span class="pill">1</span><h3>Round Setup</h3><p>Set round date, course, active players, guests, and notes.</p><p class="ok">Ready</p></div>
@@ -43,7 +43,19 @@
 <li>Admin checklist for Saturday morning setup.</li>
 <li>Release-candidate README for GitHub tracking.</li>
 </ul></section>
-<section><h2>Next After v1.0</h2><p>The next major milestone is the live shared version with Supabase so multiple phones sync in real time.</p><p class="small">For now, this release candidate is still the local/browser-storage version. It is useful for rules testing, workflow review, and group feedback.</p></section>
+
+<section><h2>Live Database Status</h2><div class="grid">
+  <div class="card"><span class="pill">A</span><h3>Current Mode</h3><p>This version still runs locally in the browser for testing rules and workflow.</p><p class="warn">Local test mode</p></div>
+  <div class="card"><span class="pill">B</span><h3>Supabase Prep</h3><p>Schema, config example, and database wrapper files are included in this release.</p><p class="ok">Ready for setup</p></div>
+  <div class="card"><span class="pill">C</span><h3>Next Step</h3><p>Create a Supabase project, run the SQL schema, and add the project URL/key to config.js.</p><p class="warn">Needs account setup</p></div>
+</div><p class="small">True live scoring requires the shared database connection. Once connected, scores entered by a group scorer can sync to every golfer's phone.</p></section>
+<section><h2>Supabase Files Included</h2><table><tr><th>File</th><th>Purpose</th></tr>
+<tr><td><span class="mono">supabase-schema.sql</span></td><td>Creates the starter database tables for leagues, players, rounds, groups, scores, skins, and money tracking.</td></tr>
+<tr><td><span class="mono">config.example.js</span></td><td>Shows where your Supabase project URL and public anon key will go.</td></tr>
+<tr><td><span class="mono">database.js</span></td><td>Starter wrapper for saving/loading players, rounds, groups, and scores.</td></tr>
+<tr><td><span class="mono">LIVE_DATABASE_CHECKLIST.md</span></td><td>Step-by-step checklist before turning on the live shared app.</td></tr>
+</table></section>
+<section><h2>Next After v1.3</h2><p>The next major milestone is connecting the app to Supabase and replacing browser-only storage with shared live storage.</p><p class="small">For now, this release candidate is still the local/browser-storage version. It is useful for rules testing, workflow review, and group feedback.</p></section>
 </main>
 </body>
 </html>

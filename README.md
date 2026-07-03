@@ -1,13 +1,12 @@
-# Bear Tracker v1.2
+# Bear Tracker v1.3
 
-Milestone: Live Database Connection Prep
+Milestone: Supabase Setup Screen & Live Mode Readiness
 
 Adds:
-- `config.example.js` for Supabase project settings
-- `database.js` with starter Supabase client wrapper
-- `supabase-schema.sql` starter schema
-- `LIVE_DATABASE_CHECKLIST.md`
-- keeps current app usable without Supabase credentials
+- a visible **Live Database Status** section in the app
+- Supabase connection checklist inside the app shell
+- config/database starter files retained from v1.2
+- clearer next steps for turning on true multi-phone sync
 
 Commit message:
-`Add live database connection prep v1.2`
+`Add Supabase setup status screen v1.3`
