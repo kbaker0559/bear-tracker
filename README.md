@@ -1,19 +1,9 @@
-# Bear Tracker v1.8
+# Bear Tracker v1.9
 
-Saturday Stableford & Quota Golf League Manager for Black Bear Golf Club.
+This release prepares the app for the first real Supabase connection.
 
-## This release adds
+It still keeps local/browser test mode intact, but adds the files and checklist needed to connect a shared live database for multi-phone Saturday scoring.
 
-- Live sync integration planning
-- Connection health workflow
-- Real-time score update design
-- Audit log design for score changes
-- Saturday morning live database checklist refinements
+Commit message:
 
-## Current status
-
-The app is still running in local/browser test mode until Supabase credentials are added and the live database is created.
-
-## Next milestone
-
-v1.9 will start separating the app into production-ready source files and preparing for actual Supabase connection testing.
+`Add Supabase connection checklist v1.9`
