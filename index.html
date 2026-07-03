@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bear Tracker v1.4</title>
+  <title>Bear Tracker v1.5</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f3ea;color:#1f2933}
     header{background:#27391c;color:#fff;padding:18px 16px;text-align:center}
@@ -58,7 +58,7 @@
 <section><h2>Next After v1.4</h2><p>The next major milestone is connecting the app to Supabase and replacing browser-only storage with shared live storage.</p><p class="small">For now, this release candidate is still the local/browser-storage version. It is useful for rules testing, workflow review, and group feedback.</p></section>
 
       <section class="card">
-        <h2>v1.4 Saturday Test Mode</h2>
+        <h2>v1.4 Saturday Test + Score Audit</h2>
         <p>This release adds a practical testing checklist before live group use.</p>
         <ul>
           <li>Verify scorekeepers can enter scores for their group.</li>
@@ -68,6 +68,22 @@
         </ul>
         <p><strong>Next technical milestone:</strong> connect these workflows to Supabase real-time tables.</p>
       </section>
+
+
+<section class="card">
+  <h2>Score Correction & Audit Flow</h2>
+  <p>v1.5 adds the rules for safe score corrections before and after finalization.</p>
+  <ul>
+    <li>Scorekeepers can correct their own group before finalization.</li>
+    <li>Admin can correct any score.</li>
+    <li>After finalization, corrections require admin unlock.</li>
+    <li>Every change should record old score, new score, editor, time, and reason.</li>
+  </ul>
+</section>
+<section class="card">
+  <h2>Finalize Round Checklist</h2>
+  <p>Before quota updates and money totals are posted, the admin should review missing scores, skins, payouts, and quota-change preview.</p>
+</section>
 
 </main>
 </body>

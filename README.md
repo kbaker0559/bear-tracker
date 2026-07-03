@@ -1,17 +1,18 @@
-# Bear Tracker v1.4
+# Bear Tracker v1.5
 
-This milestone adds a Saturday test mode and live scoring readiness checks.
+This milestone adds round audit and score correction planning so the Saturday group can safely fix mistakes without losing accountability.
 
-## Added in v1.4
-- Saturday test checklist
-- scorekeeper workflow checklist
-- live scoring data-flow notes
-- clearer GitHub Pages test instructions
-- placeholder sync-health panel in the app
+## Added in v1.5
+- Score correction workflow
+- Admin-only edit rules
+- Missing score review before finalization
+- Audit log design notes
+- Final-round lock guidance
+- Saturday score correction guide
 
 ## Install/update
 Copy all files into your local `bear-tracker` folder, replace existing files, then commit and push with GitHub Desktop.
 
 Suggested commit message:
 
-`Add Saturday test mode v1.4`
+`Add score correction audit flow v1.5`
