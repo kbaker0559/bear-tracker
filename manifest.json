@@ -1,8 +1,8 @@
 {
   "name": "Bear Tracker",
-  "short_name": "BearTracker",
-  "start_url": "./",
+  "short_name": "Bear Tracker",
+  "start_url": ".",
   "display": "standalone",
-  "background_color": "#0f2f1f",
+  "background_color": "#f7f4eb",
   "theme_color": "#0f2f1f"
 }

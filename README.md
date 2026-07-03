@@ -1,16 +1,16 @@
-# Bear Tracker Foundation v0.1
+# Bear Tracker v0.2
 
-This is the first structured foundation for Bear Tracker.
+Saturday Stableford and quota golf league manager for Black Bear Golf Club.
 
-## Includes
-- Black Bear course data
-- 24 player starting list
-- Handicap and quota fields
-- Group scorer mode
-- Stableford scoring
-- Quota +/- leaderboard
-- Net skins calculation
-- PWA manifest
+## v0.2 includes
+- Working React/browser app foundation
+- PIN login demo
+- Admin player management
+- Add golfer
+- Edit handicap, quota, PIN, active status
+- Local browser save via localStorage
+- Group scorer demo
+- Stableford, quota +/-, net skins calculations
 
 ## Notes
-This version is still local/static. It does not yet save to a live database. The next milestone will add a real database connection and persistent rounds.
+This is still a local/static version. Live shared scoring will come when Supabase is connected.
