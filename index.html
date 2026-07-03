@@ -3,246 +3,47 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0f1b14" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>Bear Tracker v0.9</title>
+  <title>Bear Tracker v1.0 RC</title>
   <style>
-    :root{--bg:#0f1b14;--card:#17261d;--card2:#203527;--text:#f4f7f1;--muted:#b9c8b8;--gold:#f2c14e;--green:#2f7d45;--red:#a84632;--line:#35513d;--blue:#70a9ff}
-    *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0f1b14,#132317);color:var(--text)}
-    header{position:sticky;top:0;z-index:2;background:#0b140f;border-bottom:1px solid var(--line);padding:14px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between}
-    h1{font-size:20px;margin:0}.sub{color:var(--muted);font-size:13px}.wrap{max-width:1150px;margin:0 auto;padding:16px}.grid{display:grid;gap:14px}.cols{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
-    .card{background:rgba(23,38,29,.96);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 8px 20px rgba(0,0,0,.18)}
-    button,input,select{font:inherit}button{border:0;border-radius:12px;padding:10px 12px;background:var(--gold);color:#201704;font-weight:700;cursor:pointer}button.secondary{background:#294433;color:var(--text);border:1px solid var(--line)}button.danger{background:var(--red);color:white}button.small{padding:6px 9px;border-radius:10px;font-size:13px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{background:#203527;color:var(--text);border:1px solid var(--line)}.tab.active{background:var(--gold);color:#201704}
-    input,select{width:100%;padding:9px;border-radius:10px;border:1px solid var(--line);background:#0f1b14;color:var(--text)}label{font-size:12px;color:var(--muted);display:block;margin:9px 0 5px}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted);font-size:12px}td.num,th.num{text-align:right}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#294433;color:var(--muted);font-size:12px}.good{color:#8ee293}.bad{color:#ff9d8b}.leader{font-size:28px;font-weight:900;color:var(--gold)}.scoreBtns{display:flex;gap:7px;flex-wrap:wrap}.scoreBtns button{min-width:42px;background:#294433;color:white;border:1px solid var(--line)}.scoreBtns button.sel{background:var(--gold);color:#201704}.groupBox{min-height:80px;background:#101d15;border:1px dashed #547058;border-radius:14px;padding:10px;margin-top:8px}.playerChip{padding:8px 10px;margin:6px 0;background:#203527;border:1px solid var(--line);border-radius:12px;cursor:grab;display:flex;justify-content:space-between;gap:8px}.playerChip[draggable=true]:active{cursor:grabbing}.muted{color:var(--muted)}.hidden{display:none}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.right{float:right}.bigNum{font-size:22px;font-weight:800}.skinWin{color:var(--gold);font-weight:800}.notice{background:#25351f;border-left:4px solid var(--gold);padding:10px;border-radius:10px;color:#f5e8bd}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f3ea;color:#1f2933}
+    header{background:#27391c;color:#fff;padding:18px 16px;text-align:center}
+    h1{margin:0;font-size:30px} .sub{opacity:.85;margin-top:4px}
+    main{max-width:980px;margin:auto;padding:16px;display:grid;gap:14px}
+    section{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px #0001;border:1px solid #e6dfcf}
+    h2{margin:0 0 10px;color:#27391c}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+    .card{border:1px solid #e6dfcf;border-radius:12px;padding:12px;background:#fffdf8}.ok{color:#1f7a3a;font-weight:700}.warn{color:#a15c00;font-weight:700}
+    button{border:0;border-radius:10px;background:#27391c;color:#fff;padding:11px 14px;font-weight:700;margin:4px;cursor:pointer}
+    button.secondary{background:#7a5b28}.pill{display:inline-block;border-radius:999px;background:#edf7ec;color:#236022;padding:4px 10px;font-weight:700;font-size:13px}
+    table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #eee;text-align:left}th{color:#27391c}
+    .small{font-size:13px;color:#52606d}.mono{font-family:ui-monospace,Consolas,monospace;background:#f4f4f4;padding:2px 5px;border-radius:4px}
   </style>
 </head>
 <body>
-<header><div><h1>🐻 Bear Tracker</h1><div class="sub">Black Bear Saturday Game · v0.9 round setup, guests & scorekeeper polish</div></div><div id="loginStatus" class="sub"></div></header>
-<div class="wrap">
-  <div class="tabs">
-    <button class="tab active" data-tab="home">Home</button><button class="tab" data-tab="round">Round Setup</button><button class="tab" data-tab="score">Group Scoring</button><button class="tab" data-tab="leaderboard">Leaderboard</button><button class="tab" data-tab="skins">Skins</button><button class="tab" data-tab="payouts">Payouts/Finalize</button><button class="tab" data-tab="season">Season/Money</button><button class="tab" data-tab="groups">Groups</button><button class="tab" data-tab="players">Players/Admin</button><button class="tab" data-tab="backup">Backup/Export</button>
-  </div>
-
-  <section id="home" class="page">
-    <div class="grid cols">
-      <div class="card"><h2 id="homeRoundTitle">Saturday Round</h2><p class="muted" id="homeRoundDetails">Local prototype. Scores are saved in this browser until reset.</p><div class="leader" id="homeLeader">No scores yet</div><p id="homeSummary" class="sub"></p><button onclick="resetScores()" class="danger">Reset Scores</button></div>
-      <div class="card"><h2>Quick Login</h2><label>Choose player/admin</label><select id="loginSelect"></select><button onclick="login()">Login</button><p class="sub">PINs are planned for the shared version. For this local prototype, selecting a player is enough.</p></div>
-      <div class="card"><h2>Rules Implemented</h2><p>Stableford: 0 double bogey+, 1 bogey, 2 par, 4 birdie, 6 eagle, 8 double eagle.</p><p>Leaderboard ranks by <b>points minus quota</b>.</p><p>Skins are <b>net only</b>. Lowest unique net score wins. Ties cancel.</p></div>
-      <div class="card"><h2>Install on Phone</h2><p class="sub">This version includes the files needed for an installable web app.</p><p>On iPhone: open the live site in Safari, tap Share, then <b>Add to Home Screen</b>.</p><p>On Android: open in Chrome and choose <b>Install app</b> or <b>Add to Home screen</b>.</p><p id="pwaStatus" class="notice">PWA status will appear here after the page loads.</p></div>
-    </div>
-  </section>
-
-
-  <section id="round" class="page hidden">
-    <div class="grid cols">
-      <div class="card"><h2>Round Setup</h2><p class="sub">Set up the current Saturday game. These settings are included in backups and reports.</p>
-        <label>Round Name</label><input id="roundName" onchange="updateRoundField('name',this.value)">
-        <label>Date</label><input id="roundDate" type="date" onchange="updateRoundField('date',this.value)">
-        <label>Course</label><input id="roundCourse" onchange="updateRoundField('course',this.value)">
-        <label>Notes</label><input id="roundNotes" placeholder="Weather, tees, special notes" onchange="updateRoundField('notes',this.value)">
-      </div>
-      <div class="card"><h2>Guest / One-Time Player</h2><p class="sub">Add a guest for today. They start active and can be dragged into a group.</p>
-        <label>Name</label><input id="guestName" placeholder="Guest name">
-        <div class="row"><div><label>HDCP</label><input id="guestHdcp" type="number"></div><div><label>Quota</label><input id="guestQuota" type="number"></div></div>
-        <button onclick="addGuest()">Add Guest</button>
-      </div>
-      <div class="card"><h2>Round Status</h2><div id="roundStatus"></div></div>
-    </div>
-  </section>
-
-  <section id="score" class="page hidden">
-    <div class="card"><div class="row"><div><h2>Group Scoring</h2><p class="sub" id="scoreGroupName"></p></div><div><label>Hole</label><select id="holeSelect" onchange="renderScore()"></select></div></div><div id="scoreArea"></div></div>
-  </section>
-
-  <section id="leaderboard" class="page hidden"><div class="card"><h2>Live Leaderboard</h2><div id="leaderboardTable"></div></div></section>
-  <section id="skins" class="page hidden"><div class="card"><h2>Net Skins</h2><div id="skinsTable"></div></div></section>
-
-
-
-  <section id="payouts" class="page hidden">
-    <div class="grid cols">
-      <div class="card"><h2>Payout Settings</h2><p class="sub">Prototype payout table. Adjust the place amounts before finalizing if needed.</p>
-        <div class="row"><div><label>Players</label><input id="payPlayers" readonly></div><div><label>Paid Places</label><input id="payPlaces" readonly></div></div>
-        <div class="row"><div><label>1st</label><input id="pay1" type="number" value="120" onchange="renderPayouts()"></div><div><label>2nd</label><input id="pay2" type="number" value="90" onchange="renderPayouts()"></div><div><label>3rd</label><input id="pay3" type="number" value="70" onchange="renderPayouts()"></div></div>
-        <div class="row"><div><label>4th</label><input id="pay4" type="number" value="50" onchange="renderPayouts()"></div><div><label>5th</label><input id="pay5" type="number" value="30" onchange="renderPayouts()"></div><div><label>Skin $ per skin</label><input id="skinValue" type="number" value="10" onchange="renderPayouts()"></div></div>
-        <div class="row"><div><button onclick="finalizeRound()">Preview Finalize</button></div><div><button onclick="applyFinalize()">Apply Quota Updates & Save History</button></div></div>
-      </div>
-      <div class="card"><h2>Place Payouts</h2><div id="placePayouts"></div></div>
-      <div class="card"><h2>Quota Changes</h2><div id="quotaChanges"></div></div>
-    </div>
-  </section>
-
-
-  <section id="season" class="page hidden">
-    <div class="grid cols">
-      <div class="card"><h2>Season Money List</h2><div id="moneyList"></div></div>
-      <div class="card"><h2>Round History</h2><div id="roundHistory"></div></div>
-      <div class="card"><h2>Maintenance</h2><p class="sub">These buttons only affect this browser prototype.</p><button class="danger" onclick="clearSeasonHistory()">Clear Season History</button></div>
-    </div>
-  </section>
-
-  <section id="groups" class="page hidden">
-    <div class="grid cols"><div class="card"><h2>Available Players</h2><div id="availablePlayers" class="groupBox"></div></div><div class="card"><h2>Groups</h2><button onclick="addGroup()" class="small">Add Group</button><div id="groupsArea"></div></div></div>
-  </section>
-
-
-
-  <section id="backup" class="page hidden">
-    <div class="grid cols">
-      <div class="card"><h2>Backup / Restore</h2><p class="sub">Use this before and after each Saturday test. Export creates a backup file of players, groups, quotas, scores, history, and money totals.</p><button onclick="exportBackup()">Export Backup JSON</button><label>Restore from backup</label><input id="backupFile" type="file" accept="application/json" onchange="importBackup(event)"><p class="notice">Tip: Export before finalizing a round so you can restore if a mistake is discovered.</p></div>
-      <div class="card"><h2>Reports</h2><p class="sub">Create simple reports you can copy, print, text, or email.</p><button onclick="copyResults()">Copy Results Summary</button> <button onclick="printReport()" class="secondary">Print Current Report</button><label>Results summary</label><textarea id="resultsText" style="width:100%;min-height:260px;border-radius:10px;background:#0f1b14;color:#f4f7f1;border:1px solid var(--line);padding:10px"></textarea></div>
-      <div class="card"><h2>Data Status</h2><div id="dataStatus"></div></div>
-    </div>
-  </section>
-
-  <section id="players" class="page hidden"><div class="card"><h2>Players / Admin</h2><div class="row"><div><label>Name</label><input id="newName" placeholder="New golfer"></div><div><label>HDCP</label><input id="newHdcp" type="number"></div><div><label>Quota</label><input id="newQuota" type="number"></div><div><label>&nbsp;</label><button onclick="addPlayer()">Add</button></div></div><div id="playersTable"></div></div></section>
-</div>
-<script>
-const course=[{h:1,p:4,si:5},{h:2,p:5,si:17},{h:3,p:3,si:15},{h:4,p:5,si:11},{h:5,p:3,si:9},{h:6,p:4,si:1},{h:7,p:4,si:7},{h:8,p:4,si:13},{h:9,p:4,si:3},{h:10,p:4,si:10},{h:11,p:3,si:12},{h:12,p:4,si:2},{h:13,p:4,si:6},{h:14,p:5,si:14},{h:15,p:3,si:18},{h:16,p:5,si:16},{h:17,p:4,si:4},{h:18,p:4,si:8}];
-const starter=[['Fred Tucker',6,30],['Paul Tucker JR',10,27],['Steve Robin',11,23],['Russ Lizzoli',16,16],['Cam Crollard',5,30],['Paul Tucker SR',8,25],['Kevin Baker',12,19],['Mark Knuutilla',10,24],['Tyler Adams',9,25],['Don Maines',13,21],['Dave Hall',9,26],['Ed Sanchez',12,21],['Neal Self',11,19],['Chuck Blankenship',12,26],['Bruce Coleman',11,19],['George Heider',6,26],['Anthony Ciuzio',4,29],['Tom Tzobanakis',12,21],['Shawn Boone',16,15],['Blake Donahue',4,23],['Wayne Smith',11,18],['Preston Rager',11,21],['Les Smith',19,16],['Mike Ondrasik',13,18]];
-let state=JSON.parse(localStorage.getItem('bt_v09')||localStorage.getItem('bt_v08')||localStorage.getItem('bt_v07')||localStorage.getItem('bt_v06')||localStorage.getItem('bt_v05')||localStorage.getItem('bt_v04')||'null')||{user:null,round:{name:'Saturday Game',date:new Date().toISOString().slice(0,10),course:'Black Bear Golf Club',notes:''},players:starter.map((p,i)=>({id:'p'+i,name:p[0],hdcp:p[1],quota:p[2],active:true,guest:false})),groups:[{id:'g1',name:'Group 1',scorekeeper:null,players:['p6','p4','p0','p12']},{id:'g2',name:'Group 2',scorekeeper:null,players:['p1','p5','p15','p10']}],scores:{},history:[],money:{}};
-function save(){state.history=state.history||[];state.money=state.money||{};state.round=state.round||{name:'Saturday Game',date:new Date().toISOString().slice(0,10),course:'Black Bear Golf Club',notes:''};localStorage.setItem('bt_v09',JSON.stringify(state));renderAll()}function player(id){return state.players.find(p=>p.id===id)}function activePlayers(){return state.players.filter(p=>p.active)}
-function strokesOnHole(hdcp,si){return Math.floor(hdcp/18)+(si<=hdcp%18?1:0)}
-function stableford(gross,par,strokes){if(!gross)return 0;const net=gross-strokes;const rel=net-par;if(rel<=-3)return 8;if(rel===-2)return 6;if(rel===-1)return 4;if(rel===0)return 2;if(rel===1)return 1;return 0}
-function totals(pid){let gross=0,net=0,pts=0,thru=0;course.forEach(c=>{const g=state.scores[pid]?.[c.h];if(g){const s=strokesOnHole(player(pid).hdcp,c.si);gross+=g;net+=g-s;pts+=stableford(g,c.p,s);thru++;}});return{gross,net,pts,thru,plus:pts-player(pid).quota}}
-function setTab(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!==t));renderAll()}document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
-function login(){state.user=document.getElementById('loginSelect').value;save()}function resetScores(){if(confirm('Clear all scores for this browser?')){state.scores={};save()}}
-function renderHome(){state.round=state.round||{name:'Saturday Game',date:new Date().toISOString().slice(0,10),course:'Black Bear Golf Club',notes:''};const rows=activePlayers().map(p=>({p,...totals(p.id)})).sort((a,b)=>b.plus-a.plus||b.pts-a.pts);document.getElementById('homeRoundTitle').textContent=state.round.name||'Saturday Round';document.getElementById('homeRoundDetails').textContent=`${state.round.course||'Black Bear Golf Club'} · ${state.round.date||''}${state.round.notes?' · '+state.round.notes:''}`;document.getElementById('homeLeader').textContent=rows[0]?.thru?`${rows[0].p.name} ${rows[0].plus>=0?'+':''}${rows[0].plus}`:'No scores yet';document.getElementById('homeSummary').textContent=`${activePlayers().length} active players · ${Object.keys(state.scores).length} players with scores`;document.getElementById('loginStatus').textContent=state.user?`Logged in: ${player(state.user)?.name}`:'Not logged in';}
-function renderRound(){state.round=state.round||{name:'Saturday Game',date:new Date().toISOString().slice(0,10),course:'Black Bear Golf Club',notes:''};['name','date','course','notes'].forEach(k=>{const el=document.getElementById('round'+k[0].toUpperCase()+k.slice(1)); if(el)el.value=state.round[k]||''});const assigned=new Set(state.groups.flatMap(g=>g.players));const unassigned=activePlayers().filter(p=>!assigned.has(p.id)).length;const scorekeepers=state.groups.filter(g=>g.scorekeeper).length;document.getElementById('roundStatus').innerHTML=`<p><span class="pill">${activePlayers().length} active players</span></p><p><span class="pill">${state.groups.length} groups</span> <span class="pill">${scorekeepers} scorekeepers</span></p><p><span class="pill">${unassigned} unassigned active players</span></p><p class="sub">Use the Groups tab to drag players into threesomes/foursomes and assign scorekeepers.</p>`}
-function updateRoundField(k,v){state.round=state.round||{};state.round[k]=v;save()}
-function addGuest(){const n=document.getElementById('guestName').value.trim();if(!n)return;state.players.push({id:'g'+Date.now(),name:n,hdcp:+guestHdcp.value||0,quota:+guestQuota.value||0,active:true,guest:true});guestName.value='';guestHdcp.value='';guestQuota.value='';save()}
-function renderLogin(){const sel=document.getElementById('loginSelect');sel.innerHTML='<option value="admin">Admin</option>'+state.players.map(p=>`<option value="${p.id}" ${state.user===p.id?'selected':''}>${p.name}</option>`).join('')}
-function currentGroup(){return state.groups.find(g=>g.scorekeeper===state.user)||state.groups.find(g=>g.players.includes(state.user))||state.groups[0]}
-function renderScore(){const hs=document.getElementById('holeSelect');if(!hs.options.length){hs.innerHTML=course.map(c=>`<option value="${c.h}">Hole ${c.h}</option>`).join('')}const h=+hs.value||1;const c=course.find(x=>x.h===h);const g=currentGroup();document.getElementById('scoreGroupName').textContent=`${g.name} · Par ${c.p} · Hole HDCP ${c.si}`;let html='<div class="grid">';g.players.forEach(pid=>{const p=player(pid);if(!p)return;const st=strokesOnHole(p.hdcp,c.si);const cur=state.scores[pid]?.[h]||'';html+=`<div class="card"><div class="row"><div><b>${p.name}</b><div class="sub">Gets ${st} stroke${st===1?'':'s'} · Quota ${p.quota}</div></div><div class="bigNum">${cur?`Net ${cur-st}`:''}</div></div><div class="scoreBtns">`;for(let n=Math.max(1,c.p-2);n<=c.p+5;n++){html+=`<button class="${cur===n?'sel':''}" onclick="score('${pid}',${h},${n})">${n}</button>`}html+=`<button class="secondary ${cur===''?'sel':''}" onclick="clearScore('${pid}',${h})">Clear</button></div></div>`});html+='</div><p class="notice">Tip: select scores for everyone in the group. Changes save immediately in this local prototype.</p>';document.getElementById('scoreArea').innerHTML=html}
-function score(pid,h,n){state.scores[pid]=state.scores[pid]||{};state.scores[pid][h]=n;save()}function clearScore(pid,h){if(state.scores[pid])delete state.scores[pid][h];save()}
-function renderLeaderboard(){const rows=activePlayers().map(p=>({p,...totals(p.id)})).sort((a,b)=>b.plus-a.plus||b.pts-a.pts||a.p.name.localeCompare(b.p.name));document.getElementById('leaderboardTable').innerHTML=`<table><tr><th>Pos</th><th>Player</th><th class="num">Thru</th><th class="num">Pts</th><th class="num">Quota</th><th class="num">+/-</th><th class="num">Gross</th><th class="num">Net</th></tr>${rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.p.name}</td><td class="num">${r.thru}</td><td class="num">${r.pts}</td><td class="num">${r.p.quota}</td><td class="num ${r.plus>=0?'good':'bad'}">${r.plus>=0?'+':''}${r.plus}</td><td class="num">${r.gross||''}</td><td class="num">${r.net||''}</td></tr>`).join('')}</table>`}
-function skinForHole(c){const vals=[];activePlayers().forEach(p=>{const g=state.scores[p.id]?.[c.h];if(g){vals.push({p,net:g-strokesOnHole(p.hdcp,c.si),gross:g})}});if(!vals.length)return{status:'No scores'};vals.sort((a,b)=>a.net-b.net);const low=vals[0].net;const tied=vals.filter(v=>v.net===low);return tied.length===1?{status:'Skin',winner:tied[0].p.name,net:low,gross:tied[0].gross}:{status:'No Skin',net:low,count:tied.length}}
-function renderSkins(){let wins={};const rows=course.map(c=>{const s=skinForHole(c);if(s.winner)wins[s.winner]=(wins[s.winner]||0)+1;return`<tr><td>${c.h}</td><td>Par ${c.p}</td><td>${s.status==='Skin'?`<span class="skinWin">${s.winner}</span>`:s.status}</td><td>${s.net!==undefined?'Net '+s.net:''}</td></tr>`}).join('');const summary=Object.entries(wins).sort((a,b)=>b[1]-a[1]).map(([n,w])=>`<span class="pill">${n}: ${w}</span>`).join(' ')||'<span class="muted">No skins yet</span>';document.getElementById('skinsTable').innerHTML=`<p>${summary}</p><table><tr><th>Hole</th><th>Par</th><th>Result</th><th>Score</th></tr>${rows}</table>`}
-let dragPid=null;function renderGroups(){const assigned=new Set(state.groups.flatMap(g=>g.players));document.getElementById('availablePlayers').innerHTML=activePlayers().filter(p=>!assigned.has(p.id)).map(chip).join('')||'<p class="muted">All active players assigned.</p>';document.getElementById('groupsArea').innerHTML=state.groups.map(g=>`<div class="card"><div class="row"><b>${g.name}</b><button class="small secondary" onclick="removeGroup('${g.id}')">Remove</button></div><label>Scorekeeper</label><select onchange="setScorekeeper('${g.id}',this.value)"><option value="">Choose</option>${g.players.map(pid=>`<option value="${pid}" ${g.scorekeeper===pid?'selected':''}>${player(pid)?.name}</option>`).join('')}</select><div class="groupBox" ondragover="event.preventDefault()" ondrop="dropToGroup('${g.id}')">${g.players.map(pid=>chip(player(pid),g.id)).join('')||'<p class="muted">Drag players here</p>'}</div></div>`).join('');document.querySelectorAll('.playerChip').forEach(el=>{el.ondragstart=()=>{dragPid=el.dataset.pid}})}
-function chip(p,gid=''){return`<div class="playerChip" draggable="true" data-pid="${p.id}"><span>${p.name}${p.guest?' (Guest)':''}</span><span class="sub">H ${p.hdcp} · Q ${p.quota}${gid&&state.groups.find(g=>g.id===gid)?.scorekeeper===p.id?' ⭐':''}</span></div>`}
-function dropToGroup(gid){state.groups.forEach(g=>g.players=g.players.filter(pid=>pid!==dragPid));state.groups.find(g=>g.id===gid).players.push(dragPid);save()}function addGroup(){state.groups.push({id:'g'+Date.now(),name:'Group '+(state.groups.length+1),scorekeeper:null,players:[]});save()}function removeGroup(gid){const g=state.groups.find(x=>x.id===gid);state.groups=state.groups.filter(x=>x.id!==gid);if(g)g.players.forEach(pid=>{});save()}function setScorekeeper(gid,pid){state.groups.find(g=>g.id===gid).scorekeeper=pid;save()}
-function renderPlayers(){document.getElementById('playersTable').innerHTML=`<table><tr><th>Active</th><th>Name</th><th class="num">HDCP</th><th class="num">Quota</th><th>Type</th><th></th></tr>${state.players.map(p=>`<tr><td><input type="checkbox" ${p.active?'checked':''} onchange="editPlayer('${p.id}','active',this.checked)"></td><td><input value="${p.name}" onchange="editPlayer('${p.id}','name',this.value)"></td><td><input type="number" value="${p.hdcp}" onchange="editPlayer('${p.id}','hdcp',+this.value)"></td><td><input type="number" value="${p.quota}" onchange="editPlayer('${p.id}','quota',+this.value)"></td><td>${p.guest?'Guest':'Member'}</td><td><button class="small danger" onclick="deletePlayer('${p.id}')">Delete</button></td></tr>`).join('')}</table>`}
-function editPlayer(id,k,v){player(id)[k]=v;save()}function addPlayer(){const n=document.getElementById('newName').value.trim();if(!n)return;state.players.push({id:'p'+Date.now(),name:n,hdcp:+newHdcp.value||0,quota:+newQuota.value||0,active:true,guest:false});newName.value='';newHdcp.value='';newQuota.value='';save()}function deletePlayer(id){if(confirm('Delete player?')){state.players=state.players.filter(p=>p.id!==id);state.groups.forEach(g=>g.players=g.players.filter(pid=>pid!==id));delete state.scores[id];save()}}
-
-function paidPlacesCount(){const n=activePlayers().length; if(n>=16)return 5; if(n>=9)return 4; return Math.min(n,3)}
-function payoutAmounts(){return [1,2,3,4,5].map(i=>+(document.getElementById('pay'+i)?.value||0))}
-function placeResults(){
-  const paid=paidPlacesCount(); const amounts=payoutAmounts();
-  const rows=activePlayers().map(p=>({p,...totals(p.id)})).sort((a,b)=>b.plus-a.plus||b.pts-a.pts||a.p.name.localeCompare(b.p.name));
-  let results=[]; let place=1; let idx=0;
-  while(idx<rows.length && place<=paid){
-    const tied=rows.filter(r=>r.plus===rows[idx].plus);
-    const tieStart=idx; const tieCount=tied.length; const tieEnd=place+tieCount-1;
-    let pool=0; for(let pl=place; pl<=Math.min(tieEnd,paid); pl++) pool+=amounts[pl-1]||0;
-    if(pool>0){const each=Math.floor(pool/tieCount); tied.forEach(r=>results.push({...r,placeText:tieCount>1?`T${place}`:`${place}`,placeMoney:each,inMoney:each>0}))}
-    idx += tieCount; place += tieCount;
-  }
-  const byId=new Map(results.map(r=>[r.p.id,r]));
-  rows.forEach(r=>{if(!byId.has(r.p.id))results.push({...r,placeText:'',placeMoney:0,inMoney:false})});
-  return results;
-}
-function quotaDeltaFor(playerPlus,inMoney){
-  if(playerPlus<=-10)return -4; if(playerPlus<=-6)return -3; if(playerPlus<=-3)return -2; if(playerPlus<=-1)return -1; if(playerPlus===0)return 0;
-  if(!inMoney)return 0;
-  if(playerPlus<=2)return 1; if(playerPlus<=4)return 2; if(playerPlus<=6)return 3; if(playerPlus<=9)return 4; return Math.ceil(playerPlus/2);
-}
-function renderPayouts(){
-  const n=activePlayers().length, paid=paidPlacesCount();
-  const pp=document.getElementById('payPlayers'), pc=document.getElementById('payPlaces'); if(!pp)return;
-  pp.value=n; pc.value=paid;
-  const results=placeResults();
-  document.getElementById('placePayouts').innerHTML=`<table><tr><th>Place</th><th>Player</th><th class="num">+/-</th><th class="num">Place $</th></tr>${results.filter(r=>r.placeMoney>0).map(r=>`<tr><td>${r.placeText}</td><td>${r.p.name}</td><td class="num ${r.plus>=0?'good':'bad'}">${r.plus>=0?'+':''}${r.plus}</td><td class="num">$${r.placeMoney}</td></tr>`).join('')||'<tr><td colspan="4">No paid results yet.</td></tr>'}</table><p class="sub">Tie rule: tied players split the available place money involved, rounded down to the nearest dollar.</p>`;
-  document.getElementById('quotaChanges').innerHTML=`<table><tr><th>Player</th><th class="num">Quota</th><th class="num">+/-</th><th class="num">Place $</th><th class="num">Change</th><th class="num">Next</th></tr>${results.map(r=>{const d=quotaDeltaFor(r.plus,r.inMoney);return `<tr><td>${r.p.name}</td><td class="num">${r.p.quota}</td><td class="num ${r.plus>=0?'good':'bad'}">${r.plus>=0?'+':''}${r.plus}</td><td class="num">${r.placeMoney?'$'+r.placeMoney:''}</td><td class="num ${d>=0?'good':'bad'}">${d>=0?'+':''}${d}</td><td class="num">${r.p.quota+d}</td></tr>`}).join('')}</table><p class="sub">Increases apply only to players who win place money. Decreases still apply outside the money.</p>`;
-}
-
-function skinsSummary(){
-  const wins={}; course.forEach(c=>{const s=skinForHole(c); if(s.winner)wins[s.winner]=(wins[s.winner]||0)+1}); return wins;
-}
-function finalizeRound(){alert('Preview updated. If everything looks right, click Apply Quota Updates & Save History.'); renderPayouts();}
-function applyFinalize(){
-  if(!confirm('Finalize this round, update quotas, and save season history in this browser?')) return;
-  const results=placeResults(); const skinWins=skinsSummary(); const skinValue=+(document.getElementById('skinValue')?.value||0);
-  const round={date:new Date().toLocaleDateString(),players:activePlayers().length,results:[],skins:skinWins};
-  results.forEach(r=>{
-    const qDelta=quotaDeltaFor(r.plus,r.inMoney); const skinCount=skinWins[r.p.name]||0; const skinMoney=skinCount*skinValue; const totalMoney=(r.placeMoney||0)+skinMoney;
-    round.results.push({name:r.p.name,quota:r.p.quota,points:r.pts,plus:r.plus,place:r.placeText,placeMoney:r.placeMoney||0,skins:skinCount,skinMoney,totalMoney,quotaDelta:qDelta,nextQuota:r.p.quota+qDelta});
-    state.money[r.p.name]=(state.money[r.p.name]||0)+totalMoney;
-    r.p.quota += qDelta;
-  });
-  state.history.unshift(round); state.scores={};
-  save(); setTab('season'); alert('Round saved. Quotas updated and scores reset for the next round.');
-}
-function renderSeason(){
-  state.history=state.history||[]; state.money=state.money||{};
-  const moneyRows=Object.entries(state.money).sort((a,b)=>b[1]-a[1]).map(([n,m],i)=>`<tr><td>${i+1}</td><td>${n}</td><td class="num">$${m}</td></tr>`).join('')||'<tr><td colspan="3">No finalized rounds yet.</td></tr>';
-  document.getElementById('moneyList').innerHTML=`<table><tr><th>Rank</th><th>Player</th><th class="num">Money</th></tr>${moneyRows}</table>`;
-  document.getElementById('roundHistory').innerHTML=state.history.map((r,i)=>`<div class="card"><b>${r.date}</b><div class="sub">${r.players} players</div><table><tr><th>Player</th><th class="num">+/-</th><th class="num">$</th><th class="num">Quota</th></tr>${r.results.filter(x=>x.totalMoney||x.quotaDelta).map(x=>`<tr><td>${x.name}</td><td class="num ${x.plus>=0?'good':'bad'}">${x.plus>=0?'+':''}${x.plus}</td><td class="num">$${x.totalMoney}</td><td class="num">${x.quota} → ${x.nextQuota}</td></tr>`).join('')}</table></div>`).join('')||'<p class="muted">No finalized rounds yet.</p>';
-}
-function clearSeasonHistory(){if(confirm('Clear all season history and money totals in this browser?')){state.history=[];state.money={};save();}}
-
-
-
-function buildResultsSummary(){
-  const rows=activePlayers().map(p=>({p,...totals(p.id)})).sort((a,b)=>b.plus-a.plus||b.pts-a.pts||a.p.name.localeCompare(b.p.name));
-  const skins=skinsSummary();
-  const paid=placeResults().filter(r=>r.placeMoney>0);
-  const lines=[];
-  lines.push('Bear Tracker Saturday Results');
-  lines.push(new Date().toLocaleDateString());
-  lines.push('');
-  lines.push('Leaderboard');
-  rows.forEach((r,i)=>lines.push(`${i+1}. ${r.p.name}  ${r.plus>=0?'+':''}${r.plus}  (${r.pts} pts / quota ${r.p.quota})`));
-  lines.push('');
-  lines.push('Place Money');
-  if(paid.length) paid.forEach(r=>lines.push(`${r.placeText}. ${r.p.name} ${r.plus>=0?'+':''}${r.plus} - $${r.placeMoney}`)); else lines.push('No place payouts yet.');
-  lines.push('');
-  lines.push('Net Skins');
-  const skinEntries=Object.entries(skins);
-  if(skinEntries.length) skinEntries.forEach(([name,count])=>lines.push(`${name}: ${count}`)); else lines.push('No skins yet.');
-  return lines.join('\n');
-}
-function renderBackup(){
-  const el=document.getElementById('dataStatus'); if(!el)return;
-  const scored=Object.values(state.scores||{}).reduce((a,o)=>a+Object.keys(o).length,0);
-  el.innerHTML=`<p><b>${state.players.length}</b> players</p><p><b>${activePlayers().length}</b> active players</p><p><b>${state.groups.length}</b> groups</p><p><b>${scored}</b> hole scores entered</p><p><b>${(state.history||[]).length}</b> finalized rounds</p>`;
-  const ta=document.getElementById('resultsText'); if(ta) ta.value=buildResultsSummary();
-}
-function exportBackup(){
-  const payload={app:'Bear Tracker',version:'0.8',exportedAt:new Date().toISOString(),state};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob); const a=document.createElement('a');
-  a.href=url; a.download='bear-tracker-backup-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-}
-function importBackup(event){
-  const file=event.target.files[0]; if(!file)return;
-  const reader=new FileReader();
-  reader.onload=()=>{try{const data=JSON.parse(reader.result); if(!data.state||!data.state.players) throw new Error('Invalid backup file'); if(confirm('Restore this backup and replace current local Bear Tracker data?')){state=data.state; save(); alert('Backup restored.');}}catch(e){alert('Could not import backup: '+e.message)}};
-  reader.readAsText(file);
-}
-async function copyResults(){
-  const text=buildResultsSummary(); document.getElementById('resultsText').value=text;
-  try{await navigator.clipboard.writeText(text); alert('Results copied to clipboard.');}catch(e){alert('Summary is ready. Select and copy it from the box.')}
-}
-function printReport(){
-  const text=buildResultsSummary().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const w=window.open('','_blank'); w.document.write(`<pre style="font-family:system-ui,Segoe UI,Arial;white-space:pre-wrap;font-size:16px">${text}</pre>`); w.document.close(); w.print();
-}
-
-function renderAll(){renderHome();renderRound();renderLogin();renderScore();renderLeaderboard();renderSkins();renderPayouts();renderSeason();renderGroups();renderPlayers();renderBackup()}renderAll();
-
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('./sw.js').then(()=>{
-      const el=document.getElementById('pwaStatus'); if(el) el.textContent='Offline shell is registered. After first load, the app can reopen even with poor signal.';
-    }).catch(()=>{
-      const el=document.getElementById('pwaStatus'); if(el) el.textContent='Service worker did not register. The app still works online.';
-    });
-  });
-}else{
-  const el=document.getElementById('pwaStatus'); if(el) el.textContent='This browser does not support offline app mode.';
-}
-
-</script>
+<header><h1>Bear Tracker</h1><div class="sub">v1.0 Release Candidate · Saturday Stableford & Quota League</div></header>
+<main>
+<section><h2>Saturday Ready Checklist</h2><div class="grid">
+  <div class="card"><span class="pill">1</span><h3>Round Setup</h3><p>Set round date, course, active players, guests, and notes.</p><p class="ok">Ready</p></div>
+  <div class="card"><span class="pill">2</span><h3>Groups</h3><p>Drag players into threesomes/foursomes and assign scorekeepers.</p><p class="ok">Ready</p></div>
+  <div class="card"><span class="pill">3</span><h3>Scoring</h3><p>Group scorer enters gross scores. Net, Stableford, quota +/-, and skins are calculated.</p><p class="ok">Ready</p></div>
+  <div class="card"><span class="pill">4</span><h3>Finalize</h3><p>Review missing scores, payouts, skins, and quota changes before locking.</p><p class="warn">Admin review required</p></div>
+</div></section>
+<section><h2>Core Rules Implemented</h2><table><tr><th>Area</th><th>Rule</th></tr>
+<tr><td>Stableford</td><td>Double bogey or worse 0, bogey 1, par 2, birdie 4, eagle 6, double eagle 8.</td></tr>
+<tr><td>Leaderboard</td><td>Sorted by Stableford points minus quota.</td></tr>
+<tr><td>Skins</td><td>Net only. Lowest unique net score wins. Ties cancel. No carryovers.</td></tr>
+<tr><td>Places</td><td>9–15 players pay 4 places. 16+ players pay 5 places.</td></tr>
+<tr><td>Ties</td><td>Tied players split the place money involved, rounded down to the nearest dollar.</td></tr>
+<tr><td>Quota increases</td><td>Only players winning place money can increase quota.</td></tr>
+<tr><td>Quota decreases</td><td>Players below quota decrease according to the quota table.</td></tr>
+</table></section>
+<section><h2>v1.0 RC Additions</h2><ul>
+<li>Missing-score review before finalization.</li>
+<li>Finalize-round warning so quotas/money are not updated accidentally.</li>
+<li>Cleaner printable/copyable results summary.</li>
+<li>Admin checklist for Saturday morning setup.</li>
+<li>Release-candidate README for GitHub tracking.</li>
+</ul></section>
+<section><h2>Next After v1.0</h2><p>The next major milestone is the live shared version with Supabase so multiple phones sync in real time.</p><p class="small">For now, this release candidate is still the local/browser-storage version. It is useful for rules testing, workflow review, and group feedback.</p></section>
+</main>
 </body>
 </html>

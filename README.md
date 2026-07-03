@@ -1,14 +1,11 @@
-# Bear Tracker v0.9
+# Bear Tracker v1.0 Release Candidate
 
-Adds round setup and guest player support.
+Adds final pre-live polish:
+- Saturday ready checklist
+- score audit log notes
+- clearer finalize round warning
+- missing scores panel
+- improved results summary language
+- admin pre-round checklist
 
-## New in v0.9
-- Round Setup tab for round name, date, course, and notes
-- Guest / one-time player entry
-- Round status panel showing active players, groups, scorekeepers, and unassigned players
-- Home screen now shows current round details
-- Guest/member label in player admin
-- Migrates local data from previous versions to v0.9 storage
-
-## Commit message
-Add round setup and guest players v0.9
+Upload these files over the existing GitHub repository contents, commit, and push.
