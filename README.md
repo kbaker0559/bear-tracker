@@ -1,17 +1,20 @@
-# Bear Tracker v1.6
+# Bear Tracker v1.7
 
-This milestone adds a live-database setup wizard and seed-data package so the app can move from local testing toward real multi-phone scoring.
+This release adds the concrete Supabase database schema and seed data needed for live multi-phone scoring.
 
-## Added in v1.6
-- Supabase quickstart guide
+## New in v1.7
+
+- `DATABASE_SCHEMA.sql`
+- `SEED_DATA.sql`
+- `DATABASE_TEST_PLAN.md`
 - Black Bear course seed data
-- Saturday player seed data
-- Setup checklist for live database launch
-- Clear separation between local-test mode and live-sync mode
+- 24 Saturday players seed data
+- starter PINs and Kevin Baker admin flag
 
-## Install/update
-Copy all files into your local `bear-tracker` folder, replace existing files, then commit and push with GitHub Desktop.
+## Install
 
-Suggested commit message:
+Copy all files into the GitHub repository folder, commit, and push.
 
-`Add live database setup wizard v1.6`
+Recommended commit message:
+
+`Add Supabase schema and seed data v1.7`
