@@ -1,14 +1,14 @@
-# Bear Tracker v2.0
+# Bear Tracker v2.1
 
-This release is the pre-live Saturday launch package. It keeps the app intact and adds the final operating checklist for testing Bear Tracker before using it with the full group.
+Post-launch operations package for the Saturday Stableford/Quota league.
 
-## Adds
+## Added in v2.1
+- Admin operating manual
+- Weekly workflow checklist
+- Player onboarding guide
+- Troubleshooting guide
+- Feature backlog and priorities
+- Data backup schedule
 
-- Pre-live launch checklist
-- Scorekeeper dry-run process
-- First-Saturday fallback plan
-- Final test sequence before live database connection
-
-## Commit message
-
-`Add pre-live launch package v2.0`
+## Recommended commit message
+`Add admin operations package v2.1`
