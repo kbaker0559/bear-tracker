@@ -1,15 +1,25 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f2f24" />
-    <link rel="manifest" href="/bear-tracker/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/bear-tracker/icon-192.png" />
-    <title>Bear Tracker</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bear Tracker Real v1.0</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:0;background:#f6f4ef;color:#1f2933;padding:24px} .card{max-width:900px;margin:auto;background:white;padding:24px;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)} h1{margin-top:0}.tag{display:inline-block;background:#123524;color:white;padding:6px 10px;border-radius:999px;font-size:13px} code{background:#eee;padding:2px 5px;border-radius:5px} ul{line-height:1.7}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="tag">Bear Tracker Real v1.0</span>
+    <h1>Supabase Foundation Added</h1>
+    <p>This milestone prepares Bear Tracker for live multi-phone scoring.</p>
+    <ul>
+      <li>Database schema added in <code>supabase/schema.sql</code></li>
+      <li>Black Bear and player seed data added in <code>supabase/seed.sql</code></li>
+      <li>Environment template added in <code>.env.example</code></li>
+      <li>Setup guide added in <code>SUPABASE_SETUP.md</code></li>
+    </ul>
+    <p>The next milestone will wire the app UI to Supabase reads/writes.</p>
+  </div>
+</body>
 </html>

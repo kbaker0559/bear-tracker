@@ -1,25 +1,16 @@
-# Bear Tracker Real v0.9
+# Bear Tracker Real v1.0
 
-Real React/TypeScript implementation.
+Adds the first production-ready Supabase preparation package:
 
-## Added in v0.9
+- Supabase schema SQL
+- seed data for Black Bear and Saturday players
+- environment/config template
+- live database connection checklist
+- database service skeleton
+- roadmap for replacing localStorage with Supabase tables
 
-- Admin Score Review tab
-- missing-score checklist for every active golfer
-- full scorecard correction grid
-- admin-only score corrections
-- local correction/audit log
-- backup/restore now includes correction log data
+This version keeps the local app behavior intact while preparing the project for live multi-phone scoring.
 
-## Run locally
+Commit message:
 
-```bash
-npm install
-npm run dev
-```
-
-## Build
-
-```bash
-npm run build
-```
+`Add Supabase foundation v1.0`

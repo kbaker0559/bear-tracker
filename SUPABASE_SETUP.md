@@ -1,32 +1,41 @@
 # Supabase Setup for Bear Tracker
 
-## 1. Create project
-1. Go to Supabase.
-2. Create a new project named `bear-tracker`.
-3. Save your project URL and anon public key.
+## 1. Create Project
+Create a new Supabase project named `bear-tracker`.
 
-## 2. Create tables
-Open Supabase SQL Editor and run `supabase_schema.sql`.
+## 2. Run Schema
+Open Supabase SQL Editor and run `supabase/schema.sql`.
 
-## 3. App data model
-The first live version will use these tables:
-- leagues
+## 3. Run Seed Data
+Run `supabase/seed.sql` after the schema succeeds.
+
+## 4. Copy API Values
+From Supabase Project Settings → API, copy:
+
+- Project URL
+- Anon public key
+
+Add them to your app config.
+
+## 5. Live Mode Tables
+Core tables:
+
+- players
 - courses
 - holes
-- players
 - rounds
 - round_players
 - groups
-- group_members
+- group_players
 - scores
-- payouts
-- quota_history
+- correction_log
+- round_results
 
-## 4. Login approach
-Bear Tracker will use simple player PINs for now:
-- Admin PIN unlocks admin controls.
-- Scorekeeper PIN allows scoring assigned group.
-- Regular player PIN allows viewing and possibly own-score entry later.
+## 6. First Live Test
+Use two phones or one phone plus PC:
 
-## 5. Security note
-PIN login is convenient for a private golf group, but it is not bank-level authentication. This is fine for league scoring and payouts, but we should avoid storing sensitive personal information.
+1. Open same round on both devices.
+2. Enter one score on Device A.
+3. Confirm Device B updates.
+4. Correct a score as admin.
+5. Confirm correction appears in log.
