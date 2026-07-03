@@ -1,11 +1,15 @@
-# Bear Tracker v1.0 Release Candidate
+# Bear Tracker v1.1 - Live Database Preparation
 
-Adds final pre-live polish:
-- Saturday ready checklist
-- score audit log notes
-- clearer finalize round warning
-- missing scores panel
-- improved results summary language
-- admin pre-round checklist
+This milestone prepares Bear Tracker for the shared, multi-phone version.
 
-Upload these files over the existing GitHub repository contents, commit, and push.
+## What changed
+- Adds Supabase setup guide.
+- Adds starter database schema.
+- Adds live-sync roadmap.
+- Keeps the current local browser version intact while preparing the backend.
+
+## Commit message
+`Add Supabase live database prep v1.1`
+
+## Important
+Do not put private Supabase keys directly into public code except the public anon key. Service role keys must never be committed.
