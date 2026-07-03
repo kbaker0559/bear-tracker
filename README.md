@@ -1,14 +1,14 @@
-# Bear Tracker Real v0.6
+# Bear Tracker Real v0.7
 
-Real React/TypeScript implementation milestone.
+Installable PWA milestone.
 
-Adds:
-- Season history after finalization
-- Season money list
-- Round archive with quota-before/quota-after
-- Export backup JSON
-- Restore backup JSON
-- Finalization now records a round before clearing scores
+## Added in v0.7
+
+- Web app manifest
+- App icons
+- Service worker for basic offline shell caching
+- Browser install helper panel
+- Safer GitHub Pages/Vite base path config
 
 ## Run locally
 
@@ -17,6 +17,14 @@ npm install
 npm run dev
 ```
 
-## Commit message
+## Build
 
-`Add real season history and backups v0.6`
+```bash
+npm run build
+```
+
+Commit message:
+
+```text
+Add real PWA install support v0.7
+```

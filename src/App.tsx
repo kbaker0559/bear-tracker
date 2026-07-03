@@ -13,6 +13,7 @@ import { Leaderboard } from './components/Leaderboard';
 import { SkinsPanel } from './components/SkinsPanel';
 import { PayoutPanel } from './components/PayoutPanel';
 import { SeasonPanel } from './components/SeasonPanel';
+import { InstallPanel } from './components/InstallPanel';
 import './styles.css';
 
 export default function App() {
@@ -22,7 +23,7 @@ export default function App() {
   const [history, setHistory] = useState<RoundRecord[]>(() => loadJson('history', []));
   const [payoutSettings, setPayoutSettings] = useState<PayoutSettings>(() => loadJson('payoutSettings', { placePurse: 300, skinValue: 10 }));
   const [session, setSession] = useState<Session>(() => loadJson('session', null));
-  const [tab, setTab] = useState<'scoring' | 'leaderboard' | 'skins' | 'payouts' | 'season' | 'groups' | 'admin'>('scoring');
+  const [tab, setTab] = useState<'scoring' | 'leaderboard' | 'skins' | 'payouts' | 'season' | 'groups' | 'admin' | 'install'>('scoring');
   const [hole, setHole] = useState(1);
   const [selectedGroupId, setSelectedGroupId] = useState<string>(() => loadJson('selectedGroupId', initialGroups[0].id));
 
@@ -102,7 +103,7 @@ export default function App() {
   }
 
   function exportBackup() {
-    const backup = { exportedAt: new Date().toISOString(), version: 'real-v0.6', players, groups, scores, history, payoutSettings };
+    const backup = { exportedAt: new Date().toISOString(), version: 'real-v0.7', players, groups, scores, history, payoutSettings };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -133,7 +134,7 @@ export default function App() {
   }
 
   return <div className="app">
-    <header><h1>Bear Tracker</h1><p>Real implementation v0.6 · Season history, money list, and backups</p><Login players={players} session={session} onLogin={login} onLogout={()=>setSession(null)} /></header>
+    <header><h1>Bear Tracker</h1><p>Real implementation v0.7 · Installable PWA support</p><Login players={players} session={session} onLogin={login} onLogout={()=>setSession(null)} /></header>
     <nav className="tabs">
       <button className={tab==='scoring'?'active':''} onClick={()=>setTab('scoring')}>Group Scoring</button>
       <button className={tab==='leaderboard'?'active':''} onClick={()=>setTab('leaderboard')}>Leaderboard</button>
@@ -142,6 +143,7 @@ export default function App() {
       <button className={tab==='season'?'active':''} onClick={()=>setTab('season')}>Season</button>
       <button className={tab==='groups'?'active':''} onClick={()=>setTab('groups')}>Groups</button>
       <button className={tab==='admin'?'active':''} onClick={()=>setTab('admin')}>Players</button>
+      <button className={tab==='install'?'active':''} onClick={()=>setTab('install')}>Install</button>
     </nav>
     <main className="grid">
       {tab === 'scoring' && <ScoringPanel players={players} groups={groups} scores={scores} selectedGroupId={selectedGroup?.id ?? selectedGroupId} hole={hole} currentHole={currentHole} currentUserName={currentUser?.name ?? null} canScoreSelectedGroup={canScoreSelectedGroup} scorerGroups={scorerGroups} isAdmin={!!session?.isAdmin} onGroupChange={setSelectedGroupId} onSaveScore={saveScore} onHoleChange={setHole} onResetScores={resetScores} />}
@@ -151,6 +153,7 @@ export default function App() {
       {tab === 'season' && (canAdmin ? <SeasonPanel history={history} players={players} onExport={exportBackup} onImport={importBackup} onClearHistory={()=>{ if(confirm('Clear season history on this device?')) setHistory([]); }} /> : <section className="card full"><h2>Season</h2><p>Sign in as admin to view season history and backups.</p></section>)}
       {tab === 'groups' && (canAdmin ? <GroupAdmin players={players} groups={groups} onChange={setGroups} /> : <section className="card full"><h2>Groups</h2><p>Sign in as admin to assign groups and scorekeepers.</p></section>)}
       {tab === 'admin' && (canAdmin ? <PlayerAdmin players={players} onChange={setPlayers} /> : <section className="card full"><h2>Players</h2><p>Sign in as an admin to edit players. Kevin Baker has admin access in the seed data.</p></section>)}
+      {tab === 'install' && <InstallPanel />}
     </main>
   </div>
 }
