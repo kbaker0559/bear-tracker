@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bear Tracker v0.5</title>
+  <title>Bear Tracker v0.6</title>
   <style>
     :root{--bg:#0f1b14;--card:#17261d;--card2:#203527;--text:#f4f7f1;--muted:#b9c8b8;--gold:#f2c14e;--green:#2f7d45;--red:#a84632;--line:#35513d;--blue:#70a9ff}
     *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0f1b14,#132317);color:var(--text)}
@@ -15,10 +15,10 @@
   </style>
 </head>
 <body>
-<header><div><h1>🐻 Bear Tracker</h1><div class="sub">Black Bear Saturday Game · v0.5 payouts & finalization</div></div><div id="loginStatus" class="sub"></div></header>
+<header><div><h1>🐻 Bear Tracker</h1><div class="sub">Black Bear Saturday Game · v0.6 finalize, history & money tracking</div></div><div id="loginStatus" class="sub"></div></header>
 <div class="wrap">
   <div class="tabs">
-    <button class="tab active" data-tab="home">Home</button><button class="tab" data-tab="score">Group Scoring</button><button class="tab" data-tab="leaderboard">Leaderboard</button><button class="tab" data-tab="skins">Skins</button><button class="tab" data-tab="payouts">Payouts/Finalize</button><button class="tab" data-tab="groups">Groups</button><button class="tab" data-tab="players">Players/Admin</button>
+    <button class="tab active" data-tab="home">Home</button><button class="tab" data-tab="score">Group Scoring</button><button class="tab" data-tab="leaderboard">Leaderboard</button><button class="tab" data-tab="skins">Skins</button><button class="tab" data-tab="payouts">Payouts/Finalize</button><button class="tab" data-tab="season">Season/Money</button><button class="tab" data-tab="groups">Groups</button><button class="tab" data-tab="players">Players/Admin</button>
   </div>
 
   <section id="home" class="page">
@@ -43,10 +43,20 @@
       <div class="card"><h2>Payout Settings</h2><p class="sub">Prototype payout table. Adjust the place amounts before finalizing if needed.</p>
         <div class="row"><div><label>Players</label><input id="payPlayers" readonly></div><div><label>Paid Places</label><input id="payPlaces" readonly></div></div>
         <div class="row"><div><label>1st</label><input id="pay1" type="number" value="120" onchange="renderPayouts()"></div><div><label>2nd</label><input id="pay2" type="number" value="90" onchange="renderPayouts()"></div><div><label>3rd</label><input id="pay3" type="number" value="70" onchange="renderPayouts()"></div></div>
-        <div class="row"><div><label>4th</label><input id="pay4" type="number" value="50" onchange="renderPayouts()"></div><div><label>5th</label><input id="pay5" type="number" value="30" onchange="renderPayouts()"></div><div><label>&nbsp;</label><button onclick="finalizeRound()">Preview Finalize</button></div></div>
+        <div class="row"><div><label>4th</label><input id="pay4" type="number" value="50" onchange="renderPayouts()"></div><div><label>5th</label><input id="pay5" type="number" value="30" onchange="renderPayouts()"></div><div><label>Skin $ per skin</label><input id="skinValue" type="number" value="10" onchange="renderPayouts()"></div></div>
+        <div class="row"><div><button onclick="finalizeRound()">Preview Finalize</button></div><div><button onclick="applyFinalize()">Apply Quota Updates & Save History</button></div></div>
       </div>
       <div class="card"><h2>Place Payouts</h2><div id="placePayouts"></div></div>
       <div class="card"><h2>Quota Changes</h2><div id="quotaChanges"></div></div>
+    </div>
+  </section>
+
+
+  <section id="season" class="page hidden">
+    <div class="grid cols">
+      <div class="card"><h2>Season Money List</h2><div id="moneyList"></div></div>
+      <div class="card"><h2>Round History</h2><div id="roundHistory"></div></div>
+      <div class="card"><h2>Maintenance</h2><p class="sub">These buttons only affect this browser prototype.</p><button class="danger" onclick="clearSeasonHistory()">Clear Season History</button></div>
     </div>
   </section>
 
@@ -59,8 +69,8 @@
 <script>
 const course=[{h:1,p:4,si:5},{h:2,p:5,si:17},{h:3,p:3,si:15},{h:4,p:5,si:11},{h:5,p:3,si:9},{h:6,p:4,si:1},{h:7,p:4,si:7},{h:8,p:4,si:13},{h:9,p:4,si:3},{h:10,p:4,si:10},{h:11,p:3,si:12},{h:12,p:4,si:2},{h:13,p:4,si:6},{h:14,p:5,si:14},{h:15,p:3,si:18},{h:16,p:5,si:16},{h:17,p:4,si:4},{h:18,p:4,si:8}];
 const starter=[['Fred Tucker',6,30],['Paul Tucker JR',10,27],['Steve Robin',11,23],['Russ Lizzoli',16,16],['Cam Crollard',5,30],['Paul Tucker SR',8,25],['Kevin Baker',12,19],['Mark Knuutilla',10,24],['Tyler Adams',9,25],['Don Maines',13,21],['Dave Hall',9,26],['Ed Sanchez',12,21],['Neal Self',11,19],['Chuck Blankenship',12,26],['Bruce Coleman',11,19],['George Heider',6,26],['Anthony Ciuzio',4,29],['Tom Tzobanakis',12,21],['Shawn Boone',16,15],['Blake Donahue',4,23],['Wayne Smith',11,18],['Preston Rager',11,21],['Les Smith',19,16],['Mike Ondrasik',13,18]];
-let state=JSON.parse(localStorage.getItem('bt_v05')||localStorage.getItem('bt_v04')||'null')||{user:null,players:starter.map((p,i)=>({id:'p'+i,name:p[0],hdcp:p[1],quota:p[2],active:true})),groups:[{id:'g1',name:'Group 1',scorekeeper:null,players:['p6','p4','p0','p12']},{id:'g2',name:'Group 2',scorekeeper:null,players:['p1','p5','p15','p10']}],scores:{}};
-function save(){localStorage.setItem('bt_v05',JSON.stringify(state));renderAll()}function player(id){return state.players.find(p=>p.id===id)}function activePlayers(){return state.players.filter(p=>p.active)}
+let state=JSON.parse(localStorage.getItem('bt_v06')||localStorage.getItem('bt_v05')||localStorage.getItem('bt_v04')||'null')||{user:null,players:starter.map((p,i)=>({id:'p'+i,name:p[0],hdcp:p[1],quota:p[2],active:true})),groups:[{id:'g1',name:'Group 1',scorekeeper:null,players:['p6','p4','p0','p12']},{id:'g2',name:'Group 2',scorekeeper:null,players:['p1','p5','p15','p10']}],scores:{},history:[],money:{}};
+function save(){state.history=state.history||[];state.money=state.money||{};localStorage.setItem('bt_v06',JSON.stringify(state));renderAll()}function player(id){return state.players.find(p=>p.id===id)}function activePlayers(){return state.players.filter(p=>p.active)}
 function strokesOnHole(hdcp,si){return Math.floor(hdcp/18)+(si<=hdcp%18?1:0)}
 function stableford(gross,par,strokes){if(!gross)return 0;const net=gross-strokes;const rel=net-par;if(rel<=-3)return 8;if(rel===-2)return 6;if(rel===-1)return 4;if(rel===0)return 2;if(rel===1)return 1;return 0}
 function totals(pid){let gross=0,net=0,pts=0,thru=0;course.forEach(c=>{const g=state.scores[pid]?.[c.h];if(g){const s=strokesOnHole(player(pid).hdcp,c.si);gross+=g;net+=g-s;pts+=stableford(g,c.p,s);thru++;}});return{gross,net,pts,thru,plus:pts-player(pid).quota}}
@@ -110,9 +120,34 @@ function renderPayouts(){
   document.getElementById('placePayouts').innerHTML=`<table><tr><th>Place</th><th>Player</th><th class="num">+/-</th><th class="num">Place $</th></tr>${results.filter(r=>r.placeMoney>0).map(r=>`<tr><td>${r.placeText}</td><td>${r.p.name}</td><td class="num ${r.plus>=0?'good':'bad'}">${r.plus>=0?'+':''}${r.plus}</td><td class="num">$${r.placeMoney}</td></tr>`).join('')||'<tr><td colspan="4">No paid results yet.</td></tr>'}</table><p class="sub">Tie rule: tied players split the available place money involved, rounded down to the nearest dollar.</p>`;
   document.getElementById('quotaChanges').innerHTML=`<table><tr><th>Player</th><th class="num">Quota</th><th class="num">+/-</th><th class="num">Place $</th><th class="num">Change</th><th class="num">Next</th></tr>${results.map(r=>{const d=quotaDeltaFor(r.plus,r.inMoney);return `<tr><td>${r.p.name}</td><td class="num">${r.p.quota}</td><td class="num ${r.plus>=0?'good':'bad'}">${r.plus>=0?'+':''}${r.plus}</td><td class="num">${r.placeMoney?'$'+r.placeMoney:''}</td><td class="num ${d>=0?'good':'bad'}">${d>=0?'+':''}${d}</td><td class="num">${r.p.quota+d}</td></tr>`}).join('')}</table><p class="sub">Increases apply only to players who win place money. Decreases still apply outside the money.</p>`;
 }
-function finalizeRound(){alert('Finalize preview only in v0.5. Review the table, then v0.6 will add Apply Quota Updates and season history.'); renderPayouts();}
 
-function renderAll(){renderHome();renderLogin();renderScore();renderLeaderboard();renderSkins();renderPayouts();renderGroups();renderPlayers()}renderAll();
+function skinsSummary(){
+  const wins={}; course.forEach(c=>{const s=skinForHole(c); if(s.winner)wins[s.winner]=(wins[s.winner]||0)+1}); return wins;
+}
+function finalizeRound(){alert('Preview updated. If everything looks right, click Apply Quota Updates & Save History.'); renderPayouts();}
+function applyFinalize(){
+  if(!confirm('Finalize this round, update quotas, and save season history in this browser?')) return;
+  const results=placeResults(); const skinWins=skinsSummary(); const skinValue=+(document.getElementById('skinValue')?.value||0);
+  const round={date:new Date().toLocaleDateString(),players:activePlayers().length,results:[],skins:skinWins};
+  results.forEach(r=>{
+    const qDelta=quotaDeltaFor(r.plus,r.inMoney); const skinCount=skinWins[r.p.name]||0; const skinMoney=skinCount*skinValue; const totalMoney=(r.placeMoney||0)+skinMoney;
+    round.results.push({name:r.p.name,quota:r.p.quota,points:r.pts,plus:r.plus,place:r.placeText,placeMoney:r.placeMoney||0,skins:skinCount,skinMoney,totalMoney,quotaDelta:qDelta,nextQuota:r.p.quota+qDelta});
+    state.money[r.p.name]=(state.money[r.p.name]||0)+totalMoney;
+    r.p.quota += qDelta;
+  });
+  state.history.unshift(round); state.scores={};
+  save(); setTab('season'); alert('Round saved. Quotas updated and scores reset for the next round.');
+}
+function renderSeason(){
+  state.history=state.history||[]; state.money=state.money||{};
+  const moneyRows=Object.entries(state.money).sort((a,b)=>b[1]-a[1]).map(([n,m],i)=>`<tr><td>${i+1}</td><td>${n}</td><td class="num">$${m}</td></tr>`).join('')||'<tr><td colspan="3">No finalized rounds yet.</td></tr>';
+  document.getElementById('moneyList').innerHTML=`<table><tr><th>Rank</th><th>Player</th><th class="num">Money</th></tr>${moneyRows}</table>`;
+  document.getElementById('roundHistory').innerHTML=state.history.map((r,i)=>`<div class="card"><b>${r.date}</b><div class="sub">${r.players} players</div><table><tr><th>Player</th><th class="num">+/-</th><th class="num">$</th><th class="num">Quota</th></tr>${r.results.filter(x=>x.totalMoney||x.quotaDelta).map(x=>`<tr><td>${x.name}</td><td class="num ${x.plus>=0?'good':'bad'}">${x.plus>=0?'+':''}${x.plus}</td><td class="num">$${x.totalMoney}</td><td class="num">${x.quota} → ${x.nextQuota}</td></tr>`).join('')}</table></div>`).join('')||'<p class="muted">No finalized rounds yet.</p>';
+}
+function clearSeasonHistory(){if(confirm('Clear all season history and money totals in this browser?')){state.history=[];state.money={};save();}}
+
+
+function renderAll(){renderHome();renderLogin();renderScore();renderLeaderboard();renderSkins();renderPayouts();renderSeason();renderGroups();renderPlayers()}renderAll();
 </script>
 </body>
 </html>
