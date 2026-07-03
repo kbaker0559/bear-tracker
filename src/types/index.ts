@@ -7,5 +7,7 @@ export type SkinResult = { hole: number; winnerId: string | null; netScore: numb
 export type PlacePayout = { placeLabel: string; playerIds: string[]; amountEach: number; placesCovered: number[] };
 export type PayoutSettings = { placePurse: number; skinValue: number };
 export type QuotaPreview = { playerId: string; currentQuota: number; points: number; quotaDiff: number; inMoney: boolean; adjustment: number; nextQuota: number; placeMoney: number; skinMoney: number; totalMoney: number };
+export type RoundPlayerHistory = { playerId: string; playerName: string; gross: number; net: number; points: number; quotaDiff: number; quotaBefore: number; quotaAfter: number; placeMoney: number; skinMoney: number; totalMoney: number };
+export type RoundRecord = { id: string; date: string; label: string; playerCount: number; totalPlaceMoney: number; totalSkinMoney: number; players: RoundPlayerHistory[] };
 export type Session = { playerId: string; isAdmin: boolean } | null;
 export type HoleScoreDetail = { player: Player; gross: number | null; strokes: number; net: number | null; points: number | null; label: string; };

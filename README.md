@@ -1,19 +1,22 @@
-# Bear Tracker Real v0.5
+# Bear Tracker Real v0.6
 
-This milestone adds real payout and quota-finalization logic to the React/TypeScript app.
+Real React/TypeScript implementation milestone.
 
-## Added in v0.5
+Adds:
+- Season history after finalization
+- Season money list
+- Round archive with quota-before/quota-after
+- Export backup JSON
+- Restore backup JSON
+- Finalization now records a round before clearing scores
 
-- Admin Payouts tab
-- 9-15 players pays 4 places
-- 16+ players pays 5 places
-- Tied places split the money for the affected places
-- Split tie payouts round down to the nearest dollar
-- Net skins money preview
-- Quota increase rule: only in-the-money players can increase
-- Quota decrease rule still applies for players below quota
-- Finalize Round button applies quota changes and clears scores
+## Run locally
 
-## Suggested commit message
+```bash
+npm install
+npm run dev
+```
 
-`Add real payout and quota finalization v0.5`
+## Commit message
+
+`Add real season history and backups v0.6`
