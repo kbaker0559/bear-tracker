@@ -1,14 +1,27 @@
-# Bear Tracker v2.1
+# Bear Tracker Real Foundation v0.1
 
-Post-launch operations package for the Saturday Stableford/Quota league.
+This is the first real implementation foundation for Bear Tracker.
 
-## Added in v2.1
-- Admin operating manual
-- Weekly workflow checklist
-- Player onboarding guide
-- Troubleshooting guide
-- Feature backlog and priorities
-- Data backup schedule
+## Run locally
 
-## Recommended commit message
-`Add admin operations package v2.1`
+1. Install Node.js LTS.
+2. In this folder, run:
+   npm install
+   npm run dev
+
+## Included
+- React + TypeScript + Vite
+- Black Bear course data
+- Saturday player seed data
+- Scoring engine module
+- Stableford points
+- Net score calculation
+- Quota +/- leaderboard
+- Net skins calculation
+
+## Next
+- Editable players
+- Admin/player PIN login
+- Group assignment
+- Persistent storage
+- Supabase integration
