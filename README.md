@@ -1,24 +1,23 @@
-# Bear Tracker Real Foundation v0.2
+# Bear Tracker Real v0.3
 
-Actual React/TypeScript implementation milestone.
+This is the next real React/TypeScript milestone.
 
-## Added in v0.2
-- Player PIN login
-- Admin session handling
-- Player admin screen
-- Edit player name, handicap, quota, PIN, active status, admin flag
-- Add golfer
-- Local browser persistence via localStorage
-- Tab navigation for scoring, leaderboard, skins, admin
+## Added in v0.3
 
-## Default admin
-Kevin Baker is seeded as an admin. His seed PIN is `1006` because he is the 7th seeded player.
+- Drag-and-drop group assignment
+- Add/delete/rename groups
+- Assign one or more scorekeepers per group
+- Scorekeeper restrictions on group score entry
+- Group selector in scoring view
+- Saved group assignments in local browser storage
 
-## Run locally
-1. Install Node.js LTS.
-2. In this folder:
-   npm install
-   npm run dev
+## How to run locally
 
-## GitHub Pages note
-This is now a Vite React app. GitHub Pages deployment will need a build workflow or Vite static build output. We will wire that up in a later milestone.
+```bash
+npm install
+npm run dev
+```
+
+## Admin seed
+
+Kevin Baker has admin rights in the seed data.
