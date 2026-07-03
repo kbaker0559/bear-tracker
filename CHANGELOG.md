@@ -1,10 +1,8 @@
-# Changelog
+# Bear Tracker Changelog
 
-## v1.6
-- Added Supabase quickstart guide.
-- Added seed SQL for Black Bear Golf Club and current Saturday player list.
-- Added live database setup wizard notes to the app shell.
-- Added checklist for moving from local browser storage to shared scoring.
-
-## v1.5
-- Added score correction and audit flow planning.
+## v1.8 – Live Sync Integration Prep
+- Added live-sync wiring notes.
+- Added browser/local mode versus Supabase live mode explanation.
+- Added score event queue design for future real-time scoring.
+- Added connection health/check workflow for Saturday morning.
+- Updated README with next implementation steps.

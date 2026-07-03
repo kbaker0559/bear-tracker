@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bear Tracker v1.6</title>
+  <title>Bear Tracker v1.8</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f3ea;color:#1f2933}
     header{background:#27391c;color:#fff;padding:18px 16px;text-align:center}
@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-<header><h1>Bear Tracker</h1><div class="sub">v1.6 · Saturday Stableford & Quota League</div></header>
+<header><h1>Bear Tracker</h1><div class="sub">v1.8 · Live Sync Integration Prep</div></header>
 <main>
 <section><h2>Saturday Ready Checklist</h2><div class="grid">
   <div class="card"><span class="pill">1</span><h3>Round Setup</h3><p>Set round date, course, active players, guests, and notes.</p><p class="ok">Ready</p></div>
@@ -98,6 +98,18 @@
   <p><strong>Next milestone:</strong> turn on actual read/write syncing between the app and Supabase.</p>
 </section>
 
+
+<section><h2>v1.8 Live Sync Integration Prep</h2><div class="grid">
+  <div class="card"><span class="pill">1</span><h3>Local Test Mode</h3><p>Use this mode to test scoring, groups, skins, payouts, and reports on one device.</p><p class="ok">Available now</p></div>
+  <div class="card"><span class="pill">2</span><h3>Live Saturday Mode</h3><p>Supabase mode will sync scores from each group scorer to every phone.</p><p class="warn">Next technical step</p></div>
+  <div class="card"><span class="pill">3</span><h3>Connection Check</h3><p>Admin will see a green/red database status before starting the round.</p><p class="warn">Planned</p></div>
+</div></section>
+<section><h2>Live Sync Events</h2><table><tr><th>Event</th><th>What updates</th></tr>
+<tr><td>Score saved</td><td>Leaderboard, quota +/-, gross/net totals, skins preview</td></tr>
+<tr><td>Group changed</td><td>Scorekeeper screen and admin group screen</td></tr>
+<tr><td>Round finalized</td><td>Payouts, quota updates, season money list</td></tr>
+<tr><td>Admin correction</td><td>Scores, audit log, recalculated results</td></tr>
+</table></section>
 </main>
 </body>
 </html>

@@ -1,20 +1,19 @@
-# Bear Tracker v1.7
+# Bear Tracker v1.8
 
-This release adds the concrete Supabase database schema and seed data needed for live multi-phone scoring.
+Saturday Stableford & Quota Golf League Manager for Black Bear Golf Club.
 
-## New in v1.7
+## This release adds
 
-- `DATABASE_SCHEMA.sql`
-- `SEED_DATA.sql`
-- `DATABASE_TEST_PLAN.md`
-- Black Bear course seed data
-- 24 Saturday players seed data
-- starter PINs and Kevin Baker admin flag
+- Live sync integration planning
+- Connection health workflow
+- Real-time score update design
+- Audit log design for score changes
+- Saturday morning live database checklist refinements
 
-## Install
+## Current status
 
-Copy all files into the GitHub repository folder, commit, and push.
+The app is still running in local/browser test mode until Supabase credentials are added and the live database is created.
 
-Recommended commit message:
+## Next milestone
 
-`Add Supabase schema and seed data v1.7`
+v1.9 will start separating the app into production-ready source files and preparing for actual Supabase connection testing.
