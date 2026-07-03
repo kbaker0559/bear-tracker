@@ -1,15 +1,13 @@
-# Bear Tracker v1.1 - Live Database Preparation
+# Bear Tracker v1.2
 
-This milestone prepares Bear Tracker for the shared, multi-phone version.
+Milestone: Live Database Connection Prep
 
-## What changed
-- Adds Supabase setup guide.
-- Adds starter database schema.
-- Adds live-sync roadmap.
-- Keeps the current local browser version intact while preparing the backend.
+Adds:
+- `config.example.js` for Supabase project settings
+- `database.js` with starter Supabase client wrapper
+- `supabase-schema.sql` starter schema
+- `LIVE_DATABASE_CHECKLIST.md`
+- keeps current app usable without Supabase credentials
 
-## Commit message
-`Add Supabase live database prep v1.1`
-
-## Important
-Do not put private Supabase keys directly into public code except the public anon key. Service role keys must never be committed.
+Commit message:
+`Add live database connection prep v1.2`
