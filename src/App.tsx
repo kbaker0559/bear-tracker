@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { blackBearCourse } from './data/course';
 import { initialPlayers } from './data/players';
 import { initialGroups } from './data/groups';
-import type { Group, Player, PayoutSettings, QuotaPreview, RoundRecord, Score, Session } from './types';
+import type { Group, Player, PayoutSettings, QuotaPreview, RoundRecord, RoundSettings, Score, Session } from './types';
 import { calculateResults, calculateSkins } from './lib/scoring';
 import { loadJson, saveJson } from './lib/storage';
 import { Login } from './components/Login';
@@ -14,6 +14,7 @@ import { SkinsPanel } from './components/SkinsPanel';
 import { PayoutPanel } from './components/PayoutPanel';
 import { SeasonPanel } from './components/SeasonPanel';
 import { InstallPanel } from './components/InstallPanel';
+import { RoundSetup } from './components/RoundSetup';
 import './styles.css';
 
 export default function App() {
@@ -22,8 +23,9 @@ export default function App() {
   const [scores, setScores] = useState<Score[]>(() => loadJson('scores', []));
   const [history, setHistory] = useState<RoundRecord[]>(() => loadJson('history', []));
   const [payoutSettings, setPayoutSettings] = useState<PayoutSettings>(() => loadJson('payoutSettings', { placePurse: 300, skinValue: 10 }));
+  const [roundSettings, setRoundSettings] = useState<RoundSettings>(() => loadJson('roundSettings', { name: 'Saturday Game', date: new Date().toISOString().slice(0, 10), courseName: 'Black Bear Golf Club', notes: '' }));
   const [session, setSession] = useState<Session>(() => loadJson('session', null));
-  const [tab, setTab] = useState<'scoring' | 'leaderboard' | 'skins' | 'payouts' | 'season' | 'groups' | 'admin' | 'install'>('scoring');
+  const [tab, setTab] = useState<'setup' | 'scoring' | 'leaderboard' | 'skins' | 'payouts' | 'season' | 'groups' | 'admin' | 'install'>('setup');
   const [hole, setHole] = useState(1);
   const [selectedGroupId, setSelectedGroupId] = useState<string>(() => loadJson('selectedGroupId', initialGroups[0].id));
 
@@ -33,6 +35,7 @@ export default function App() {
   useEffect(()=>saveJson('history', history), [history]);
   useEffect(()=>saveJson('session', session), [session]);
   useEffect(()=>saveJson('payoutSettings', payoutSettings), [payoutSettings]);
+  useEffect(()=>saveJson('roundSettings', roundSettings), [roundSettings]);
   useEffect(()=>saveJson('selectedGroupId', selectedGroupId), [selectedGroupId]);
 
   const results = useMemo(()=>calculateResults(players, blackBearCourse, scores), [players, scores]);
@@ -103,7 +106,7 @@ export default function App() {
   }
 
   function exportBackup() {
-    const backup = { exportedAt: new Date().toISOString(), version: 'real-v0.7', players, groups, scores, history, payoutSettings };
+    const backup = { exportedAt: new Date().toISOString(), version: 'real-v0.8', players, groups, scores, history, payoutSettings, roundSettings };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -125,6 +128,7 @@ export default function App() {
         setScores(backup.scores ?? []);
         setHistory(backup.history ?? []);
         setPayoutSettings(backup.payoutSettings ?? { placePurse: 300, skinValue: 10 });
+        setRoundSettings(backup.roundSettings ?? { name: 'Saturday Game', date: new Date().toISOString().slice(0, 10), courseName: 'Black Bear Golf Club', notes: '' });
         alert('Backup restored.');
       } catch (error) {
         alert(`Could not restore backup: ${error instanceof Error ? error.message : 'unknown error'}`);
@@ -134,8 +138,9 @@ export default function App() {
   }
 
   return <div className="app">
-    <header><h1>Bear Tracker</h1><p>Real implementation v0.7 · Installable PWA support</p><Login players={players} session={session} onLogin={login} onLogout={()=>setSession(null)} /></header>
+    <header><h1>Bear Tracker</h1><p>{roundSettings.name} · {roundSettings.courseName} · {roundSettings.date}</p><Login players={players} session={session} onLogin={login} onLogout={()=>setSession(null)} /></header>
     <nav className="tabs">
+      <button className={tab==='setup'?'active':''} onClick={()=>setTab('setup')}>Round Setup</button>
       <button className={tab==='scoring'?'active':''} onClick={()=>setTab('scoring')}>Group Scoring</button>
       <button className={tab==='leaderboard'?'active':''} onClick={()=>setTab('leaderboard')}>Leaderboard</button>
       <button className={tab==='skins'?'active':''} onClick={()=>setTab('skins')}>Skins</button>
@@ -146,6 +151,7 @@ export default function App() {
       <button className={tab==='install'?'active':''} onClick={()=>setTab('install')}>Install</button>
     </nav>
     <main className="grid">
+      {tab === 'setup' && (canAdmin ? <RoundSetup players={players} round={roundSettings} onRoundChange={setRoundSettings} onPlayersChange={setPlayers} /> : <section className="card full"><h2>Round Setup</h2><p>Sign in as admin to set up the Saturday round.</p></section>)}
       {tab === 'scoring' && <ScoringPanel players={players} groups={groups} scores={scores} selectedGroupId={selectedGroup?.id ?? selectedGroupId} hole={hole} currentHole={currentHole} currentUserName={currentUser?.name ?? null} canScoreSelectedGroup={canScoreSelectedGroup} scorerGroups={scorerGroups} isAdmin={!!session?.isAdmin} onGroupChange={setSelectedGroupId} onSaveScore={saveScore} onHoleChange={setHole} onResetScores={resetScores} />}
       {tab === 'leaderboard' && <Leaderboard results={results} />}
       {tab === 'skins' && <SkinsPanel players={players} skins={skins} />}

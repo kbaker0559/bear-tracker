@@ -1,14 +1,15 @@
-# Bear Tracker Real v0.7
+# Bear Tracker Real v0.8
 
-Installable PWA milestone.
+Real React/TypeScript implementation.
 
-## Added in v0.7
+## Added in v0.8
 
-- Web app manifest
-- App icons
-- Service worker for basic offline shell caching
-- Browser install helper panel
-- Safer GitHub Pages/Vite base path config
+- Round Setup tab
+- round name/date/course/notes
+- active/inactive player selection for the current Saturday round
+- one-time guest golfer entry
+- guest/member labels in the roster
+- backup/restore now includes round setup data
 
 ## Run locally
 
@@ -21,10 +22,4 @@ npm run dev
 
 ```bash
 npm run build
-```
-
-Commit message:
-
-```text
-Add real PWA install support v0.7
 ```
