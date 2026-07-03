@@ -1,16 +1,17 @@
-# Bear Tracker v0.2
+# Bear Tracker v0.3
 
-Saturday Stableford and quota golf league manager for Black Bear Golf Club.
+Milestone: Drag-and-drop group assignment.
 
-## v0.2 includes
-- Working React/browser app foundation
-- PIN login demo
-- Admin player management
-- Add golfer
-- Edit handicap, quota, PIN, active status
-- Local browser save via localStorage
-- Group scorer demo
-- Stableford, quota +/-, net skins calculations
+Adds:
+- Admin Groups tab
+- Drag active players into threesomes/foursomes
+- Add/remove groups
+- Choose scorekeeper for each group
+- Score entry now uses the selected group
+- Local browser save for players, scores, groups, and current group
 
-## Notes
-This is still a local/static version. Live shared scoring will come when Supabase is connected.
+Demo admin login:
+- Player: Kevin Baker
+- PIN: 1234
+
+This is still a local prototype. Live multi-phone sync will require Supabase/Firebase in a later milestone.
