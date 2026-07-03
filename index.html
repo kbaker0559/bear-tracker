@@ -1,1 +1,19 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bear Tracker</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="styles.css"></head><body><header><h1>Bear Tracker</h1><p>Black Bear Saturday Game</p></header><nav><button data-tab="score">Score</button><button data-tab="leaderboard">Leaderboard</button><button data-tab="skins">Skins</button><button data-tab="payouts">Payouts</button><button data-tab="admin">Admin</button></nav><main><section id="score" class="tab"></section><section id="leaderboard" class="tab"></section><section id="skins" class="tab"></section><section id="payouts" class="tab"></section><section id="admin" class="tab"></section></main><footer>Prototype v0.1 test · local demo data</footer><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bear Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="root"></div>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="src/data/course.js"></script>
+  <script src="src/data/players.js"></script>
+  <script src="src/lib/scoring.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
