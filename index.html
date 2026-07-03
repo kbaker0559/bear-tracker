@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bear Tracker v1.3</title>
+  <title>Bear Tracker v1.4</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f3ea;color:#1f2933}
     header{background:#27391c;color:#fff;padding:18px 16px;text-align:center}
@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-<header><h1>Bear Tracker</h1><div class="sub">v1.3 · Saturday Stableford & Quota League</div></header>
+<header><h1>Bear Tracker</h1><div class="sub">v1.4 · Saturday Stableford & Quota League</div></header>
 <main>
 <section><h2>Saturday Ready Checklist</h2><div class="grid">
   <div class="card"><span class="pill">1</span><h3>Round Setup</h3><p>Set round date, course, active players, guests, and notes.</p><p class="ok">Ready</p></div>
@@ -55,7 +55,20 @@
 <tr><td><span class="mono">database.js</span></td><td>Starter wrapper for saving/loading players, rounds, groups, and scores.</td></tr>
 <tr><td><span class="mono">LIVE_DATABASE_CHECKLIST.md</span></td><td>Step-by-step checklist before turning on the live shared app.</td></tr>
 </table></section>
-<section><h2>Next After v1.3</h2><p>The next major milestone is connecting the app to Supabase and replacing browser-only storage with shared live storage.</p><p class="small">For now, this release candidate is still the local/browser-storage version. It is useful for rules testing, workflow review, and group feedback.</p></section>
+<section><h2>Next After v1.4</h2><p>The next major milestone is connecting the app to Supabase and replacing browser-only storage with shared live storage.</p><p class="small">For now, this release candidate is still the local/browser-storage version. It is useful for rules testing, workflow review, and group feedback.</p></section>
+
+      <section class="card">
+        <h2>v1.4 Saturday Test Mode</h2>
+        <p>This release adds a practical testing checklist before live group use.</p>
+        <ul>
+          <li>Verify scorekeepers can enter scores for their group.</li>
+          <li>Test quota +/- and Stableford scoring with sample holes.</li>
+          <li>Test skins with both a unique low net and a tied low net.</li>
+          <li>Export a backup before and after a test round.</li>
+        </ul>
+        <p><strong>Next technical milestone:</strong> connect these workflows to Supabase real-time tables.</p>
+      </section>
+
 </main>
 </body>
 </html>

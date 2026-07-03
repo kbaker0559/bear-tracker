@@ -1,12 +1,17 @@
-# Bear Tracker v1.3
+# Bear Tracker v1.4
 
-Milestone: Supabase Setup Screen & Live Mode Readiness
+This milestone adds a Saturday test mode and live scoring readiness checks.
 
-Adds:
-- a visible **Live Database Status** section in the app
-- Supabase connection checklist inside the app shell
-- config/database starter files retained from v1.2
-- clearer next steps for turning on true multi-phone sync
+## Added in v1.4
+- Saturday test checklist
+- scorekeeper workflow checklist
+- live scoring data-flow notes
+- clearer GitHub Pages test instructions
+- placeholder sync-health panel in the app
 
-Commit message:
-`Add Supabase setup status screen v1.3`
+## Install/update
+Copy all files into your local `bear-tracker` folder, replace existing files, then commit and push with GitHub Desktop.
+
+Suggested commit message:
+
+`Add Saturday test mode v1.4`
