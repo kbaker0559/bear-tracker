@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bear Tracker v1.9</title>
+  <title>Bear Tracker v2.0</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f6f3ea;color:#1f2933}
     header{background:#27391c;color:#fff;padding:18px 16px;text-align:center}
@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-<header><h1>Bear Tracker</h1><div class="sub">v1.9 · Supabase Connection Checklist</div></header>
+<header><h1>Bear Tracker</h1><div class="sub">v2.0 · Pre-Live Saturday Launch Package</div></header>
 <main>
 <section><h2>Saturday Ready Checklist</h2><div class="grid">
   <div class="card"><span class="pill">1</span><h3>Round Setup</h3><p>Set round date, course, active players, guests, and notes.</p><p class="ok">Ready</p></div>
@@ -111,7 +111,7 @@
 <tr><td>Admin correction</td><td>Scores, audit log, recalculated results</td></tr>
 </table></section>
 
-<section><h2>v1.9 Supabase Connection Checklist</h2><div class="grid">
+<section><h2>v1.9 Pre-Live Saturday Launch Package</h2><div class="grid">
   <div class="card"><span class="pill">1</span><h3>Create Project</h3><p>Create the Supabase project and copy the project URL plus public anon key.</p><p class="warn">User action</p></div>
   <div class="card"><span class="pill">2</span><h3>Run SQL</h3><p>Run <span class="mono">DATABASE_SCHEMA.sql</span> then <span class="mono">SEED_DATA.sql</span> in Supabase SQL Editor.</p><p class="warn">User action</p></div>
   <div class="card"><span class="pill">3</span><h3>Add Config</h3><p>Copy <span class="mono">src/config.example.js</span> to <span class="mono">src/config.js</span> and paste credentials.</p><p class="warn">Next build step</p></div>
@@ -124,6 +124,12 @@
 <tr><td><span class="mono">DATABASE_CONNECTION_TESTS.md</span></td><td>Tests to confirm multiple phones will see the same live data.</td></tr>
 </table></section>
 
+
+<section><h2>v2.0 Pre-Live Launch Additions</h2><div class="grid">
+  <div class="card"><h3>Go-Live Checklist</h3><p>Confirms the exact order for testing: local scoring, backup export, restore test, live database setup, then small-group field test.</p><p class="ok">Added</p></div>
+  <div class="card"><h3>Scorekeeper Dry Run</h3><p>Use 2 groups and 3 holes before Saturday to confirm that scores, skins, quota +/-, and results summary behave as expected.</p><p class="ok">Added</p></div>
+  <div class="card"><h3>Fallback Plan</h3><p>Keep paper cards for the first real Saturday. Bear Tracker can be used in parallel until the group is comfortable.</p><p class="warn">Recommended</p></div>
+</div></section>
 </main>
 </body>
 </html>
