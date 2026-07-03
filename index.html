@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bear Tracker v0.6</title>
+  <title>Bear Tracker v0.7</title>
   <style>
     :root{--bg:#0f1b14;--card:#17261d;--card2:#203527;--text:#f4f7f1;--muted:#b9c8b8;--gold:#f2c14e;--green:#2f7d45;--red:#a84632;--line:#35513d;--blue:#70a9ff}
     *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0f1b14,#132317);color:var(--text)}
@@ -15,10 +15,10 @@
   </style>
 </head>
 <body>
-<header><div><h1>🐻 Bear Tracker</h1><div class="sub">Black Bear Saturday Game · v0.6 finalize, history & money tracking</div></div><div id="loginStatus" class="sub"></div></header>
+<header><div><h1>🐻 Bear Tracker</h1><div class="sub">Black Bear Saturday Game · v0.7 backups, exports & printable results</div></div><div id="loginStatus" class="sub"></div></header>
 <div class="wrap">
   <div class="tabs">
-    <button class="tab active" data-tab="home">Home</button><button class="tab" data-tab="score">Group Scoring</button><button class="tab" data-tab="leaderboard">Leaderboard</button><button class="tab" data-tab="skins">Skins</button><button class="tab" data-tab="payouts">Payouts/Finalize</button><button class="tab" data-tab="season">Season/Money</button><button class="tab" data-tab="groups">Groups</button><button class="tab" data-tab="players">Players/Admin</button>
+    <button class="tab active" data-tab="home">Home</button><button class="tab" data-tab="score">Group Scoring</button><button class="tab" data-tab="leaderboard">Leaderboard</button><button class="tab" data-tab="skins">Skins</button><button class="tab" data-tab="payouts">Payouts/Finalize</button><button class="tab" data-tab="season">Season/Money</button><button class="tab" data-tab="groups">Groups</button><button class="tab" data-tab="players">Players/Admin</button><button class="tab" data-tab="backup">Backup/Export</button>
   </div>
 
   <section id="home" class="page">
@@ -64,13 +64,23 @@
     <div class="grid cols"><div class="card"><h2>Available Players</h2><div id="availablePlayers" class="groupBox"></div></div><div class="card"><h2>Groups</h2><button onclick="addGroup()" class="small">Add Group</button><div id="groupsArea"></div></div></div>
   </section>
 
+
+
+  <section id="backup" class="page hidden">
+    <div class="grid cols">
+      <div class="card"><h2>Backup / Restore</h2><p class="sub">Use this before and after each Saturday test. Export creates a backup file of players, groups, quotas, scores, history, and money totals.</p><button onclick="exportBackup()">Export Backup JSON</button><label>Restore from backup</label><input id="backupFile" type="file" accept="application/json" onchange="importBackup(event)"><p class="notice">Tip: Export before finalizing a round so you can restore if a mistake is discovered.</p></div>
+      <div class="card"><h2>Reports</h2><p class="sub">Create simple reports you can copy, print, text, or email.</p><button onclick="copyResults()">Copy Results Summary</button> <button onclick="printReport()" class="secondary">Print Current Report</button><label>Results summary</label><textarea id="resultsText" style="width:100%;min-height:260px;border-radius:10px;background:#0f1b14;color:#f4f7f1;border:1px solid var(--line);padding:10px"></textarea></div>
+      <div class="card"><h2>Data Status</h2><div id="dataStatus"></div></div>
+    </div>
+  </section>
+
   <section id="players" class="page hidden"><div class="card"><h2>Players / Admin</h2><div class="row"><div><label>Name</label><input id="newName" placeholder="New golfer"></div><div><label>HDCP</label><input id="newHdcp" type="number"></div><div><label>Quota</label><input id="newQuota" type="number"></div><div><label>&nbsp;</label><button onclick="addPlayer()">Add</button></div></div><div id="playersTable"></div></div></section>
 </div>
 <script>
 const course=[{h:1,p:4,si:5},{h:2,p:5,si:17},{h:3,p:3,si:15},{h:4,p:5,si:11},{h:5,p:3,si:9},{h:6,p:4,si:1},{h:7,p:4,si:7},{h:8,p:4,si:13},{h:9,p:4,si:3},{h:10,p:4,si:10},{h:11,p:3,si:12},{h:12,p:4,si:2},{h:13,p:4,si:6},{h:14,p:5,si:14},{h:15,p:3,si:18},{h:16,p:5,si:16},{h:17,p:4,si:4},{h:18,p:4,si:8}];
 const starter=[['Fred Tucker',6,30],['Paul Tucker JR',10,27],['Steve Robin',11,23],['Russ Lizzoli',16,16],['Cam Crollard',5,30],['Paul Tucker SR',8,25],['Kevin Baker',12,19],['Mark Knuutilla',10,24],['Tyler Adams',9,25],['Don Maines',13,21],['Dave Hall',9,26],['Ed Sanchez',12,21],['Neal Self',11,19],['Chuck Blankenship',12,26],['Bruce Coleman',11,19],['George Heider',6,26],['Anthony Ciuzio',4,29],['Tom Tzobanakis',12,21],['Shawn Boone',16,15],['Blake Donahue',4,23],['Wayne Smith',11,18],['Preston Rager',11,21],['Les Smith',19,16],['Mike Ondrasik',13,18]];
-let state=JSON.parse(localStorage.getItem('bt_v06')||localStorage.getItem('bt_v05')||localStorage.getItem('bt_v04')||'null')||{user:null,players:starter.map((p,i)=>({id:'p'+i,name:p[0],hdcp:p[1],quota:p[2],active:true})),groups:[{id:'g1',name:'Group 1',scorekeeper:null,players:['p6','p4','p0','p12']},{id:'g2',name:'Group 2',scorekeeper:null,players:['p1','p5','p15','p10']}],scores:{},history:[],money:{}};
-function save(){state.history=state.history||[];state.money=state.money||{};localStorage.setItem('bt_v06',JSON.stringify(state));renderAll()}function player(id){return state.players.find(p=>p.id===id)}function activePlayers(){return state.players.filter(p=>p.active)}
+let state=JSON.parse(localStorage.getItem('bt_v07')||localStorage.getItem('bt_v06')||localStorage.getItem('bt_v05')||localStorage.getItem('bt_v04')||'null')||{user:null,players:starter.map((p,i)=>({id:'p'+i,name:p[0],hdcp:p[1],quota:p[2],active:true})),groups:[{id:'g1',name:'Group 1',scorekeeper:null,players:['p6','p4','p0','p12']},{id:'g2',name:'Group 2',scorekeeper:null,players:['p1','p5','p15','p10']}],scores:{},history:[],money:{}};
+function save(){state.history=state.history||[];state.money=state.money||{};localStorage.setItem('bt_v07',JSON.stringify(state));renderAll()}function player(id){return state.players.find(p=>p.id===id)}function activePlayers(){return state.players.filter(p=>p.active)}
 function strokesOnHole(hdcp,si){return Math.floor(hdcp/18)+(si<=hdcp%18?1:0)}
 function stableford(gross,par,strokes){if(!gross)return 0;const net=gross-strokes;const rel=net-par;if(rel<=-3)return 8;if(rel===-2)return 6;if(rel===-1)return 4;if(rel===0)return 2;if(rel===1)return 1;return 0}
 function totals(pid){let gross=0,net=0,pts=0,thru=0;course.forEach(c=>{const g=state.scores[pid]?.[c.h];if(g){const s=strokesOnHole(player(pid).hdcp,c.si);gross+=g;net+=g-s;pts+=stableford(g,c.p,s);thru++;}});return{gross,net,pts,thru,plus:pts-player(pid).quota}}
@@ -147,7 +157,54 @@ function renderSeason(){
 function clearSeasonHistory(){if(confirm('Clear all season history and money totals in this browser?')){state.history=[];state.money={};save();}}
 
 
-function renderAll(){renderHome();renderLogin();renderScore();renderLeaderboard();renderSkins();renderPayouts();renderSeason();renderGroups();renderPlayers()}renderAll();
+
+function buildResultsSummary(){
+  const rows=activePlayers().map(p=>({p,...totals(p.id)})).sort((a,b)=>b.plus-a.plus||b.pts-a.pts||a.p.name.localeCompare(b.p.name));
+  const skins=skinsSummary();
+  const paid=placeResults().filter(r=>r.placeMoney>0);
+  const lines=[];
+  lines.push('Bear Tracker Saturday Results');
+  lines.push(new Date().toLocaleDateString());
+  lines.push('');
+  lines.push('Leaderboard');
+  rows.forEach((r,i)=>lines.push(`${i+1}. ${r.p.name}  ${r.plus>=0?'+':''}${r.plus}  (${r.pts} pts / quota ${r.p.quota})`));
+  lines.push('');
+  lines.push('Place Money');
+  if(paid.length) paid.forEach(r=>lines.push(`${r.placeText}. ${r.p.name} ${r.plus>=0?'+':''}${r.plus} - $${r.placeMoney}`)); else lines.push('No place payouts yet.');
+  lines.push('');
+  lines.push('Net Skins');
+  const skinEntries=Object.entries(skins);
+  if(skinEntries.length) skinEntries.forEach(([name,count])=>lines.push(`${name}: ${count}`)); else lines.push('No skins yet.');
+  return lines.join('\n');
+}
+function renderBackup(){
+  const el=document.getElementById('dataStatus'); if(!el)return;
+  const scored=Object.values(state.scores||{}).reduce((a,o)=>a+Object.keys(o).length,0);
+  el.innerHTML=`<p><b>${state.players.length}</b> players</p><p><b>${activePlayers().length}</b> active players</p><p><b>${state.groups.length}</b> groups</p><p><b>${scored}</b> hole scores entered</p><p><b>${(state.history||[]).length}</b> finalized rounds</p>`;
+  const ta=document.getElementById('resultsText'); if(ta) ta.value=buildResultsSummary();
+}
+function exportBackup(){
+  const payload={app:'Bear Tracker',version:'0.7',exportedAt:new Date().toISOString(),state};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download='bear-tracker-backup-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+function importBackup(event){
+  const file=event.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{try{const data=JSON.parse(reader.result); if(!data.state||!data.state.players) throw new Error('Invalid backup file'); if(confirm('Restore this backup and replace current local Bear Tracker data?')){state=data.state; save(); alert('Backup restored.');}}catch(e){alert('Could not import backup: '+e.message)}};
+  reader.readAsText(file);
+}
+async function copyResults(){
+  const text=buildResultsSummary(); document.getElementById('resultsText').value=text;
+  try{await navigator.clipboard.writeText(text); alert('Results copied to clipboard.');}catch(e){alert('Summary is ready. Select and copy it from the box.')}
+}
+function printReport(){
+  const text=buildResultsSummary().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const w=window.open('','_blank'); w.document.write(`<pre style="font-family:system-ui,Segoe UI,Arial;white-space:pre-wrap;font-size:16px">${text}</pre>`); w.document.close(); w.print();
+}
+
+function renderAll(){renderHome();renderLogin();renderScore();renderLeaderboard();renderSkins();renderPayouts();renderSeason();renderGroups();renderPlayers();renderBackup()}renderAll();
 </script>
 </body>
 </html>
