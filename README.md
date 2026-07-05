@@ -1,17 +1,30 @@
-# Bear Tracker Real v1.1
+# Bear Tracker - Real Sprint 1
 
-This milestone adds the first working Supabase connection layer while preserving local-only mode.
+This is the first actual React/TypeScript implementation foundation for Bear Tracker.
 
-## Added
+## Included
+- Vite + React + TypeScript project
+- Black Bear course data
+- Saturday player seed data
+- scoring engine with unit tests
+- PIN login demo
+- player admin
+- group scorekeeper entry
+- quota leaderboard
+- net skins preview
+- payout/quota adjustment preview
 
-- Live Database tab
-- Supabase URL/key configuration stored locally in the browser
-- Connection test against the `players` table
-- Push local players to Supabase
-- Load players from Supabase
-- Database adapter skeleton in `src/database.js`
-- Updated schema and seed files
+## Run locally
+Install Node.js LTS, then in this folder:
 
-## Commit message
+```bash
+npm install
+npm run dev
+```
 
-`Add live database player sync v1.1`
+## Test scoring engine
+```bash
+npm test
+```
+
+Demo PINs start at 1000. Kevin Baker's PIN is 1006.

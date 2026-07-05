@@ -1,4 +1,4 @@
-import type { Hole } from '../types';
-export const blackBearCourse: Hole[] = [
- {hole:1,par:4,strokeIndex:5},{hole:2,par:5,strokeIndex:17},{hole:3,par:3,strokeIndex:15},{hole:4,par:5,strokeIndex:11},{hole:5,par:3,strokeIndex:9},{hole:6,par:4,strokeIndex:1},{hole:7,par:4,strokeIndex:7},{hole:8,par:4,strokeIndex:13},{hole:9,par:4,strokeIndex:3},{hole:10,par:4,strokeIndex:10},{hole:11,par:3,strokeIndex:12},{hole:12,par:4,strokeIndex:2},{hole:13,par:4,strokeIndex:6},{hole:14,par:5,strokeIndex:14},{hole:15,par:3,strokeIndex:18},{hole:16,par:5,strokeIndex:16},{hole:17,par:4,strokeIndex:4},{hole:18,par:4,strokeIndex:8}
+import type {Hole} from '../types';
+export const blackBearCourse:Hole[]=[
+{number:1,par:4,strokeIndex:5},{number:2,par:5,strokeIndex:17},{number:3,par:3,strokeIndex:15},{number:4,par:5,strokeIndex:11},{number:5,par:3,strokeIndex:9},{number:6,par:4,strokeIndex:1},{number:7,par:4,strokeIndex:7},{number:8,par:4,strokeIndex:13},{number:9,par:4,strokeIndex:3},{number:10,par:4,strokeIndex:10},{number:11,par:3,strokeIndex:12},{number:12,par:4,strokeIndex:2},{number:13,par:4,strokeIndex:6},{number:14,par:5,strokeIndex:14},{number:15,par:3,strokeIndex:18},{number:16,par:5,strokeIndex:16},{number:17,par:4,strokeIndex:4},{number:18,par:4,strokeIndex:8}
 ];
