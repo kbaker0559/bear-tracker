@@ -1,58 +1,8 @@
-import type { Hole, Player, PlayerRoundSummary, Score } from '../types/domain';
-
-export function strokesReceivedOnHole(handicap: number, strokeIndex: number): number {
-  if (handicap <= 0) return 0;
-  const base = Math.floor(handicap / 18);
-  const remainder = handicap % 18;
-  return base + (strokeIndex <= remainder ? 1 : 0);
-}
-
-export function netScore(gross: number, handicap: number, strokeIndex: number): number {
-  return gross - strokesReceivedOnHole(handicap, strokeIndex);
-}
-
-export function stablefordPoints(net: number, par: number): number {
-  const relationToPar = net - par;
-  if (relationToPar <= -3) return 8;
-  if (relationToPar === -2) return 6;
-  if (relationToPar === -1) return 4;
-  if (relationToPar === 0) return 2;
-  if (relationToPar === 1) return 1;
-  return 0;
-}
-
-export function summarizePlayerRound(player: Player, holes: Hole[], scores: Score[]): PlayerRoundSummary {
-  const playerScores = scores.filter(score => score.playerId === player.id);
-  const totals = playerScores.reduce(
-    (acc, score) => {
-      const hole = holes.find(h => h.number === score.holeNumber);
-      if (!hole) return acc;
-      const net = netScore(score.gross, player.handicap, hole.strokeIndex);
-      acc.grossTotal += score.gross;
-      acc.netTotal += net;
-      acc.stablefordPoints += stablefordPoints(net, hole.par);
-      return acc;
-    },
-    { grossTotal: 0, netTotal: 0, stablefordPoints: 0 }
-  );
-
-  return {
-    player,
-    holesPlayed: playerScores.length,
-    grossTotal: totals.grossTotal,
-    netTotal: totals.netTotal,
-    stablefordPoints: totals.stablefordPoints,
-    quotaPlusMinus: totals.stablefordPoints - player.quota
-  };
-}
-
-export function leaderboard(players: Player[], holes: Hole[], scores: Score[]): PlayerRoundSummary[] {
-  return players
-    .filter(player => player.active)
-    .map(player => summarizePlayerRound(player, holes, scores))
-    .sort((a, b) => {
-      if (b.quotaPlusMinus !== a.quotaPlusMinus) return b.quotaPlusMinus - a.quotaPlusMinus;
-      if (b.stablefordPoints !== a.stablefordPoints) return b.stablefordPoints - a.stablefordPoints;
-      return a.player.name.localeCompare(b.player.name);
-    });
-}
+import type { Hole, Player, PlayerRoundSummary, ScoreMap, SkinResult } from '../types';
+export function strokesOnHole(handicap:number, strokeIndex:number):number { if(handicap<=0) return 0; return Math.floor((handicap-1)/18) + (strokeIndex <= ((handicap-1)%18)+1 ? 1 : 0); }
+export function netScore(gross:number, handicap:number, hole:Hole):number { return gross - strokesOnHole(handicap, hole.strokeIndex); }
+export function stablefordPoints(net:number, par:number):number { const diff = net - par; if(diff<=-3) return 8; if(diff===-2) return 6; if(diff===-1) return 4; if(diff===0) return 2; if(diff===1) return 1; return 0; }
+export function summarizePlayer(player:Player, holes:Hole[], scores:ScoreMap):PlayerRoundSummary { const ps=scores[player.id]??{}; let gross=0, net=0, points=0, thru=0; for(const h of holes){ const g=ps[h.number]; if(typeof g==='number'){ thru++; gross+=g; const n=netScore(g, player.handicap, h); net+=n; points+=stablefordPoints(n,h.par);} } const plusMinus=points-player.quota; const projectedPlusMinus=thru ? Math.round((points/thru)*18-player.quota) : -player.quota; return {player,thru,gross,net,points,quota:player.quota,plusMinus,projectedPlusMinus}; }
+export function leaderboard(players:Player[], holes:Hole[], scores:ScoreMap):PlayerRoundSummary[] { return players.filter(p=>p.active).map(p=>summarizePlayer(p,holes,scores)).sort((a,b)=>b.plusMinus-a.plusMinus || b.points-a.points || a.player.name.localeCompare(b.player.name)); }
+export function calculateSkins(players:Player[], holes:Hole[], scores:ScoreMap):SkinResult[]{ return holes.map(h=>{ const entries=players.filter(p=>p.active).map(p=>{const g=scores[p.id]?.[h.number]; return typeof g==='number'?{p,net:netScore(g,p.handicap,h)}:undefined;}).filter(Boolean) as {p:Player;net:number}[]; if(entries.length===0 || entries.length < players.filter(p=>p.active).length) return {hole:h.number,status:'pending'}; const low=Math.min(...entries.map(e=>e.net)); const tied=entries.filter(e=>e.net===low); if(tied.length===1) return {hole:h.number,status:'won',winnerId:tied[0].p.id,winnerName:tied[0].p.name,netScore:low}; return {hole:h.number,status:'cancelled',netScore:low,tiedPlayerNames:tied.map(t=>t.p.name)}; }); }
+export function quotaChange(plusMinus:number, inMoney:boolean):number { if(plusMinus<=-10) return -4; if(plusMinus<=-6) return -3; if(plusMinus<=-3) return -2; if(plusMinus<=-1) return -1; if(plusMinus===0) return 0; if(!inMoney) return 0; if(plusMinus<=2) return 1; if(plusMinus<=4) return 2; if(plusMinus<=6) return 3; if(plusMinus<=9) return 4; return Math.ceil(plusMinus/2); }

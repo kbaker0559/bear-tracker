@@ -1,10 +1,3 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-
-export default defineConfig({
-  plugins: [react()],
-  base: '/bear-tracker/',
-  test: {
-    environment: 'jsdom'
-  }
-});
+export default defineConfig({ plugins:[react()], base:'/bear-tracker/' });
