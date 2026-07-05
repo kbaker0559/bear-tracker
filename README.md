@@ -1,20 +1,18 @@
-# Bear Tracker — Real Sprint 2
+# Bear Tracker — Real Sprint 3
 
-This sprint adds the first real application workflow on top of the React/TypeScript scaffold.
+This sprint adds the official group scorekeeper workflow.
 
 ## Added
 
-- PIN login
-- Admin session handling
-- Admin/player role support
-- Player management screen
-- Edit golfer name, handicap, quota, PIN, active status, and admin access
-- Add golfer
-- Local browser persistence for players and scores
-- Admin score entry for all active players
-- Player self-scoring for non-admin users
-- Quota leaderboard
-- Net skins preview
+- Group data model
+- Local persistence for group assignments
+- Admin group assignment tab
+- Drag-and-drop players into groups
+- Add/delete/rename groups
+- Assign one or more scorekeepers per group
+- Scorekeeper-only group score entry
+- Admins can score any group
+- Group scoring shows strokes received, net score, and Stableford points for the selected hole
 
 ## Temporary default login
 
@@ -37,5 +35,5 @@ npm test
 ## Commit message
 
 ```text
-Add real login and player admin sprint 2
+Add real group scorekeeper workflow sprint 3
 ```

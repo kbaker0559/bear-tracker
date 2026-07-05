@@ -1,8 +1,9 @@
-import type { Player, Score } from './types/models';
+import type { Group, Player, Score } from './types/models';
 import { initialPlayers } from './data/players';
 
-const PLAYERS_KEY = 'bear-tracker.players.v2';
-const SCORES_KEY = 'bear-tracker.scores.v2';
+const PLAYERS_KEY = 'bear-tracker.players.v3';
+const SCORES_KEY = 'bear-tracker.scores.v3';
+const GROUPS_KEY = 'bear-tracker.groups.v3';
 
 export function loadPlayers(): Player[] {
   try {
@@ -21,6 +22,7 @@ export function savePlayers(players: Player[]): void {
 
 export function resetPlayers(): Player[] {
   window.localStorage.removeItem(PLAYERS_KEY);
+  window.localStorage.removeItem(GROUPS_KEY);
   return initialPlayers;
 }
 
@@ -41,4 +43,33 @@ export function saveScores(scores: Score[]): void {
 
 export function clearScores(): void {
   window.localStorage.removeItem(SCORES_KEY);
+}
+
+export function loadGroups(): Group[] {
+  try {
+    const raw = window.localStorage.getItem(GROUPS_KEY);
+    if (!raw) return makeDefaultGroups(initialPlayers.filter((p) => p.active).map((p) => p.id));
+    const parsed = JSON.parse(raw) as Group[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveGroups(groups: Group[]): void {
+  window.localStorage.setItem(GROUPS_KEY, JSON.stringify(groups));
+}
+
+export function makeDefaultGroups(playerIds: string[], groupSize = 4): Group[] {
+  const groups: Group[] = [];
+  for (let index = 0; index < playerIds.length; index += groupSize) {
+    const ids = playerIds.slice(index, index + groupSize);
+    groups.push({
+      id: crypto.randomUUID(),
+      name: `Group ${groups.length + 1}`,
+      playerIds: ids,
+      scorekeeperIds: ids.length ? [ids[0]] : []
+    });
+  }
+  return groups;
 }

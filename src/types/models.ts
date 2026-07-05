@@ -20,6 +20,13 @@ export type Score = {
   gross: number;
 };
 
+export type Group = {
+  id: string;
+  name: string;
+  playerIds: string[];
+  scorekeeperIds: string[];
+};
+
 export type PlayerRoundResult = {
   player: Player;
   grossTotal: number;
