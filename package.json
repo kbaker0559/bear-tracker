@@ -1,28 +1,23 @@
 {
   "name": "bear-tracker",
-  "private": true,
   "version": "0.1.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
     "vite": "latest",
     "typescript": "latest",
     "react": "latest",
-    "react-dom": "latest",
-    "@supabase/supabase-js": "latest",
-    "@dnd-kit/core": "latest",
-    "@dnd-kit/sortable": "latest",
-    "@dnd-kit/utilities": "latest"
+    "react-dom": "latest"
   },
   "devDependencies": {
     "vitest": "latest",
-    "jsdom": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest"
   }

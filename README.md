@@ -1,39 +1,31 @@
-# Bear Tracker — Real Sprint 3
+# Bear Tracker — Actual Sprint 1
 
-This sprint adds the official group scorekeeper workflow.
+This is the first real code foundation for Bear Tracker.
 
-## Added
+It includes:
 
-- Group data model
-- Local persistence for group assignments
-- Admin group assignment tab
-- Drag-and-drop players into groups
-- Add/delete/rename groups
-- Assign one or more scorekeepers per group
-- Scorekeeper-only group score entry
-- Admins can score any group
-- Group scoring shows strokes received, net score, and Stableford points for the selected hole
-
-## Temporary default login
-
-- Player: Kevin Baker
-- PIN: 1234
+- React + TypeScript + Vite project setup
+- Black Bear course data
+- Player seed data
+- Stableford engine
+- Net score / stroke allocation engine
+- Skins engine
+- Payout engine with tie splitting
+- Quota adjustment engine using the Saturday-game rules
+- Unit tests for the most important league rules
 
 ## Run locally
 
+Install Node.js LTS, then from this folder:
+
 ```bash
 npm install
+npm test
 npm run dev
 ```
 
-## Test
-
-```bash
-npm test
-```
-
-## Commit message
+## Git commit message
 
 ```text
-Add real group scorekeeper workflow sprint 3
+Add actual Bear Tracker scoring foundation
 ```
