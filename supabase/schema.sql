@@ -1,97 +1,65 @@
--- Bear Tracker Supabase Schema v1.0
+create extension if not exists pgcrypto;
 
 create table if not exists players (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key,
   name text not null,
   handicap integer not null default 0,
   quota integer not null default 0,
   pin text not null default '1234',
-  role text not null default 'player',
   active boolean not null default true,
-  is_guest boolean not null default false,
+  is_admin boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create table if not exists courses (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key,
   name text not null,
   created_at timestamptz not null default now()
 );
 
 create table if not exists holes (
   id uuid primary key default gen_random_uuid(),
-  course_id uuid not null references courses(id) on delete cascade,
-  hole_number integer not null check (hole_number between 1 and 18),
+  course_id text references courses(id) on delete cascade,
+  hole_number integer not null,
   par integer not null,
-  stroke_index integer not null check (stroke_index between 1 and 18),
+  stroke_index integer not null,
   unique(course_id, hole_number)
 );
 
 create table if not exists rounds (
   id uuid primary key default gen_random_uuid(),
-  course_id uuid references courses(id),
-  name text not null,
   round_date date not null,
-  notes text,
+  name text not null,
+  course_id text references courses(id),
   status text not null default 'setup',
+  notes text,
   created_at timestamptz not null default now(),
   finalized_at timestamptz
 );
 
-create table if not exists round_players (
-  id uuid primary key default gen_random_uuid(),
-  round_id uuid not null references rounds(id) on delete cascade,
-  player_id uuid not null references players(id),
-  handicap integer not null,
-  quota integer not null,
-  paid_place_amount integer not null default 0,
-  skins_amount integer not null default 0,
-  total_money integer not null default 0,
-  quota_change integer not null default 0,
-  unique(round_id, player_id)
-);
-
-create table if not exists groups (
-  id uuid primary key default gen_random_uuid(),
-  round_id uuid not null references rounds(id) on delete cascade,
-  name text not null,
-  sort_order integer not null default 0
-);
-
-create table if not exists group_players (
-  id uuid primary key default gen_random_uuid(),
-  group_id uuid not null references groups(id) on delete cascade,
-  player_id uuid not null references players(id),
-  is_scorekeeper boolean not null default false,
-  sort_order integer not null default 0,
-  unique(group_id, player_id)
-);
-
 create table if not exists scores (
   id uuid primary key default gen_random_uuid(),
-  round_id uuid not null references rounds(id) on delete cascade,
-  player_id uuid not null references players(id),
-  hole_number integer not null check (hole_number between 1 and 18),
-  gross integer not null check (gross between 1 and 20),
-  entered_by uuid references players(id),
+  round_id uuid references rounds(id) on delete cascade,
+  player_id text references players(id),
+  hole_number integer not null,
+  gross integer not null,
+  updated_by text references players(id),
   updated_at timestamptz not null default now(),
   unique(round_id, player_id, hole_number)
 );
 
-create table if not exists correction_log (
-  id uuid primary key default gen_random_uuid(),
-  round_id uuid not null references rounds(id) on delete cascade,
-  player_id uuid references players(id),
-  hole_number integer,
-  old_gross integer,
-  new_gross integer,
-  corrected_by uuid references players(id),
-  reason text,
-  created_at timestamptz not null default now()
-);
+alter table players enable row level security;
+alter table courses enable row level security;
+alter table holes enable row level security;
+alter table rounds enable row level security;
+alter table scores enable row level security;
 
-alter publication supabase_realtime add table scores;
-alter publication supabase_realtime add table rounds;
-alter publication supabase_realtime add table groups;
-alter publication supabase_realtime add table group_players;
+-- Early testing policies. Tighten these before broader public use.
+create policy if not exists "public read players" on players for select using (true);
+create policy if not exists "public write players" on players for insert with check (true);
+create policy if not exists "public update players" on players for update using (true);
+create policy if not exists "public read courses" on courses for select using (true);
+create policy if not exists "public read holes" on holes for select using (true);
+create policy if not exists "public all rounds" on rounds for all using (true) with check (true);
+create policy if not exists "public all scores" on scores for all using (true) with check (true);

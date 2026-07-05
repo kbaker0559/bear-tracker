@@ -1,16 +1,17 @@
-# Bear Tracker Real v1.0
+# Bear Tracker Real v1.1
 
-Adds the first production-ready Supabase preparation package:
+This milestone adds the first working Supabase connection layer while preserving local-only mode.
 
-- Supabase schema SQL
-- seed data for Black Bear and Saturday players
-- environment/config template
-- live database connection checklist
-- database service skeleton
-- roadmap for replacing localStorage with Supabase tables
+## Added
 
-This version keeps the local app behavior intact while preparing the project for live multi-phone scoring.
+- Live Database tab
+- Supabase URL/key configuration stored locally in the browser
+- Connection test against the `players` table
+- Push local players to Supabase
+- Load players from Supabase
+- Database adapter skeleton in `src/database.js`
+- Updated schema and seed files
 
-Commit message:
+## Commit message
 
-`Add Supabase foundation v1.0`
+`Add live database player sync v1.1`

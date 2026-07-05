@@ -1,41 +1,13 @@
-# Supabase Setup for Bear Tracker
+# Supabase Setup - Bear Tracker v1.1
 
-## 1. Create Project
-Create a new Supabase project named `bear-tracker`.
+1. Create a Supabase project named `bear-tracker`.
+2. Open SQL Editor.
+3. Run `supabase/schema.sql`.
+4. Run `supabase/seed.sql`.
+5. Go to Project Settings → API.
+6. Copy the Project URL and anon/public key.
+7. In Bear Tracker, open **Live Database** and paste both values.
+8. Click **Test Connection**.
+9. Click **Push Local Players** or **Load Players**.
 
-## 2. Run Schema
-Open Supabase SQL Editor and run `supabase/schema.sql`.
-
-## 3. Run Seed Data
-Run `supabase/seed.sql` after the schema succeeds.
-
-## 4. Copy API Values
-From Supabase Project Settings → API, copy:
-
-- Project URL
-- Anon public key
-
-Add them to your app config.
-
-## 5. Live Mode Tables
-Core tables:
-
-- players
-- courses
-- holes
-- rounds
-- round_players
-- groups
-- group_players
-- scores
-- correction_log
-- round_results
-
-## 6. First Live Test
-Use two phones or one phone plus PC:
-
-1. Open same round on both devices.
-2. Enter one score on Device A.
-3. Confirm Device B updates.
-4. Correct a score as admin.
-5. Confirm correction appears in log.
+This is the first live sync step. It syncs player/admin data only. Scores and rounds remain local until the next milestone.

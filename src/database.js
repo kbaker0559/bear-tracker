@@ -1,28 +1,33 @@
-// Bear Tracker database adapter starter.
-// This keeps the app logic separate from Supabase so we can switch between
-// local test mode and live Saturday mode.
+// Bear Tracker database adapter v1.1
+// This file documents the browser database API used by index.html.
 
-(function () {
-  function hasLiveConfig() {
-    const cfg = window.BEAR_TRACKER_CONFIG || {};
-    return Boolean(cfg.liveModeEnabled && cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase);
-  }
+export async function testConnection(client) {
+  const { data, error } = await client.from('players').select('id').limit(1)
+  if (error) throw error
+  return data
+}
 
-  async function createClient() {
-    if (!hasLiveConfig()) return null;
-    const cfg = window.BEAR_TRACKER_CONFIG;
-    return window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
-  }
+export async function loadPlayers(client) {
+  const { data, error } = await client
+    .from('players')
+    .select('*')
+    .order('name', { ascending: true })
+  if (error) throw error
+  return data
+}
 
-  window.BearTrackerDatabase = {
-    hasLiveConfig,
-    createClient,
-    async connectionStatus() {
-      const client = await createClient();
-      if (!client) return { ok: false, mode: "local", message: "Live database not configured." };
-      const { error } = await client.from("players").select("id", { count: "exact", head: true });
-      if (error) return { ok: false, mode: "live", message: error.message };
-      return { ok: true, mode: "live", message: "Connected to Supabase." };
-    }
-  };
-})();
+export async function upsertPlayers(client, players) {
+  const rows = players.map((p) => ({
+    id: p.id,
+    name: p.name,
+    handicap: p.handicap,
+    quota: p.quota,
+    pin: p.pin,
+    active: p.active,
+    is_admin: Boolean(p.isAdmin),
+    updated_at: new Date().toISOString(),
+  }))
+  const { data, error } = await client.from('players').upsert(rows).select('*')
+  if (error) throw error
+  return data
+}
