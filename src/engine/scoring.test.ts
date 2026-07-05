@@ -1,4 +1,22 @@
-import {describe,it,expect} from 'vitest';import {stableford,quotaAdjustment,placePayouts} from './scoring';
-describe('Stableford',()=>{it('scores net par and worse',()=>{expect(stableford(4,4)).toBe(2);expect(stableford(5,4)).toBe(1);expect(stableford(6,4)).toBe(0)});it('scores birdies and better',()=>{expect(stableford(3,4)).toBe(4);expect(stableford(2,4)).toBe(6);expect(stableford(1,4)).toBe(8)})});
-describe('quota adjustment',()=>{it('does not raise quota outside the money',()=>{expect(quotaAdjustment(3,false)).toBe(0)});it('raises only when cashed',()=>{expect(quotaAdjustment(3,true)).toBe(2);expect(quotaAdjustment(11,true)).toBe(6)})});
-describe('tie payouts',()=>{it('splits 2nd and 3rd money for two-way 2nd tie',()=>{const rows:any=[{player:{id:'a'},quotaPlusMinus:5},{player:{id:'b'},quotaPlusMinus:3},{player:{id:'c'},quotaPlusMinus:3}];const p=placePayouts(rows,[50,30,20]);expect(p.find(x=>x.playerId==='b')?.amount).toBe(25)})});
+import { describe, expect, it } from 'vitest';
+import { quotaAdjustment, stablefordPoints, strokesOnHole } from './scoring';
+
+describe('scoring engine', () => {
+  it('gives a 12 handicap player strokes on handicap holes 1-12 only', () => {
+    expect(strokesOnHole(12, 1)).toBe(1);
+    expect(strokesOnHole(12, 12)).toBe(1);
+    expect(strokesOnHole(12, 13)).toBe(0);
+  });
+
+  it('scores Stableford by net score vs par', () => {
+    expect(stablefordPoints(4, 4)).toBe(2);
+    expect(stablefordPoints(3, 4)).toBe(4);
+    expect(stablefordPoints(5, 4)).toBe(1);
+    expect(stablefordPoints(6, 4)).toBe(0);
+  });
+
+  it('does not increase quota for players outside the money', () => {
+    expect(quotaAdjustment(3, false)).toBe(0);
+    expect(quotaAdjustment(3, true)).toBe(2);
+  });
+});

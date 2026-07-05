@@ -1,30 +1,50 @@
-# Bear Tracker - Real Sprint 1
+# Bear Tracker Sprint 2
 
-This is the first actual React/TypeScript implementation foundation for Bear Tracker.
+This is the first practical React/TypeScript implementation branch for Bear Tracker.
 
 ## Included
-- Vite + React + TypeScript project
-- Black Bear course data
-- Saturday player seed data
-- scoring engine with unit tests
-- PIN login demo
-- player admin
-- group scorekeeper entry
-- quota leaderboard
-- net skins preview
-- payout/quota adjustment preview
 
-## Run locally
-Install Node.js LTS, then in this folder:
+- React + TypeScript + Vite foundation
+- Black Bear course data
+- Saturday player list with handicap/quota/PIN values
+- PIN login
+- Admin player editing
+- Group scorekeeper scoring workflow
+- Stableford, net score, quota +/-, and skins calculations
+- Local browser storage
+- Unit tests for key scoring rules
+
+## Demo login
+
+Admin: Kevin Baker  
+PIN: `0559`
+
+Other players use starter PINs beginning with `1000`, `1001`, etc.
+
+## Local setup
+
+Install Node.js LTS, then from this folder run:
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Test scoring engine
+Run tests:
+
 ```bash
 npm test
 ```
 
-Demo PINs start at 1000. Kevin Baker's PIN is 1006.
+Build for GitHub Pages:
+
+```bash
+npm run build
+```
+
+## Next sprint
+
+- True drag-and-drop group assignment
+- Add/delete groups in the UI
+- Round setup screen
+- Payout engine UI
