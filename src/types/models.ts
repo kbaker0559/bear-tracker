@@ -1,39 +1,37 @@
-export type PlayerRole = 'admin' | 'scorekeeper' | 'player';
-
-export interface Player {
+export type Player = {
   id: string;
   name: string;
   handicap: number;
   quota: number;
   pin: string;
   active: boolean;
-  role: PlayerRole;
-}
+  isAdmin?: boolean;
+};
 
-export interface Hole {
+export type Hole = {
   number: number;
   par: number;
-  handicapRank: number;
-}
+  strokeIndex: number;
+};
 
-export interface ScoreEntry {
+export type Score = {
   playerId: string;
   hole: number;
   gross: number;
-}
+};
 
-export interface PlayerStanding {
+export type PlayerRoundResult = {
   player: Player;
-  holesPlayed: number;
-  gross: number;
-  net: number;
-  stableford: number;
+  grossTotal: number;
+  netTotal: number;
+  stablefordPoints: number;
   quotaPlusMinus: number;
-}
+  thru: number;
+};
 
-export interface Group {
-  id: string;
-  name: string;
-  playerIds: string[];
-  scorekeeperIds: string[];
-}
+export type SkinResult = {
+  hole: number;
+  winnerPlayerId: string | null;
+  winningNetScore: number | null;
+  tied: boolean;
+};

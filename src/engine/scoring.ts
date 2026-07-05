@@ -1,97 +1,87 @@
-import type { Hole, Player, PlayerStanding, ScoreEntry } from '../types/models';
+import type { Hole, Player, PlayerRoundResult, Score, SkinResult } from '../types/models';
 
-export function strokesOnHole(playerHandicap: number, holeHandicapRank: number): number {
-  if (playerHandicap <= 0) return 0;
-  const fullCycles = Math.floor((playerHandicap - 1) / 18);
-  const remainder = ((playerHandicap - 1) % 18) + 1;
-  return fullCycles + (holeHandicapRank <= remainder ? 1 : 0);
+export function strokesReceivedOnHole(handicap: number, strokeIndex: number): number {
+  if (handicap <= 0) return 0;
+  const base = Math.floor(handicap / 18);
+  const extra = handicap % 18 >= strokeIndex ? 1 : 0;
+  return base + extra;
 }
 
-export function netScore(gross: number, playerHandicap: number, holeHandicapRank: number): number {
-  return gross - strokesOnHole(playerHandicap, holeHandicapRank);
+export function netScore(gross: number, handicap: number, hole: Hole): number {
+  return gross - strokesReceivedOnHole(handicap, hole.strokeIndex);
 }
 
 export function stablefordPoints(net: number, par: number): number {
-  const relationToPar = net - par;
-  if (relationToPar <= -3) return 8;
-  if (relationToPar === -2) return 6;
-  if (relationToPar === -1) return 4;
-  if (relationToPar === 0) return 2;
-  if (relationToPar === 1) return 1;
+  const diff = net - par;
+  if (diff <= -3) return 8;
+  if (diff === -2) return 6;
+  if (diff === -1) return 4;
+  if (diff === 0) return 2;
+  if (diff === 1) return 1;
   return 0;
 }
 
-export function calculateStandings(players: Player[], holes: Hole[], scores: ScoreEntry[]): PlayerStanding[] {
-  const active = players.filter((p) => p.active);
-  return active.map((player) => {
+export function calculateResults(players: Player[], holes: Hole[], scores: Score[]): PlayerRoundResult[] {
+  return players.map((player) => {
     const playerScores = scores.filter((s) => s.playerId === player.id);
-    const totals = playerScores.reduce(
-      (acc, score) => {
-        const hole = holes.find((h) => h.number === score.hole);
-        if (!hole) return acc;
-        const net = netScore(score.gross, player.handicap, hole.handicapRank);
-        acc.gross += score.gross;
-        acc.net += net;
-        acc.stableford += stablefordPoints(net, hole.par);
-        acc.holesPlayed += 1;
-        return acc;
-      },
-      { gross: 0, net: 0, stableford: 0, holesPlayed: 0 }
-    );
+    let grossTotal = 0;
+    let netTotal = 0;
+    let stableford = 0;
+
+    for (const score of playerScores) {
+      const hole = holes.find((h) => h.number === score.hole);
+      if (!hole) continue;
+      const net = netScore(score.gross, player.handicap, hole);
+      grossTotal += score.gross;
+      netTotal += net;
+      stableford += stablefordPoints(net, hole.par);
+    }
 
     return {
       player,
-      holesPlayed: totals.holesPlayed,
-      gross: totals.gross,
-      net: totals.net,
-      stableford: totals.stableford,
-      quotaPlusMinus: totals.stableford - player.quota,
+      grossTotal,
+      netTotal,
+      stablefordPoints: stableford,
+      quotaPlusMinus: stableford - player.quota,
+      thru: playerScores.length
     };
-  }).sort((a, b) => b.quotaPlusMinus - a.quotaPlusMinus || b.stableford - a.stableford || a.player.name.localeCompare(b.player.name));
+  }).sort((a, b) => b.quotaPlusMinus - a.quotaPlusMinus || b.stablefordPoints - a.stablefordPoints);
 }
 
-export interface SkinResult {
-  hole: number;
-  winnerId: string | null;
-  winningNet: number | null;
-  tied: boolean;
-  pendingPlayers: number;
-}
-
-export function calculateNetSkins(players: Player[], holes: Hole[], scores: ScoreEntry[]): SkinResult[] {
-  const active = players.filter((p) => p.active);
+export function calculateNetSkins(players: Player[], holes: Hole[], scores: Score[]): SkinResult[] {
   return holes.map((hole) => {
     const holeScores = scores.filter((s) => s.hole === hole.number);
-    const pendingPlayers = active.length - holeScores.length;
-    const netByPlayer = holeScores.map((score) => {
-      const player = active.find((p) => p.id === score.playerId);
-      if (!player) return null;
-      return { playerId: player.id, net: netScore(score.gross, player.handicap, hole.handicapRank) };
-    }).filter(Boolean) as { playerId: string; net: number }[];
+    if (holeScores.length === 0) {
+      return { hole: hole.number, winnerPlayerId: null, winningNetScore: null, tied: false };
+    }
 
-    if (netByPlayer.length === 0) return { hole: hole.number, winnerId: null, winningNet: null, tied: false, pendingPlayers };
-    const bestNet = Math.min(...netByPlayer.map((n) => n.net));
-    const bestPlayers = netByPlayer.filter((n) => n.net === bestNet);
-    return {
-      hole: hole.number,
-      winnerId: bestPlayers.length === 1 && pendingPlayers === 0 ? bestPlayers[0].playerId : null,
-      winningNet: bestNet,
-      tied: bestPlayers.length > 1,
-      pendingPlayers,
-    };
+    const netScores = holeScores.map((score) => {
+      const player = players.find((p) => p.id === score.playerId);
+      if (!player) throw new Error(`Unknown player ${score.playerId}`);
+      return { playerId: player.id, net: netScore(score.gross, player.handicap, hole) };
+    });
+
+    const lowest = Math.min(...netScores.map((s) => s.net));
+    const lowestPlayers = netScores.filter((s) => s.net === lowest);
+
+    if (lowestPlayers.length !== 1) {
+      return { hole: hole.number, winnerPlayerId: null, winningNetScore: lowest, tied: true };
+    }
+
+    return { hole: hole.number, winnerPlayerId: lowestPlayers[0].playerId, winningNetScore: lowest, tied: false };
   });
 }
 
-export function quotaAdjustment(result: number, cashed: boolean): number {
-  if (result <= -10) return -4;
-  if (result <= -6) return -3;
-  if (result <= -3) return -2;
-  if (result <= -1) return -1;
-  if (result === 0) return 0;
-  if (!cashed) return 0;
-  if (result <= 2) return 1;
-  if (result <= 4) return 2;
-  if (result <= 6) return 3;
-  if (result <= 9) return 4;
-  return Math.ceil(result / 2);
+export function quotaAdjustment(plusMinus: number, inTheMoney: boolean): number {
+  if (plusMinus <= -10) return -4;
+  if (plusMinus <= -6) return -3;
+  if (plusMinus <= -3) return -2;
+  if (plusMinus <= -1) return -1;
+  if (plusMinus === 0) return 0;
+  if (!inTheMoney) return 0;
+  if (plusMinus <= 2) return 1;
+  if (plusMinus <= 4) return 2;
+  if (plusMinus <= 6) return 3;
+  if (plusMinus <= 9) return 4;
+  return Math.ceil(plusMinus / 2);
 }
