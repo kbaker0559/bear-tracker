@@ -1,4 +1,4 @@
-import type { LeaderboardRow, PayoutPlace, PayoutResult } from '../types/domain';
+import type { PlayerPayout, PlayerRoundSummary, PayoutPlace, SkinResult } from '../types/domain';
 
 export function paidPlacesForPlayerCount(playerCount: number): number {
   if (playerCount >= 16) return 5;
@@ -6,69 +6,45 @@ export function paidPlacesForPlayerCount(playerCount: number): number {
   return 0;
 }
 
-export function defaultPlaceAmounts(playerCount: number): PayoutPlace[] {
-  const paidPlaces = paidPlacesForPlayerCount(playerCount);
-  if (paidPlaces === 5) {
-    return [
-      { place: 1, amount: 100 },
-      { place: 2, amount: 80 },
-      { place: 3, amount: 60 },
-      { place: 4, amount: 40 },
-      { place: 5, amount: 20 }
-    ];
-  }
-  if (paidPlaces === 4) {
-    return [
-      { place: 1, amount: 80 },
-      { place: 2, amount: 60 },
-      { place: 3, amount: 40 },
-      { place: 4, amount: 20 }
-    ];
-  }
-  return [];
-}
+export function calculatePlacePayouts(leaderboard: PlayerRoundSummary[], placeAmounts: PayoutPlace[]): PlayerPayout[] {
+  const payouts = new Map<string, PlayerPayout>();
+  leaderboard.forEach(row => payouts.set(row.player.id, { playerId: row.player.id, placePayout: 0, skinsPayout: 0, totalPayout: 0 }));
 
-export function calculatePlacePayouts(leaderboard: LeaderboardRow[], placeAmounts: PayoutPlace[]): PayoutResult[] {
-  const paidPlaceCount = placeAmounts.length;
-  if (paidPlaceCount === 0) return [];
-
-  const payouts: PayoutResult[] = [];
   let index = 0;
-  let place = 1;
+  while (index < leaderboard.length) {
+    const tied = leaderboard.filter(row => row.quotaPlusMinus === leaderboard[index].quotaPlusMinus);
+    const tiedAtOrAfterIndex = tied.filter(row => leaderboard.indexOf(row) >= index);
+    const startPlace = index + 1;
+    const endPlace = index + tiedAtOrAfterIndex.length;
+    const pool = placeAmounts
+      .filter(place => place.place >= startPlace && place.place <= endPlace)
+      .reduce((sum, place) => sum + place.amount, 0);
 
-  while (index < leaderboard.length && place <= paidPlaceCount) {
-    const tiedRows = leaderboard.filter((row) => row.quotaDiff === leaderboard[index].quotaDiff);
-    const tieStartIndex = leaderboard.findIndex((row) => row.playerId === tiedRows[0].playerId);
-    if (tieStartIndex !== index) {
-      index++;
-      continue;
-    }
-
-    const placesCovered = Array.from({ length: tiedRows.length }, (_, offset) => place + offset).filter(
-      (coveredPlace) => coveredPlace <= paidPlaceCount
-    );
-
-    if (placesCovered.length > 0) {
-      const moneyPool = placesCovered.reduce((sum, coveredPlace) => {
-        const placeMoney = placeAmounts.find((p) => p.place === coveredPlace)?.amount ?? 0;
-        return sum + placeMoney;
-      }, 0);
-      const splitAmount = Math.floor(moneyPool / tiedRows.length);
-
-      tiedRows.forEach((row) => {
-        payouts.push({
-          playerId: row.playerId,
-          name: row.name,
-          quotaDiff: row.quotaDiff,
-          placesCovered,
-          amount: splitAmount
-        });
+    if (pool > 0) {
+      const split = Math.floor(pool / tiedAtOrAfterIndex.length);
+      tiedAtOrAfterIndex.forEach(row => {
+        const payout = payouts.get(row.player.id);
+        if (payout) {
+          payout.placePayout += split;
+          payout.totalPayout += split;
+        }
       });
     }
-
-    index += tiedRows.length;
-    place += tiedRows.length;
+    index = endPlace;
   }
 
-  return payouts.sort((a, b) => b.quotaDiff - a.quotaDiff || a.name.localeCompare(b.name));
+  return Array.from(payouts.values());
+}
+
+export function addSkinPayouts(basePayouts: PlayerPayout[], skins: SkinResult[], skinValue: number): PlayerPayout[] {
+  const payouts = new Map(basePayouts.map(payout => [payout.playerId, { ...payout }]));
+  skins.forEach(skin => {
+    if (!skin.winnerPlayerId) return;
+    const payout = payouts.get(skin.winnerPlayerId);
+    if (payout) {
+      payout.skinsPayout += skinValue;
+      payout.totalPayout += skinValue;
+    }
+  });
+  return Array.from(payouts.values());
 }

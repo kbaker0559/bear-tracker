@@ -1,35 +1,41 @@
-# Bear Tracker — Option 1 Sprint 2
+# Bear Tracker Sprint 1
 
-This is the second real code sprint for Bear Tracker.
+Real React/TypeScript foundation for the Saturday Black Bear Stableford quota game.
 
-## Added in this sprint
+## Included
 
-- PIN login
-- Admin/player roles
-- Player admin tab
-- Edit player name, handicap, quota, PIN, active status, and admin status
-- Add golfers
-- Browser localStorage save for player changes
-- Score, leaderboard, and skins tabs remain connected to the scoring engine
+- Vite + React + TypeScript scaffold
+- Black Bear Golf Club hole data
+- Starting player list with handicaps and quotas
+- Stableford scoring engine
+- Net score and strokes-received calculation
+- Quota adjustment logic
+- Net skins engine
+- Place payout tie-splitting logic
+- Unit tests for key league rules
+- Demo dashboard using sample scores
 
-## Seed login
-
-Kevin Baker is seeded as admin.
-
-- Golfer: Kevin Baker
-- PIN: 1234
-
-## Commands
+## Run locally
 
 ```bash
 npm install
-npm test
-npm run build
 npm run dev
 ```
 
-## Suggested commit message
+## Test
+
+```bash
+npm test
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Recommended commit message
 
 ```text
-Add login and player admin sprint 2
+Add Bear Tracker Sprint 1 scoring foundation
 ```

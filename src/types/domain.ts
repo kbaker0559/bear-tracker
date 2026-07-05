@@ -3,14 +3,14 @@ export type Player = {
   name: string;
   handicap: number;
   quota: number;
-  pin?: string;
+  pin: string;
   active: boolean;
 };
 
 export type Hole = {
   number: number;
   par: number;
-  handicapRank: number;
+  strokeIndex: number;
 };
 
 export type Score = {
@@ -19,29 +19,20 @@ export type Score = {
   gross: number;
 };
 
-export type HoleResult = {
-  playerId: string;
-  holeNumber: number;
-  gross: number;
-  strokesReceived: number;
-  net: number;
-  stablefordPoints: number;
-};
-
-export type LeaderboardRow = {
-  playerId: string;
-  name: string;
-  quota: number;
+export type PlayerRoundSummary = {
+  player: Player;
   holesPlayed: number;
+  grossTotal: number;
+  netTotal: number;
   stablefordPoints: number;
-  quotaDiff: number;
+  quotaPlusMinus: number;
 };
 
 export type SkinResult = {
   holeNumber: number;
   winnerPlayerId: string | null;
-  winningNet: number | null;
-  tied: boolean;
+  winningNetScore: number | null;
+  tiedPlayerIds: string[];
 };
 
 export type PayoutPlace = {
@@ -49,10 +40,9 @@ export type PayoutPlace = {
   amount: number;
 };
 
-export type PayoutResult = {
+export type PlayerPayout = {
   playerId: string;
-  name: string;
-  placesCovered: number[];
-  quotaDiff: number;
-  amount: number;
+  placePayout: number;
+  skinsPayout: number;
+  totalPayout: number;
 };

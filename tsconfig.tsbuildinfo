@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/vite-env.d.ts","./src/components/Card.tsx","./src/data/course.ts","./src/data/players.ts","./src/engine/payouts.ts","./src/engine/quota.ts","./src/engine/scoring.ts","./src/engine/skins.ts","./src/pages/Dashboard.tsx","./src/tests/scoring.test.ts","./src/types/domain.ts"],"version":"6.0.3"}
