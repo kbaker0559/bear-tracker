@@ -1,28 +1,82 @@
-import type { Player } from '../types';
+import type { Player } from '../types/models';
+import { createPlayerId, resetPlayers } from '../services/storage';
 
-type Props = { players: Player[]; onChange: (players: Player[]) => void };
+type PlayerAdminProps = {
+  players: Player[];
+  onChange: (players: Player[]) => void;
+};
 
-function updatePlayer(players: Player[], id: string, patch: Partial<Player>): Player[] {
-  return players.map(p => p.id === id ? { ...p, ...patch } : p);
-}
-
-export function PlayerAdmin({ players, onChange }: Props) {
-  function addPlayer() {
-    const nextNumber = players.length + 1;
-    onChange([...players, { id: `p${Date.now()}`, name: `New Player ${nextNumber}`, handicap: 0, quota: 0, active: true, pin: '0000' }]);
+export function PlayerAdmin({ players, onChange }: PlayerAdminProps) {
+  function updatePlayer(id: string, patch: Partial<Player>) {
+    onChange(players.map(player => player.id === id ? { ...player, ...patch } : player));
   }
 
-  return <section className="card full"><div className="sectionHeader"><div><h2>Player Admin</h2><p>Edit handicaps, quotas, PINs, and active status. Changes save in this browser.</p></div><button onClick={addPlayer}>Add Golfer</button></div>
-    <div className="playerTable">
-      <div className="playerHead"><span>Name</span><span>HDCP</span><span>Quota</span><span>PIN</span><span>Active</span><span>Admin</span></div>
-      {players.map(player => <div className="playerRow" key={player.id}>
-        <input value={player.name} onChange={e=>onChange(updatePlayer(players, player.id, { name: e.target.value }))} />
-        <input type="number" value={player.handicap} onChange={e=>onChange(updatePlayer(players, player.id, { handicap: Number(e.target.value) }))} />
-        <input type="number" value={player.quota} onChange={e=>onChange(updatePlayer(players, player.id, { quota: Number(e.target.value) }))} />
-        <input value={player.pin} onChange={e=>onChange(updatePlayer(players, player.id, { pin: e.target.value }))} />
-        <input type="checkbox" checked={player.active} onChange={e=>onChange(updatePlayer(players, player.id, { active: e.target.checked }))} />
-        <input type="checkbox" checked={!!player.isAdmin} onChange={e=>onChange(updatePlayer(players, player.id, { isAdmin: e.target.checked }))} />
-      </div>)}
-    </div>
-  </section>;
+  function addPlayer(formData: FormData) {
+    const name = String(formData.get('name') ?? '').trim();
+    if (!name) return;
+    const handicap = Number(formData.get('handicap') ?? 0);
+    const quota = Number(formData.get('quota') ?? 0);
+    const pin = String(formData.get('pin') ?? '0000').trim() || '0000';
+    onChange([...players, {
+      id: createPlayerId(players),
+      name,
+      handicap,
+      quota,
+      pin,
+      active: true,
+      isAdmin: false,
+    }]);
+  }
+
+  return (
+    <section className="card">
+      <div className="section-title-row">
+        <div>
+          <h2>Player Admin</h2>
+          <p>Edit handicaps, Stableford quotas, PINs, and active status before each Saturday round.</p>
+        </div>
+        <button className="secondary" onClick={() => onChange(resetPlayers())}>Reset Seed Players</button>
+      </div>
+
+      <div className="admin-list">
+        {players.map(player => (
+          <div className="player-edit-row" key={player.id}>
+            <label>
+              Name
+              <input value={player.name} onChange={event => updatePlayer(player.id, { name: event.target.value })} />
+            </label>
+            <label>
+              HDCP
+              <input type="number" value={player.handicap} onChange={event => updatePlayer(player.id, { handicap: Number(event.target.value) })} />
+            </label>
+            <label>
+              Quota
+              <input type="number" value={player.quota} onChange={event => updatePlayer(player.id, { quota: Number(event.target.value) })} />
+            </label>
+            <label>
+              PIN
+              <input value={player.pin} onChange={event => updatePlayer(player.id, { pin: event.target.value })} />
+            </label>
+            <label className="checkbox-label">
+              <input type="checkbox" checked={player.active} onChange={event => updatePlayer(player.id, { active: event.target.checked })} />
+              Active
+            </label>
+            <label className="checkbox-label">
+              <input type="checkbox" checked={Boolean(player.isAdmin)} onChange={event => updatePlayer(player.id, { isAdmin: event.target.checked })} />
+              Admin
+            </label>
+          </div>
+        ))}
+      </div>
+
+      <form action={addPlayer} className="add-player-form">
+        <h3>Add Golfer</h3>
+        <input name="name" placeholder="Name" />
+        <input name="handicap" type="number" placeholder="HDCP" />
+        <input name="quota" type="number" placeholder="Quota" />
+        <input name="pin" placeholder="PIN" />
+        <button type="submit">Add</button>
+      </form>
+    </section>
+  );
 }

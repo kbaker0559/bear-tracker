@@ -1,27 +1,41 @@
-import type { Player, Session } from '../types';
+import type { Player } from '../types/models';
 
-type Props = {
+type LoginProps = {
   players: Player[];
-  session: Session;
-  onLogin: (playerId: string, pin: string) => boolean;
-  onLogout: () => void;
+  onLogin: (player: Player) => void;
 };
 
-export function Login({ players, session, onLogin, onLogout }: Props) {
-  if (session) {
-    const player = players.find(p => p.id === session.playerId);
-    return <div className="loginBar"><b>Signed in:</b> {player?.name ?? 'Unknown'} {session.isAdmin && <span className="badge">Admin</span>}<button onClick={onLogout}>Log out</button></div>;
+export function Login({ players, onLogin }: LoginProps) {
+  function submit(formData: FormData) {
+    const playerId = String(formData.get('playerId') ?? '');
+    const pin = String(formData.get('pin') ?? '').trim();
+    const player = players.find(item => item.id === playerId && item.pin === pin);
+    if (!player) {
+      window.alert('That PIN did not match the selected golfer.');
+      return;
+    }
+    onLogin(player);
   }
 
-  return <form className="loginBar" onSubmit={(e) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const playerId = String(fd.get('playerId'));
-    const pin = String(fd.get('pin'));
-    if (!onLogin(playerId, pin)) alert('PIN did not match.');
-  }}>
-    <label>Player <select name="playerId">{players.filter(p=>p.active).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-    <label>PIN <input name="pin" type="password" inputMode="numeric" pattern="[0-9]*" /></label>
-    <button>Sign in</button>
-  </form>;
+  return (
+    <section className="card login-card">
+      <h2>PIN Login</h2>
+      <p>Choose your name and enter your 4-digit PIN. Kevin is seeded as admin with PIN 1234 for testing.</p>
+      <form action={submit} className="form-grid">
+        <label>
+          Golfer
+          <select name="playerId" defaultValue={players.find(p => p.isAdmin)?.id ?? players[0]?.id}>
+            {players.filter(player => player.active).map(player => (
+              <option key={player.id} value={player.id}>{player.name}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          PIN
+          <input name="pin" inputMode="numeric" maxLength={6} placeholder="1234" />
+        </label>
+        <button type="submit">Sign In</button>
+      </form>
+    </section>
+  );
 }
