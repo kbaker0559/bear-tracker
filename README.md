@@ -1,22 +1,21 @@
-# Bear Tracker — Actual Sprint 1
+# Bear Tracker — Actual Sprint 2
 
-This is the first real code foundation for Bear Tracker.
+This sprint builds on the real scoring foundation and adds:
 
-It includes:
+- PIN login
+- Admin/player session state
+- Player administration
+- Edit handicap, quota, PIN, and active status
+- Add golfer
+- Local browser persistence
+- Leaderboard and skins tabs using the real scoring engines
 
-- React + TypeScript + Vite project setup
-- Black Bear course data
-- Player seed data
-- Stableford engine
-- Net score / stroke allocation engine
-- Skins engine
-- Payout engine with tie splitting
-- Quota adjustment engine using the Saturday-game rules
-- Unit tests for the most important league rules
+## Test PINs
+
+- Admin: `0559`
+- Player PINs are seeded as 1000, 1001, 1002, etc. and are editable from Player Admin.
 
 ## Run locally
-
-Install Node.js LTS, then from this folder:
 
 ```bash
 npm install
@@ -24,8 +23,8 @@ npm test
 npm run dev
 ```
 
-## Git commit message
+## Build
 
-```text
-Add actual Bear Tracker scoring foundation
+```bash
+npm run build
 ```
