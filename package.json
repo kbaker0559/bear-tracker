@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview",
     "test": "vitest run"
   },
   "dependencies": {
@@ -18,7 +17,6 @@
   },
   "devDependencies": {
     "vitest": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "jsdom": "latest"
   }
 }
