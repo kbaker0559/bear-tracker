@@ -5,10 +5,12 @@ import { initialPlayers } from './data/players';
 import { leaderboard } from './engine/scoring';
 import { skins } from './engine/skins';
 import { loadJson, saveJson } from './storage/localStore';
+import { testSupabaseConnection, pushPlayers, type SupabaseConfig } from './services/supabaseRest';
 import type { Group, Player, ScoreMap } from './types';
 import './styles.css';
 
-const STORAGE_KEY = 'bear-tracker-sprint6';
+const STORAGE_KEY = 'bear-tracker-sprint7';
+const SUPABASE_CONFIG_KEY = 'bear-tracker-supabase-config';
 
 type AppState = {
   players: Player[];
@@ -29,8 +31,27 @@ function App() {
     groups: defaultGroups,
     currentHole: 1
   }));
-  const [activeTab, setActiveTab] = useState<'score'|'leaderboard'|'skins'|'admin'>('score');
+  const [activeTab, setActiveTab] = useState<'score'|'leaderboard'|'skins'|'admin'|'live'>('score');
+  const [dbConfig, setDbConfig] = useState<SupabaseConfig>(() => loadJson(SUPABASE_CONFIG_KEY, { url: '', anonKey: '' }));
+  const [dbMessage, setDbMessage] = useState('Live database is not connected yet.');
   const [groupId, setGroupId] = useState(state.groups[0]?.id ?? 'g1');
+
+  function saveDbConfig(next: SupabaseConfig) {
+    setDbConfig(next);
+    saveJson(SUPABASE_CONFIG_KEY, next);
+  }
+
+  async function checkLiveDatabase() {
+    setDbMessage('Checking Supabase connection...');
+    const result = await testSupabaseConnection(dbConfig);
+    setDbMessage(result.message);
+  }
+
+  async function syncPlayersToLiveDb() {
+    setDbMessage('Pushing players to Supabase...');
+    const result = await pushPlayers(dbConfig, state.players);
+    setDbMessage(result.message);
+  }
 
   function patch(next: Partial<AppState>) {
     setState((current) => {
@@ -68,7 +89,7 @@ function App() {
     </header>
 
     <nav className="tabs">
-      {(['score','leaderboard','skins','admin'] as const).map((tab) => <button key={tab} className={activeTab === tab ? 'active' : ''} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+      {(['score','leaderboard','skins','admin','live'] as const).map((tab) => <button key={tab} className={activeTab === tab ? 'active' : ''} onClick={() => setActiveTab(tab)}>{tab}</button>)}
     </nav>
 
     {activeTab === 'score' && <section className="card">
@@ -117,6 +138,31 @@ function App() {
       <h2>Admin Snapshot</h2>
       <p>This sprint focuses on live local scoring. Drag-and-drop group editing and Supabase sync are next.</p>
       <pre>{JSON.stringify({ groups: state.groups, scoresEntered: Object.values(state.scores).reduce((sum, holes) => sum + Object.values(holes).filter(v => typeof v === 'number').length, 0) }, null, 2)}</pre>
+    </section>}
+
+
+    {activeTab === 'live' && <section className="card">
+      <h2>Live Database Setup</h2>
+      <p>This sprint adds the Supabase foundation. Scoring still runs locally until the next live-sync sprint.</p>
+      <label>
+        Supabase Project URL
+        <input value={dbConfig.url} placeholder="https://your-project.supabase.co" onChange={(e) => saveDbConfig({ ...dbConfig, url: e.target.value })} />
+      </label>
+      <label>
+        Supabase anon public key
+        <input value={dbConfig.anonKey} placeholder="eyJ..." onChange={(e) => saveDbConfig({ ...dbConfig, anonKey: e.target.value })} />
+      </label>
+      <div className="row footer-actions">
+        <button onClick={checkLiveDatabase}>Test Connection</button>
+        <button onClick={syncPlayersToLiveDb}>Push Local Players</button>
+      </div>
+      <div className="status-box">{dbMessage}</div>
+      <h3>Setup files included</h3>
+      <ul>
+        <li><code>supabase/schema.sql</code></li>
+        <li><code>supabase/seed.sql</code></li>
+        <li><code>docs/SUPABASE_SPRINT7.md</code></li>
+      </ul>
     </section>}
   </main>;
 }

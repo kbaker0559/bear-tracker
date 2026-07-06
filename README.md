@@ -1,31 +1,25 @@
-# Bear Tracker Sprint 6 — Real Live Scoring Foundation
+# Bear Tracker Sprint 7 — Supabase Foundation
 
-This sprint adds the first real live-scoring workflow using local browser state:
+This sprint adds the first live-database foundation while keeping the local scoring app intact.
 
-- PIN login remains assumed by player identity selection for local testing.
-- Group score entry by hole.
-- Gross, net, Stableford, quota +/- calculations.
-- Leaderboard sorted by quota +/-.
-- Net skins by hole, lowest unique net score wins.
-- Round finalization preview helpers remain in the engine layer.
-- Engine test harness included in `tests/engine.test.mjs`.
+## Added
 
-## Run locally
+- Supabase schema for players, courses, rounds, groups, group players, and scores
+- Black Bear course seed SQL
+- Live DB tab in the app
+- Supabase REST connection test
+- Push local players to Supabase
+- Setup notes in `docs/SUPABASE_SPRINT7.md`
 
-Install Node.js LTS, then from this folder:
+## Still local in this sprint
+
+Score entry, leaderboard, and skins still use browser storage. The next sprint should move scores into Supabase for true multi-phone live scoring.
+
+## Commands
 
 ```bash
 npm install
-npm run test:engine
 npm run dev
+npm run test:engine
+npm run build
 ```
-
-## Commit message
-
-```text
-Add live scoring workflow sprint 6
-```
-
-## Notes
-
-This is still local-browser mode. The next major engineering step is Supabase persistence and real-time sync so multiple phones see the same scores.
