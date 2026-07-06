@@ -1,30 +1,33 @@
-import type { Hole, Player, Score, SkinResult } from '../types/domain';
+import type { Hole, Player, ScoreMap, SkinResult } from '../types';
 import { netScore } from './scoring';
 
-export function calculateNetSkins(players: Player[], holes: Hole[], scores: Score[]): SkinResult[] {
-  return holes.map(hole => {
-    const holeScores = scores.filter(score => score.holeNumber === hole.number);
-    const netRows = holeScores.map(score => {
-      const player = players.find(p => p.id === score.playerId);
-      if (!player) return null;
-      return {
-        playerId: player.id,
-        net: netScore(score.gross, player.handicap, hole.strokeIndex)
-      };
-    }).filter((row): row is { playerId: string; net: number } => row !== null);
+export function skinForHole(players: Player[], hole: Hole, scores: ScoreMap): SkinResult {
+  const active = players.filter((p) => p.active);
+  const complete = active.every((p) => typeof scores[p.id]?.[hole.number] === 'number');
+  if (!complete) {
+    return { hole: hole.number, winnerId: null, winnerName: null, netScore: null, status: 'pending' };
+  }
 
-    if (netRows.length === 0) {
-      return { holeNumber: hole.number, winnerPlayerId: null, winningNetScore: null, tiedPlayerIds: [] };
-    }
+  const netScores = active.map((p) => ({
+    player: p,
+    net: netScore(scores[p.id][hole.number] as number, p.handicap, hole)
+  }));
+  const low = Math.min(...netScores.map((s) => s.net));
+  const winners = netScores.filter((s) => s.net === low);
 
-    const lowNet = Math.min(...netRows.map(row => row.net));
-    const lowPlayers = netRows.filter(row => row.net === lowNet).map(row => row.playerId);
+  if (winners.length !== 1) {
+    return { hole: hole.number, winnerId: null, winnerName: null, netScore: low, status: 'no-skin' };
+  }
 
-    return {
-      holeNumber: hole.number,
-      winnerPlayerId: lowPlayers.length === 1 ? lowPlayers[0] : null,
-      winningNetScore: lowNet,
-      tiedPlayerIds: lowPlayers.length > 1 ? lowPlayers : []
-    };
-  });
+  return {
+    hole: hole.number,
+    winnerId: winners[0].player.id,
+    winnerName: winners[0].player.name,
+    netScore: low,
+    status: 'skin'
+  };
+}
+
+export function skins(players: Player[], holes: Hole[], scores: ScoreMap): SkinResult[] {
+  return holes.map((hole) => skinForHole(players, hole, scores));
 }

@@ -1,1 +1,20 @@
-{"scripts":{"dev":"vite --host 0.0.0.0","build":"tsc && vite build","test":"vitest run"},"dependencies":{"@vitejs/plugin-react":"latest","vite":"latest","react":"latest","react-dom":"latest","lucide-react":"latest"},"devDependencies":{"typescript":"latest","vitest":"latest","@types/react":"latest","@types/react-dom":"latest","jsdom":"latest"},"dependenciesMeta":{},"devDependenciesMeta":{}}
+{
+  "name": "bear-tracker",
+  "version": "0.6.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test:engine": "node tests/engine.test.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "typescript": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {}
+}
