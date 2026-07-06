@@ -9,7 +9,7 @@ import { loadJson, saveJson } from './utils/storage';
 import type { FinalizedRound, Group, Player, ScoreMap } from './types';
 import './style.css';
 
-type Tab = 'home'|'players'|'groups'|'score'|'leaderboard'|'skins'|'results';
+type Tab = 'home'|'players'|'groups'|'score'|'leaderboard'|'skins'|'results'|'backup';
 const PLAYER_KEY='bear-tracker.players.v3';
 const SCORE_KEY='bear-tracker.scores.v3';
 const GROUP_KEY='bear-tracker.groups.v3';
@@ -54,8 +54,8 @@ function App(){
   }
   function login(){ const p=players.find(x=>x.pin===pin.trim() && x.active); if(p){setSession(p); setPin(''); setTab('home');} else alert('PIN not found. Admin Kevin default PIN is 1006.'); }
   if(!session) return <div className="app"><header><h1>Bear Tracker</h1><p>{courseName} Saturday Quota Game</p></header><main className="login"><h2>Enter PIN</h2><input value={pin} onChange={e=>setPin(e.target.value)} placeholder="4-digit PIN" inputMode="numeric" autoFocus/><button onClick={login}>Log In</button><p className="muted">Default Kevin/admin PIN: 1006</p></main></div>;
-  const tabs:Tab[] = ['home', ...(session.role==='admin'?['players','groups'] as Tab[]:[]), 'score','leaderboard','skins','results'];
-  return <div className="app"><header><h1>Bear Tracker</h1><p>{session.name} · {session.role}</p></header><nav>{tabs.map(t=><button key={t} className={tab===t?'active':''} onClick={()=>setTab(t)}>{t}</button>)}<button onClick={()=>setSession(null)}>Log Out</button></nav><main>{tab==='home'&&<Home players={activePlayers.length} holesComplete={Object.values(scores).reduce((n,p)=>n+Object.values(p).filter(v=>typeof v==='number').length,0)} groups={groups.length} />}{tab==='players'&&<Players players={players} save={persistPlayers}/>} {tab==='groups'&&<Groups players={activePlayers} groups={groups} save={persistGroups}/>} {tab==='score'&&<ScoreEntry players={players} groups={groupsForScorekeeper(groups,session.id,session.role==='admin')} scores={scores} save={persistScores} isAdmin={session.role==='admin'}/>} {tab==='leaderboard'&&<Leaderboard board={board}/>} {tab==='skins'&&<Skins skins={skins}/>} {tab==='results'&&<Results board={board} payouts={payouts} placeMoney={placeMoney} savePlaceMoney={persistPlaceMoney} finalizeRound={finalizeRound} isAdmin={session.role==='admin'} history={history} players={players} skins={skins}/>}</main></div>;
+  const tabs:Tab[] = ['home', ...(session.role==='admin'?['players','groups'] as Tab[]:[]), 'score','leaderboard','skins','results','backup'];
+  return <div className="app"><header><h1>Bear Tracker</h1><p>{session.name} · {session.role}</p></header><nav>{tabs.map(t=><button key={t} className={tab===t?'active':''} onClick={()=>setTab(t)}>{t}</button>)}<button onClick={()=>setSession(null)}>Log Out</button></nav><main>{tab==='home'&&<Home players={activePlayers.length} holesComplete={Object.values(scores).reduce((n,p)=>n+Object.values(p).filter(v=>typeof v==='number').length,0)} groups={groups.length} />}{tab==='players'&&<Players players={players} save={persistPlayers}/>} {tab==='groups'&&<Groups players={activePlayers} groups={groups} save={persistGroups}/>} {tab==='score'&&<ScoreEntry players={players} groups={groupsForScorekeeper(groups,session.id,session.role==='admin')} scores={scores} save={persistScores} isAdmin={session.role==='admin'}/>} {tab==='leaderboard'&&<Leaderboard board={board}/>} {tab==='skins'&&<Skins skins={skins}/>} {tab==='results'&&<Results board={board} payouts={payouts} placeMoney={placeMoney} savePlaceMoney={persistPlaceMoney} finalizeRound={finalizeRound} isAdmin={session.role==='admin'} history={history} players={players} skins={skins}/>} {tab==='backup'&&<Backup players={players} scores={scores} groups={groups} placeMoney={placeMoney} history={history} setPlayers={persistPlayers} setScores={persistScores} setGroups={persistGroups} setPlaceMoney={persistPlaceMoney} setHistory={(h)=>{setHistory(h); saveJson(HISTORY_KEY,h)}} board={board} payouts={payouts} skins={skins}/>}</main></div>;
 }
 function Home({players,holesComplete,groups}:{players:number;holesComplete:number;groups:number}){return <div className="grid"><section className="card"><h2>Saturday Round</h2><p><b>{players}</b> active players</p><p><b>{groups}</b> groups set up</p><p><b>{holesComplete}</b> scores entered</p><p>Sprint 4 adds payout preview, quota changes, and finalization.</p></section><section className="card"><h2>Rules</h2><p>Net skins only. Ties cancel. Quota leaderboard sorts by Stableford points minus quota.</p></section></div>}
 function Players({players,save}:{players:Player[];save:(p:Player[])=>void}){ const [draft,setDraft]=useState(players); function update(id:string, patch:Partial<Player>){setDraft(draft.map(p=>p.id===id?{...p,...patch}:p));} function add(){setDraft([...draft,{id:crypto.randomUUID(),name:'New Golfer',handicap:0,quota:0,pin:String(Math.floor(1000+Math.random()*9000)),active:true,role:'player'}]);} return <section className="card wide"><h2>Player Admin</h2><button onClick={add}>Add Golfer</button><div className="table">{draft.map(p=><div className="row" key={p.id}><input value={p.name} onChange={e=>update(p.id,{name:e.target.value})}/><label>HDCP <input type="number" value={p.handicap} onChange={e=>update(p.id,{handicap:+e.target.value})}/></label><label>Quota <input type="number" value={p.quota} onChange={e=>update(p.id,{quota:+e.target.value})}/></label><label>PIN <input value={p.pin} onChange={e=>update(p.id,{pin:e.target.value})}/></label><label><input type="checkbox" checked={p.active} onChange={e=>update(p.id,{active:e.target.checked})}/> Active</label><label><input type="checkbox" checked={p.role==='admin'} onChange={e=>update(p.id,{role:e.target.checked?'admin':'player'})}/> Admin</label></div>)}</div><button onClick={()=>save(draft)}>Save Player Changes</button></section>}
@@ -64,6 +64,52 @@ function ScoreEntry({players,groups,scores,save,isAdmin}:{players:Player[];group
 function Leaderboard({board}:{board:ReturnType<typeof leaderboard>}){return <section className="card wide"><h2>Leaderboard</h2><table><thead><tr><th>Pos</th><th>Player</th><th>Thru</th><th>Pts</th><th>Quota</th><th>+/-</th><th>Projected</th></tr></thead><tbody>{board.map((b,i)=><tr key={b.player.id}><td>{i+1}</td><td>{b.player.name}</td><td>{b.thru}</td><td>{b.points}</td><td>{b.quota}</td><td className={b.plusMinus>=0?'good':'bad'}>{b.plusMinus}</td><td>{b.projectedPlusMinus}</td></tr>)}</tbody></table></section>}
 function Skins({skins}:{skins:ReturnType<typeof calculateSkins>}){return <section className="card wide"><h2>Net Skins</h2><div className="skins">{skins.map(s=><div className="skin" key={s.hole}><b>Hole {s.hole}</b><p>{s.status==='won'?`${s.winnerName} net ${s.netScore}`:s.status==='cancelled'?`No skin: tied at net ${s.netScore}`:'Pending'}</p></div>)}</div></section>}
 createRoot(document.getElementById('root')!).render(<App/>);
+
+
+function Backup({players,scores,groups,placeMoney,history,setPlayers,setScores,setGroups,setPlaceMoney,setHistory,board,payouts,skins}:{players:Player[];scores:ScoreMap;groups:Group[];placeMoney:number[];history:FinalizedRound[];setPlayers:(p:Player[])=>void;setScores:(s:ScoreMap)=>void;setGroups:(g:Group[])=>void;setPlaceMoney:(m:number[])=>void;setHistory:(h:FinalizedRound[])=>void;board:ReturnType<typeof leaderboard>;payouts:ReturnType<typeof calculatePlacePayouts>;skins:ReturnType<typeof calculateSkins>}){
+  const [importText,setImportText]=useState('');
+  const wonSkins = skins.filter(s=>s.status==='won');
+  const report = [
+    `Bear Tracker Results - ${new Date().toLocaleDateString()}`,
+    '',
+    'Leaderboard',
+    ...board.map((b,i)=>`${i+1}. ${b.player.name} ${b.plusMinus>=0?'+':''}${b.plusMinus} (${b.points} pts / quota ${b.quota})`),
+    '',
+    'Place Payouts',
+    ...payouts.payouts.map(p=>`${p.playerName}: $${p.amount} (${p.placeStart===p.placeEnd ? `${p.placeStart}` : `${p.placeStart}-${p.placeEnd}`})`),
+    '',
+    'Skins',
+    ...(wonSkins.length ? wonSkins.map(s=>`Hole ${s.hole}: ${s.winnerName} net ${s.netScore}`) : ['No skins awarded yet.'])
+  ].join('\n');
+  function exportBackup(){
+    const payload={version:5,exportedAt:new Date().toISOString(),players,scores,groups,placeMoney,history};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`bear-tracker-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
+    URL.revokeObjectURL(url);
+  }
+  async function copyReport(){
+    await navigator.clipboard.writeText(report);
+    alert('Results copied to clipboard.');
+  }
+  function printReport(){
+    const w=window.open('','','width=800,height=900');
+    if(!w) return alert('Pop-up blocked. Copy the report instead.');
+    w.document.write(`<pre style="font-family:Arial,sans-serif;font-size:16px;white-space:pre-wrap">${report.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c] as string))}</pre>`);
+    w.document.close(); w.focus(); w.print();
+  }
+  function restore(){
+    try{
+      const payload=JSON.parse(importText);
+      if(!payload.players || !payload.scores || !payload.groups) throw new Error('Missing required backup fields.');
+      if(!confirm('Restore this backup? Current local Bear Tracker data on this device will be replaced.')) return;
+      setPlayers(payload.players); setScores(payload.scores); setGroups(payload.groups); setPlaceMoney(payload.placeMoney??[100,75,50,35,25]); setHistory(payload.history??[]);
+      alert('Backup restored.');
+    }catch(err){ alert(`Restore failed: ${err instanceof Error ? err.message : 'Invalid backup JSON'}`); }
+  }
+  return <div className="grid"><section className="card wide"><h2>Backup & Restore</h2><p>Export a JSON backup before every Saturday round and immediately after finalizing results.</p><button onClick={exportBackup}>Download Backup</button><h3>Restore Backup</h3><textarea value={importText} onChange={e=>setImportText(e.target.value)} placeholder="Paste backup JSON here" rows={8}/><button className="danger" onClick={restore}>Restore From Pasted Backup</button></section><section className="card wide"><h2>Shareable Results Summary</h2><textarea readOnly value={report} rows={14}/><div className="pager"><button onClick={copyReport}>Copy Results</button><button onClick={printReport}>Print Results</button></div></section></div>
+}
 
 function Results({board,payouts,placeMoney,savePlaceMoney,finalizeRound,isAdmin,history,players,skins}:{board:ReturnType<typeof leaderboard>;payouts:ReturnType<typeof calculatePlacePayouts>;placeMoney:number[];savePlaceMoney:(m:number[])=>void;finalizeRound:()=>void;isAdmin:boolean;history:FinalizedRound[];players:Player[];skins:ReturnType<typeof calculateSkins>}){
   const inMoney = new Set(payouts.payouts.filter(p=>p.inMoney).map(p=>p.playerId));

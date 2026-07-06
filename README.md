@@ -1,15 +1,13 @@
-# Bear Tracker Sprint 4 — Payouts & Finalization
+# Bear Tracker Sprint 5 — Backup, Restore, and Shareable Reports
 
-This sprint adds the first real results workflow:
+This sprint adds the first real operational tools for Saturday use:
 
-- Place payout preview
-- 9–15 players pay 4 places; 16+ players pay 5 places
-- Tie splitting with dollar amounts rounded down
-- In-the-money rule for quota increases
-- Quota decrease logic still applies outside the money
-- Skins count summary
-- Finalize Round button that updates quotas, archives the round, and clears current scores
-- Unit tests for payout edge cases
+- Backup tab
+- Downloadable JSON backup
+- Restore from pasted backup JSON
+- Copyable results summary
+- Printable results report
+- Backup includes players, scores, groups, place money, and round history
 
 ## Run locally
 
@@ -22,6 +20,6 @@ npm run dev
 
 Default admin PIN: `1006`.
 
-## Commit message
+## Suggested commit message
 
-`Add payout finalization sprint 4`
+`Add backup restore and results reports sprint 5`
