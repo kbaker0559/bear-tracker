@@ -1,50 +1,53 @@
-import type { PlayerPayout, PlayerRoundSummary, PayoutPlace, SkinResult } from '../types/domain';
+import type { PlayerRoundSummary, PayoutResult, PlacePayout } from '../types';
 
-export function paidPlacesForPlayerCount(playerCount: number): number {
+export function paidPlaces(playerCount: number): number {
   if (playerCount >= 16) return 5;
   if (playerCount >= 9) return 4;
   return 0;
 }
 
-export function calculatePlacePayouts(leaderboard: PlayerRoundSummary[], placeAmounts: PayoutPlace[]): PlayerPayout[] {
-  const payouts = new Map<string, PlayerPayout>();
-  leaderboard.forEach(row => payouts.set(row.player.id, { playerId: row.player.id, placePayout: 0, skinsPayout: 0, totalPayout: 0 }));
+export function calculatePlacePayouts(board: PlayerRoundSummary[], placeMoney: number[]): PayoutResult {
+  const activeBoard = board.filter(b => b.thru > 0);
+  const placesToPay = Math.min(paidPlaces(activeBoard.length), placeMoney.length);
+  const payouts: PlacePayout[] = [];
+  let position = 1;
+  let i = 0;
 
-  let index = 0;
-  while (index < leaderboard.length) {
-    const tied = leaderboard.filter(row => row.quotaPlusMinus === leaderboard[index].quotaPlusMinus);
-    const tiedAtOrAfterIndex = tied.filter(row => leaderboard.indexOf(row) >= index);
-    const startPlace = index + 1;
-    const endPlace = index + tiedAtOrAfterIndex.length;
-    const pool = placeAmounts
-      .filter(place => place.place >= startPlace && place.place <= endPlace)
-      .reduce((sum, place) => sum + place.amount, 0);
+  while (i < activeBoard.length && position <= placesToPay) {
+    const score = activeBoard[i].plusMinus;
+    const tied = activeBoard.slice(i).filter(b => b.plusMinus === score);
+    const tiedCount = tied.length;
+    const placesCovered = Array.from({ length: tiedCount }, (_, idx) => position + idx).filter(place => place <= placesToPay);
+    const moneyPool = placesCovered.reduce((sum, place) => sum + (placeMoney[place - 1] ?? 0), 0);
+    const amountEach = moneyPool > 0 ? Math.floor(moneyPool / tiedCount) : 0;
 
-    if (pool > 0) {
-      const split = Math.floor(pool / tiedAtOrAfterIndex.length);
-      tiedAtOrAfterIndex.forEach(row => {
-        const payout = payouts.get(row.player.id);
-        if (payout) {
-          payout.placePayout += split;
-          payout.totalPayout += split;
-        }
+    for (const tiedPlayer of tied) {
+      payouts.push({
+        playerId: tiedPlayer.player.id,
+        playerName: tiedPlayer.player.name,
+        placeStart: position,
+        placeEnd: position + tiedCount - 1,
+        plusMinus: score,
+        amount: amountEach,
+        inMoney: amountEach > 0
       });
     }
-    index = endPlace;
+
+    i += tiedCount;
+    position += tiedCount;
   }
 
-  return Array.from(payouts.values());
+  return {
+    placesPaid: placesToPay,
+    payouts,
+    totalPaid: payouts.reduce((sum, payout) => sum + payout.amount, 0)
+  };
 }
 
-export function addSkinPayouts(basePayouts: PlayerPayout[], skins: SkinResult[], skinValue: number): PlayerPayout[] {
-  const payouts = new Map(basePayouts.map(payout => [payout.playerId, { ...payout }]));
-  skins.forEach(skin => {
-    if (!skin.winnerPlayerId) return;
-    const payout = payouts.get(skin.winnerPlayerId);
-    if (payout) {
-      payout.skinsPayout += skinValue;
-      payout.totalPayout += skinValue;
-    }
-  });
-  return Array.from(payouts.values());
+export function totalSkinsWonByPlayer(playerIds: string[], skinWinners: Array<{ winnerId?: string; status: string }>): Record<string, number> {
+  const totals = Object.fromEntries(playerIds.map(id => [id, 0]));
+  for (const skin of skinWinners) {
+    if (skin.status === 'won' && skin.winnerId) totals[skin.winnerId] = (totals[skin.winnerId] ?? 0) + 1;
+  }
+  return totals;
 }

@@ -1,13 +1,15 @@
-# Bear Tracker Sprint 3 — Group Scorekeeper Workflow
+# Bear Tracker Sprint 4 — Payouts & Finalization
 
-This sprint adds the first real group-management workflow:
+This sprint adds the first real results workflow:
 
-- Drag players into groups
-- Add/delete/rename groups
-- Mark one or more scorekeepers per group
-- Scorekeepers only see groups assigned to them
-- Admin can score any group
-- Group assignments save in the browser
+- Place payout preview
+- 9–15 players pay 4 places; 16+ players pay 5 places
+- Tie splitting with dollar amounts rounded down
+- In-the-money rule for quota increases
+- Quota decrease logic still applies outside the money
+- Skins count summary
+- Finalize Round button that updates quotas, archives the round, and clears current scores
+- Unit tests for payout edge cases
 
 ## Run locally
 
@@ -22,4 +24,4 @@ Default admin PIN: `1006`.
 
 ## Commit message
 
-`Add group scorekeeper workflow sprint 3`
+`Add payout finalization sprint 4`
