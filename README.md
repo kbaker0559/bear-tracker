@@ -1,29 +1,25 @@
-# Bear Tracker Sprint 2
+# Bear Tracker Sprint 3 — Group Scorekeeper Workflow
 
-Real React/TypeScript implementation milestone.
+This sprint adds the first real group-management workflow:
 
-## Adds
-- PIN login
-- Admin/player roles
-- Player admin: edit handicap, quota, PIN, active status, admin status
-- Score entry for admin or logged-in player
-- Leaderboard by Stableford quota +/-
-- Net skins status
-- Local browser saving
-- Scoring engine unit tests
+- Drag players into groups
+- Add/delete/rename groups
+- Mark one or more scorekeepers per group
+- Scorekeepers only see groups assigned to them
+- Admin can score any group
+- Group assignments save in the browser
 
 ## Run locally
+
 ```bash
 npm install
+npm test
+npm run build
 npm run dev
 ```
 
-## Test/build
-```bash
-npm test
-npm run build
-```
+Default admin PIN: `1006`.
 
-Default admin login: Kevin Baker PIN `1006`.
+## Commit message
 
-Commit message: `Add Bear Tracker Sprint 2 login and player admin`
+`Add group scorekeeper workflow sprint 3`
