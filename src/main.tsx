@@ -63,9 +63,12 @@ function App() {
 
   const activeGroup = state.groups.find((g) => g.id === groupId) ?? state.groups[0];
   const activePlayers = state.players.filter((p) => activeGroup?.playerIds.includes(p.id));
-  const board = useMemo(() => leaderboard(state.players, blackBearCourse, state.scores), [state.players, state.scores]);
-  const skinRows = useMemo(() => skins(state.players, blackBearCourse, state.scores), [state.players, state.scores]);
-  const hole = blackBearCourse.find((h) => h.number === state.currentHole) ?? blackBearCourse[0];
+  const board = useMemo(
+  () => leaderboard(state.players, blackBearCourse.holes, state.scores),
+  [state.players, state.scores]
+);
+  const skinRows = useMemo(() => skins(state.players, blackBearCourse.holes, state.scores), [state.players, state.scores]);
+  const hole = blackBearCourse.holes.find((h) => h.number === state.currentHole) ?? blackBearCourse.holes[0];
 
   function setScore(playerId: string, gross: number) {
     const scores = {

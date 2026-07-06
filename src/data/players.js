@@ -1,11 +1,11 @@
-window.BEAR_PLAYERS = [
+export const initialPlayers = [
   { id:'fred-tucker', name:'Fred Tucker', handicap:6, quota:30, pin:'1001', active:true },
   { id:'paul-tucker-jr', name:'Paul Tucker JR', handicap:10, quota:27, pin:'1002', active:true },
   { id:'steve-robin', name:'Steve Robin', handicap:11, quota:23, pin:'1003', active:true },
   { id:'russ-lizzoli', name:'Russ Lizzoli', handicap:16, quota:16, pin:'1004', active:true },
   { id:'cam-crollard', name:'Cam Crollard', handicap:5, quota:30, pin:'1005', active:true },
   { id:'paul-tucker-sr', name:'Paul Tucker SR', handicap:8, quota:25, pin:'1006', active:true },
-  { id:'kevin-baker', name:'Kevin Baker', handicap:12, quota:19, pin:'1234', active:true, admin:true },
+  { id:'kevin-baker', name:'Kevin Baker', handicap:12, quota:19, pin:'1234', active:true, isAdmin:true },
   { id:'mark-knuutilla', name:'Mark Knuutilla', handicap:10, quota:24, pin:'1008', active:true },
   { id:'tyler-adams', name:'Tyler Adams', handicap:9, quota:25, pin:'1009', active:true },
   { id:'don-maines', name:'Don Maines', handicap:13, quota:21, pin:'1010', active:true },
@@ -24,3 +24,5 @@ window.BEAR_PLAYERS = [
   { id:'les-smith', name:'Les Smith', handicap:19, quota:16, pin:'1023', active:true },
   { id:'mike-ondrasik', name:'Mike Ondrasik', handicap:13, quota:18, pin:'1024', active:true }
 ];
+
+export default initialPlayers;
