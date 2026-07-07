@@ -11,8 +11,8 @@ export function netScore(gross: number, handicap: number, hole: Hole): number {
   return gross - strokesOnHole(handicap, hole.strokeIndex);
 }
 
-export function stablefordPoints(net: number, par: number): number {
-  const relative = net - par;
+export function stablefordPoints(score: number, par: number): number {
+  const relative = score - par;
   if (relative <= -3) return 8;
   if (relative === -2) return 6;
   if (relative === -1) return 4;
@@ -34,7 +34,7 @@ export function playerRoundResult(player: Player, holes: Hole[], scores: ScoreMa
     const net = netScore(gross, player.handicap, hole);
     grossTotal += gross;
     netTotal += net;
-    points += stablefordPoints(net, hole.par);
+    points += stablefordPoints(gross, hole.par);
     thru += 1;
   }
 
