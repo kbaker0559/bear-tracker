@@ -210,7 +210,7 @@ function App() {
             <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
               {state.groups.map((g) => (
                 <option key={g.id} value={g.id}>
-                  {g.name}
+                  {g.name.replace('Group', 'Card')}
                 </option>
               ))}
             </select>
