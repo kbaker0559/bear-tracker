@@ -7,12 +7,13 @@ import { skins } from './engine/skins';
 import { loadJson, saveJson } from './storage/localStore';
 import { testSupabaseConnection, pushPlayers, type SupabaseConfig } from './services/supabaseRest';
 import type { Group, Player, ScoreMap } from './types';
+import SaturdayRound from './components/SaturdayRound';
+import type { Round } from './types/round';
 import './styles.css';
-
 const STORAGE_KEY = 'bear-tracker-sprint7';
 const SUPABASE_CONFIG_KEY = 'bear-tracker-supabase-config';
 
-type Tab = 'score' | 'leaderboard' | 'skins' | 'import' | 'admin' | 'live';
+type Tab = 'round' | 'score' | 'leaderboard' | 'skins' | 'import' | 'admin' | 'live';
 
 type AppState = {
   players: Player[];
@@ -35,7 +36,20 @@ const defaultGroups: Group[] = [
     scorekeeperIds: ['paul-tucker-jr']
   }
 ];
-
+function createCurrentRound(players: Player[], scores: ScoreMap, groups: Group[]): Round {
+  return {
+    id: 'current-round',
+    date: new Date().toISOString().slice(0, 10),
+    players: players.filter((p) => p.active).map((p) => p.id),
+    scorecards: groups.map((g) => ({
+      id: g.id,
+      name: g.name.replace('Group', 'Card'),
+      playerIds: g.playerIds
+    })),
+    scores,
+    completed: false
+  };
+}
 const sampleImport = `{
 "wayne-smith": {
   "1": 6,
@@ -73,7 +87,7 @@ function App() {
     })
   );
 
-  const [activeTab, setActiveTab] = useState<Tab>('score');
+  const [activeTab, setActiveTab] = useState<Tab>('round');
   const [dbConfig, setDbConfig] = useState<SupabaseConfig>(() =>
     loadJson(SUPABASE_CONFIG_KEY, { url: '', anonKey: '' })
   );
@@ -92,6 +106,10 @@ function App() {
     () => skins(state.players, blackBearCourse, state.scores),
     [state.players, state.scores]
   );
+  const currentRound = useMemo(
+  () => createCurrentRound(state.players, state.scores, state.groups),
+  [state.players, state.scores, state.groups]
+);
   const hole = blackBearCourse.find((h) => h.number === state.currentHole) ?? blackBearCourse[0];
 
   function patch(next: Partial<AppState>) {
@@ -157,7 +175,7 @@ function App() {
       </header>
 
       <nav className="tabs">
-        {(['score', 'leaderboard', 'skins', 'import', 'admin', 'live'] as const).map((tab) => (
+        {(['round', 'score', 'leaderboard', 'skins', 'import', 'admin', 'live'] as const).map((tab) => (
           <button
             key={tab}
             className={activeTab === tab ? 'active' : ''}
@@ -167,7 +185,7 @@ function App() {
           </button>
         ))}
       </nav>
-
+{activeTab === 'round' && <SaturdayRound round={currentRound} />}
       {activeTab === 'score' && (
         <section className="card">
           <div className="row">
