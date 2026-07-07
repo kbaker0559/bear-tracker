@@ -175,6 +175,17 @@ function addScorecard() {
     ]
   });
 }
+
+function addPlayerToScorecard(scorecardId: string, playerId: string) {
+  patch({
+    groups: state.groups.map((group) =>
+      group.id === scorecardId
+        ? { ...group, playerIds: [...group.playerIds, playerId] }
+        : group
+    )
+  });
+}
+  
   function importRoundScores() {
     try {
       const parsed = JSON.parse(importText) as ScoreMap;
@@ -224,6 +235,7 @@ function addScorecard() {
     players={state.players}
     scorecards={state.groups}
     onAddScorecard={addScorecard}
+    onAddPlayerToScorecard={addPlayerToScorecard}
   />
 )}
       {activeTab === 'score' && (
