@@ -26,13 +26,13 @@ type AppState = {
 const defaultGroups: Group[] = [
   {
     id: 'g1',
-    name: 'Group 1',
+    name: 'Card 1',
     playerIds: ['kevin-baker', 'fred-tucker', 'cam-crollard', 'neal-self'],
     scorekeeperIds: ['kevin-baker']
   },
   {
     id: 'g2',
-    name: 'Group 2',
+    name: 'Card 2',
     playerIds: ['paul-tucker-jr', 'paul-tucker-sr', 'george-heider', 'dave-hall'],
     scorekeeperIds: ['paul-tucker-jr']
   }
@@ -206,7 +206,7 @@ function App() {
       {activeTab === 'score' && (
         <section className="card">
           <div className="row">
-            <h2>Group Score Entry</h2>
+            <h2>Scorecard Entry</h2>
             <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
               {state.groups.map((g) => (
                 <option key={g.id} value={g.id}>
