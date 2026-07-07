@@ -160,6 +160,21 @@ function App() {
     )
   });
 }
+function addScorecard() {
+  const nextNumber = state.groups.length + 1;
+
+  patch({
+    groups: [
+      ...state.groups,
+      {
+        id: `card-${nextNumber}`,
+        name: `Card ${nextNumber}`,
+        playerIds: [],
+        scorekeeperIds: []
+      }
+    ]
+  });
+}
   function importRoundScores() {
     try {
       const parsed = JSON.parse(importText) as ScoreMap;
@@ -205,7 +220,11 @@ function App() {
   />
 )}
 {activeTab === 'scorecards' && (
-  <ScorecardBuilder players={state.players} scorecards={state.groups} />
+  <ScorecardBuilder
+    players={state.players}
+    scorecards={state.groups}
+    onAddScorecard={addScorecard}
+  />
 )}
       {activeTab === 'score' && (
         <section className="card">
