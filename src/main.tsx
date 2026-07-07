@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { blackBearCourse } from './data/course';
 import { initialPlayers } from './data/players';
+import PlayerCheckIn from './components/PlayerCheckIn';
 import { leaderboard } from './engine/scoring';
 import { skins } from './engine/skins';
 import { loadJson, saveJson } from './storage/localStore';
@@ -13,7 +14,7 @@ import './styles.css';
 const STORAGE_KEY = 'bear-tracker-sprint7';
 const SUPABASE_CONFIG_KEY = 'bear-tracker-supabase-config';
 
-type Tab = 'round' | 'score' | 'leaderboard' | 'skins' | 'import' | 'admin' | 'live';
+type Tab = 'round' | 'checkin' | 'score' | 'leaderboard' | 'skins' | 'import' | 'admin' | 'live';
 
 type AppState = {
   players: Player[];
@@ -149,6 +150,15 @@ function App() {
     });
   }
 
+  function toggleCheckedInPlayer(playerId: string) {
+  patch({
+    players: state.players.map((player) =>
+      player.id === playerId
+        ? { ...player, active: !player.active }
+        : player
+    )
+  });
+}
   function importRoundScores() {
     try {
       const parsed = JSON.parse(importText) as ScoreMap;
@@ -175,7 +185,7 @@ function App() {
       </header>
 
       <nav className="tabs">
-        {(['round', 'score', 'leaderboard', 'skins', 'import', 'admin', 'live'] as const).map((tab) => (
+        {(['round', 'checkin', 'score', 'leaderboard', 'skins', 'import', 'admin', 'live'] as const).map((tab) => (
           <button
             key={tab}
             className={activeTab === tab ? 'active' : ''}
@@ -186,6 +196,13 @@ function App() {
         ))}
       </nav>
 {activeTab === 'round' && <SaturdayRound round={currentRound} />}
+{activeTab === 'checkin' && (
+  <PlayerCheckIn
+    players={state.players}
+    checkedInPlayerIds={state.players.filter((p) => p.active).map((p) => p.id)}
+    onTogglePlayer={toggleCheckedInPlayer}
+  />
+)}
       {activeTab === 'score' && (
         <section className="card">
           <div className="row">
