@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { blackBearCourse } from './data/course';
 import { initialPlayers } from './data/players';
+import PairingsImport from './components/PairingsImport';
 import ScorecardBuilder from './components/ScorecardBuilder';
 import PlayerCheckIn from './components/PlayerCheckIn';
 import { leaderboard } from './engine/scoring';
@@ -15,7 +16,7 @@ import './styles.css';
 const STORAGE_KEY = 'bear-tracker-sprint7';
 const SUPABASE_CONFIG_KEY = 'bear-tracker-supabase-config';
 
-type Tab = 'round' | 'checkin' | 'scorecards' | 'score' | 'leaderboard' | 'skins' | 'import' | 'admin' | 'live';
+type Tab = 'round' | 'checkin' | 'pairings' | 'scorecards' | 'score' | 'leaderboard' | 'skins' | 'import' | 'admin' | 'live';
 
 type AppState = {
   players: Player[];
@@ -52,32 +53,7 @@ function createCurrentRound(players: Player[], scores: ScoreMap, groups: Group[]
     completed: false
   };
 }
-const sampleImport = `{
-"wayne-smith": {
-  "1": 6,
-  "2": 4,
-  "3": 4,
-  "4": 7,
-  "5": 5,
-  "6": 5,
-  "7": 4,
-  "8": 6,
-  "9": 5,
-  "10": 6,
-  "11": 4,
-  "12": 6,
-  "13": 6,
-  "14": 7,
-  "15": 3,
-  "16": 5,
-  "17": 4,
-  "18": 4
-},
-  "mike-ondrasik": {
-    "1": 6, "2": 6, "3": 3, "4": 5, "5": 3, "6": 5, "7": 4, "8": 5, "9": 6,
-    "10": 5, "11": 5, "12": 5, "13": 5, "14": 5, "15": 4, "16": 5, "17": 4, "18": 6
-  }
-}`;
+
 
 function App() {
   const [state, setState] = useState<AppState>(() =>
@@ -196,7 +172,21 @@ function addPlayerToScorecard(scorecardId: string, playerId: string) {
       setImportMessage('Import failed. Check that the JSON is valid.');
     }
   }
+function normalizeName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
 
+function findPlayerIdByName(name: string) {
+  const match = state.players.find(
+    (player) => normalizeName(player.name) === normalizeName(name)
+  );
+
+  return match?.id ?? null;
+}
+
+function applyPairings(groups: Group[]) {
+  patch({ groups });
+}
   return (
     <main className="app">
       <header className="hero">
@@ -212,7 +202,7 @@ function addPlayerToScorecard(scorecardId: string, playerId: string) {
       </header>
 
       <nav className="tabs">
-        {(['round', 'checkin', 'scorecards', 'score', 'leaderboard', 'skins', 'import', 'admin', 'live'] as const).map((tab) => (
+        {(['round', 'checkin', 'pairings', 'scorecards', 'score', 'leaderboard', 'skins', 'import', 'admin', 'live'] as const).map((tab) => (
           <button
             key={tab}
             className={activeTab === tab ? 'active' : ''}
@@ -228,6 +218,12 @@ function addPlayerToScorecard(scorecardId: string, playerId: string) {
     players={state.players}
     checkedInPlayerIds={state.players.filter((p) => p.active).map((p) => p.id)}
     onTogglePlayer={toggleCheckedInPlayer}
+  />
+)}
+{activeTab === 'pairings' && (
+  <PairingsImport
+    onApplyPairings={applyPairings}
+    findPlayerIdByName={findPlayerIdByName}
   />
 )}
 {activeTab === 'scorecards' && (
@@ -363,13 +359,13 @@ function addPlayerToScorecard(scorecardId: string, playerId: string) {
             onChange={(e) => setImportText(e.target.value)}
             rows={18}
             style={{ width: '100%', fontFamily: 'monospace' }}
-            placeholder={sampleImport}
+            placeholder="Paste score JSON here..."
           />
 
           <div className="row footer-actions">
             <button onClick={importRoundScores}>Import Round</button>
             <button onClick={() => setImportText('')}>Clear Import Box</button>
-            <button onClick={() => setImportText(sampleImport)}>Load Card #6 Sample</button>
+            
           </div>
 
           {importMessage && <div className="status-box">{importMessage}</div>}
