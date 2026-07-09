@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import AppShell from './components/AppShell';
+import HomeWorkspace from './components/HomeWorkspace';
+import OperationsWorkspace from './components/OperationsWorkspace';
 import { blackBearCourse } from './data/course';
 import { initialPlayers } from './data/players';
 import PairingsImport from './components/PairingsImport';
@@ -7,6 +10,24 @@ import ScorecardBuilder from './components/ScorecardBuilder';
 import PlayerCheckIn from './components/PlayerCheckIn';
 import { leaderboard } from './engine/scoring';
 import { skins } from './engine/skins';
+import { getPayoutLookup } from './data/payoutLookup';
+export function calculateFinancialCheck(playerCount: number) {
+  const lookup = getPayoutLookup(playerCount);
+  const greeniesTotal = Object.values(lookup.greenies).reduce((sum, amount) => sum + amount, 0);
+  const allocatedTotal =
+    lookup.placesTotal +
+    lookup.skins +
+    lookup.horseAss +
+    greeniesTotal;
+
+  return {
+    playerCount,
+    prizePool: lookup.prizePool,
+    allocatedTotal,
+    difference: lookup.prizePool - allocatedTotal,
+    balanced: lookup.prizePool === allocatedTotal
+  };
+}
 import { loadJson, saveJson } from './storage/localStore';
 import { testSupabaseConnection, pushPlayers, type SupabaseConfig } from './services/supabaseRest';
 import type { Group, Player, ScoreMap } from './types';
