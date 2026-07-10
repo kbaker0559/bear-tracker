@@ -3,9 +3,12 @@ import AppShell from './components/AppShell';
 import HomeWorkspace from './components/HomeWorkspace';
 import OperationsWorkspace from './components/OperationsWorkspace';
 import { initialPlayers } from './data/players';
+import {
+  createEmptyRound,
+  type RoundBundle
+} from './engine/roundEngine';
 import type { Group, Player } from './types';
 import './styles.css';
-import { createEmptyRound, type RoundBundle } from './engine/roundEngine';
 
 type Workspace =
   | 'home'
@@ -18,134 +21,133 @@ type Workspace =
 export default function App() {
   const [currentWorkspace, setCurrentWorkspace] =
     useState<Workspace>('home');
-   const [roundBundle, setRoundBundle] = useState<RoundBundle>(() =>
-  createEmptyRound(new Date().toISOString().slice(0, 10))
-); 
+
+  const [roundBundle, setRoundBundle] = useState<RoundBundle>(() =>
+    createEmptyRound(new Date().toISOString().slice(0, 10))
+  );
 
   const [players] = useState<Player[]>(initialPlayers);
   const [groups, setGroups] = useState<Group[]>([]);
 
   const expectedCount = roundBundle.round.expectedPlayerCount;
-
   const checkedInCount = roundBundle.round.checkedInCount;
-const paidCount = roundBundle.round.paidCount;
-const scorecardCount = roundBundle.round.scorecardCount;
+  const paidCount = roundBundle.round.paidCount;
+  const scorecardCount = roundBundle.round.scorecardCount;
 
-  function normalizeName(value: string): string {
-    return value
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '');
-  }
-
-  function findPlayerIdByName(name: string): string | null {
-    const match = players.find(
-      (player) =>
-        normalizeName(player.name) === normalizeName(name)
-    );
-
-    return match?.id ?? null;
-  }
-
-function applyPairings(importedGroups: Group[]) {
-  setGroups(importedGroups);
-function toggleCheckedIn(playerId: string) {
-  setRoundBundle((current) => {
-    const roundPlayers = current.roundPlayers.map((player) =>
-      player.playerId === playerId
-        ? {
-            ...player,
-            checkedIn: !player.checkedIn,
-            status: !player.checkedIn
-              ? ('checked-in' as const)
-              : ('expected' as const)
-          }
-        : player
-    );
-
-    return {
-      ...current,
-      roundPlayers,
-      round: {
-        ...current.round,
-        checkedInCount: roundPlayers.filter(
-          (player) => player.checkedIn
-        ).length,
-        paidCount: roundPlayers.filter(
-          (player) => player.paid
-        ).length
-      }
-    };
-  });
-}
-
-function togglePaid(playerId: string) {
-  setRoundBundle((current) => {
-    const roundPlayers = current.roundPlayers.map((player) =>
-      player.playerId === playerId
-        ? {
-            ...player,
-            paid: !player.paid,
-            amountPaid: !player.paid ? 25 : 0
-          }
-        : player
-    );
-
-    return {
-      ...current,
-      roundPlayers,
-      round: {
-        ...current.round,
-        checkedInCount: roundPlayers.filter((player) => player.checkedIn).length,
-        paidCount: roundPlayers.filter((player) => player.paid).length
-      }
-    };
-  });
-} 
-
-  const roundId = roundBundle.round.id;
-
-  const roundPlayers = importedGroups.flatMap((group) =>
-    group.playerIds.map((playerId) => ({
-      roundId,
-      playerId,
-      status: 'expected' as const,
-      checkedIn: false,
-      paid: false,
-      scorecardId: group.id,
-      isEligibleForPlaces: true,
-      isEligibleForSkins: true,
-      isEligibleForGreenies: true,
-      isEligibleForHorseAss: true,
-      amountPaid: 0,
-      amountWon: 0,
-      amountOwed: 0
-    }))
-  );
   const expectedPlayerIds = roundBundle.roundPlayers.map(
-  (player) => player.playerId
-);
+    (player) => player.playerId
+  );
 
-const checkedInPlayerIds = roundBundle.roundPlayers
-  .filter((player) => player.checkedIn)
-  .map((player) => player.playerId);
+  const checkedInPlayerIds = roundBundle.roundPlayers
+    .filter((player) => player.checkedIn)
+    .map((player) => player.playerId);
 
-const paidPlayerIds = roundBundle.roundPlayers
-  .filter((player) => player.paid)
-  .map((player) => player.playerId);
+  const paidPlayerIds = roundBundle.roundPlayers
+    .filter((player) => player.paid)
+    .map((player) => player.playerId);
 
-  setRoundBundle((current) => ({
-    ...current,
-    round: {
-      ...current.round,
-      state: 'pairings-ready',
-      expectedPlayerCount: roundPlayers.length,
-      checkedInCount: 0,
-      paidCount: 0,
-      scorecardCount: importedGroups.length
-    },
-    roundPlayers
-  }));
-}
+  function applyPairings(importedGroups: Group[]) {
+    setGroups(importedGroups);
+
+    const roundId = roundBundle.round.id;
+
+    const roundPlayers = importedGroups.flatMap((group) =>
+      group.playerIds.map((playerId) => ({
+        roundId,
+        playerId,
+        status: 'expected' as const,
+        checkedIn: false,
+        paid: false,
+        scorecardId: group.id,
+        isEligibleForPlaces: true,
+        isEligibleForSkins: true,
+        isEligibleForGreenies: true,
+        isEligibleForHorseAss: true,
+        amountPaid: 0,
+        amountWon: 0,
+        amountOwed: 0
+      }))
+    );
+
+    setRoundBundle((current) => ({
+      ...current,
+      round: {
+        ...current.round,
+        state: 'pairings-ready',
+        expectedPlayerCount: roundPlayers.length,
+        checkedInCount: 0,
+        paidCount: 0,
+        scorecardCount: importedGroups.length
+      },
+      roundPlayers
+    }));
+  }
+
+  function toggleCheckedIn(playerId: string) {
+    setRoundBundle((current) => {
+      const roundPlayers = current.roundPlayers.map((player) => {
+        if (player.playerId !== playerId) {
+          return player;
+        }
+
+        const checkedIn = !player.checkedIn;
+
+        return {
+          ...player,
+          checkedIn,
+          status: checkedIn
+            ? ('checked-in' as const)
+            : ('expected' as const),
+
+          // Unchecking a player also removes payment.
+          paid: checkedIn ? player.paid : false,
+          amountPaid: checkedIn ? player.amountPaid : 0
+        };
+      });
+
+      return {
+        ...current,
+        roundPlayers,
+        round: {
+          ...current.round,
+          checkedInCount: roundPlayers.filter(
+            (player) => player.checkedIn
+          ).length,
+          paidCount: roundPlayers.filter(
+            (player) => player.paid
+          ).length
+        }
+      };
+    });
+  }
+
+  function togglePaid(playerId: string) {
+    setRoundBundle((current) => {
+      const roundPlayers = current.roundPlayers.map((player) =>
+        player.playerId === playerId && player.checkedIn
+          ? {
+              ...player,
+              paid: !player.paid,
+              amountPaid: !player.paid ? 25 : 0
+            }
+          : player
+      );
+
+      return {
+        ...current,
+        roundPlayers,
+        round: {
+          ...current.round,
+          checkedInCount: roundPlayers.filter(
+            (player) => player.checkedIn
+          ).length,
+          paidCount: roundPlayers.filter(
+            (player) => player.paid
+          ).length
+        }
+      };
+    });
+  }
 
   return (
     <main className="app">
@@ -178,8 +180,13 @@ const paidPlayerIds = roundBundle.roundPlayers
           expectedCount={expectedCount}
           checkedInCount={checkedInCount}
           paidCount={paidCount}
+          expectedPlayerIds={expectedPlayerIds}
+          checkedInPlayerIds={checkedInPlayerIds}
+          paidPlayerIds={paidPlayerIds}
           onApplyPairings={applyPairings}
-                            />
+          onToggleCheckedIn={toggleCheckedIn}
+          onTogglePaid={togglePaid}
+        />
       )}
 
       {currentWorkspace === 'tournament' && (
