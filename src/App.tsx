@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import AppShell from './components/AppShell';
 import HomeWorkspace from './components/HomeWorkspace';
 import OperationsWorkspace from './components/OperationsWorkspace';
 import { initialPlayers } from './data/players';
 import type { Group, Player } from './types';
 import './styles.css';
+import { createEmptyRound, type RoundBundle } from './engine/roundEngine';
 
 type Workspace =
   | 'home'
@@ -17,21 +18,18 @@ type Workspace =
 export default function App() {
   const [currentWorkspace, setCurrentWorkspace] =
     useState<Workspace>('home');
+   const [roundBundle, setRoundBundle] = useState<RoundBundle>(() =>
+  createEmptyRound(new Date().toISOString().slice(0, 10))
+); 
 
   const [players] = useState<Player[]>(initialPlayers);
   const [groups, setGroups] = useState<Group[]>([]);
 
-  const expectedCount = useMemo(() => {
-    const playerIds = new Set(
-      groups.flatMap((group) => group.playerIds)
-    );
+  const expectedCount = roundBundle.round.expectedPlayerCount;
 
-    return playerIds.size;
-  }, [groups]);
-
-  const checkedInCount = 0;
-  const paidCount = 0;
-  const scorecardCount = groups.length;
+  const checkedInCount = roundBundle.round.checkedInCount;
+const paidCount = roundBundle.round.paidCount;
+const scorecardCount = roundBundle.round.scorecardCount;
 
   function normalizeName(value: string): string {
     return value
@@ -48,9 +46,106 @@ export default function App() {
     return match?.id ?? null;
   }
 
-  function applyPairings(importedGroups: Group[]) {
-    setGroups(importedGroups);
-  }
+function applyPairings(importedGroups: Group[]) {
+  setGroups(importedGroups);
+function toggleCheckedIn(playerId: string) {
+  setRoundBundle((current) => {
+    const roundPlayers = current.roundPlayers.map((player) =>
+      player.playerId === playerId
+        ? {
+            ...player,
+            checkedIn: !player.checkedIn,
+            status: !player.checkedIn
+              ? ('checked-in' as const)
+              : ('expected' as const)
+          }
+        : player
+    );
+
+    return {
+      ...current,
+      roundPlayers,
+      round: {
+        ...current.round,
+        checkedInCount: roundPlayers.filter(
+          (player) => player.checkedIn
+        ).length,
+        paidCount: roundPlayers.filter(
+          (player) => player.paid
+        ).length
+      }
+    };
+  });
+}
+
+function togglePaid(playerId: string) {
+  setRoundBundle((current) => {
+    const roundPlayers = current.roundPlayers.map((player) =>
+      player.playerId === playerId
+        ? {
+            ...player,
+            paid: !player.paid,
+            amountPaid: !player.paid ? 25 : 0
+          }
+        : player
+    );
+
+    return {
+      ...current,
+      roundPlayers,
+      round: {
+        ...current.round,
+        checkedInCount: roundPlayers.filter((player) => player.checkedIn).length,
+        paidCount: roundPlayers.filter((player) => player.paid).length
+      }
+    };
+  });
+} 
+
+  const roundId = roundBundle.round.id;
+
+  const roundPlayers = importedGroups.flatMap((group) =>
+    group.playerIds.map((playerId) => ({
+      roundId,
+      playerId,
+      status: 'expected' as const,
+      checkedIn: false,
+      paid: false,
+      scorecardId: group.id,
+      isEligibleForPlaces: true,
+      isEligibleForSkins: true,
+      isEligibleForGreenies: true,
+      isEligibleForHorseAss: true,
+      amountPaid: 0,
+      amountWon: 0,
+      amountOwed: 0
+    }))
+  );
+  const expectedPlayerIds = roundBundle.roundPlayers.map(
+  (player) => player.playerId
+);
+
+const checkedInPlayerIds = roundBundle.roundPlayers
+  .filter((player) => player.checkedIn)
+  .map((player) => player.playerId);
+
+const paidPlayerIds = roundBundle.roundPlayers
+  .filter((player) => player.paid)
+  .map((player) => player.playerId);
+
+  setRoundBundle((current) => ({
+    ...current,
+    round: {
+      ...current.round,
+      state: 'pairings-ready',
+      expectedPlayerCount: roundPlayers.length,
+      checkedInCount: 0,
+      paidCount: 0,
+      scorecardCount: importedGroups.length
+    },
+    roundPlayers
+  }));
+}
 
   return (
     <main className="app">
@@ -84,8 +179,7 @@ export default function App() {
           checkedInCount={checkedInCount}
           paidCount={paidCount}
           onApplyPairings={applyPairings}
-          findPlayerIdByName={findPlayerIdByName}
-        />
+                  />
       )}
 
       {currentWorkspace === 'tournament' && (

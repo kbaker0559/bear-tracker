@@ -1,15 +1,17 @@
+import OperationsCheckIn from './OperationsCheckIn';
 import PairingsImport from './PairingsImport';
 import { calculatePayoutSummary } from '../engine/payoutEngine';
 import type { Group, Player } from '../types';
 
 type Props = {
+
   players: Player[];
   groups: Group[];
   expectedCount: number;
   checkedInCount: number;
   paidCount: number;
   onApplyPairings: (groups: Group[]) => void;
-  findPlayerIdByName: (name: string) => string | null;
+  
 };
 
 export default function OperationsWorkspace({
@@ -18,8 +20,7 @@ export default function OperationsWorkspace({
   expectedCount,
   checkedInCount,
   paidCount,
-  onApplyPairings,
-  findPlayerIdByName
+  onApplyPairings
 }: Props) {
   const payout = calculatePayoutSummary(checkedInCount);
 
