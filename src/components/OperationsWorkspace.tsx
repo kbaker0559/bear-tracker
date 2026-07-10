@@ -1,7 +1,7 @@
-import OperationsCheckIn from './OperationsCheckIn';
 import PairingsImport from './PairingsImport';
 import { calculatePayoutSummary } from '../engine/payoutEngine';
 import type { Group, Player } from '../types';
+import { useState } from 'react';
 
 type Props = {
 
@@ -12,6 +12,7 @@ type Props = {
   paidCount: number;
   onApplyPairings: (groups: Group[]) => void;
   
+  
 };
 
 export default function OperationsWorkspace({
@@ -20,7 +21,8 @@ export default function OperationsWorkspace({
   expectedCount,
   checkedInCount,
   paidCount,
-  onApplyPairings
+  onApplyPairings,
+
 }: Props) {
   const payout = calculatePayoutSummary(checkedInCount);
 
@@ -73,6 +75,33 @@ export default function OperationsWorkspace({
 
       {groups.length > 0 && (
         <>
+            <section className="card">
+      <h3>Today's Round</h3>
+
+      <div className="score-grid">
+        <div className="score-row">
+          <strong>Expected Players</strong>
+          <span>{expectedCount}</span>
+        </div>
+
+        <div className="score-row">
+          <strong>Checked In</strong>
+          <span>{checkedInCount}</span>
+        </div>
+
+        <div className="score-row">
+          <strong>Paid</strong>
+          <span>{paidCount}</span>
+        </div>
+
+        <div className="score-row">
+          <strong>Scorecards</strong>
+          <span>{groups.length}</span>
+        </div>
+      </div>
+
+     
+    </section>
           <h3>Imported Scorecards</h3>
           <div className="score-grid">
             {groups.map((group) => (

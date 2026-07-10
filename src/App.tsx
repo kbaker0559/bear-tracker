@@ -179,7 +179,7 @@ const paidPlayerIds = roundBundle.roundPlayers
           checkedInCount={checkedInCount}
           paidCount={paidCount}
           onApplyPairings={applyPairings}
-                  />
+                            />
       )}
 
       {currentWorkspace === 'tournament' && (
