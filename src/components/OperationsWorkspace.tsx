@@ -3,6 +3,7 @@ import type { Group, Player } from '../types';
 import { calculatePayoutSummary } from '../engine/payoutEngine';
 import OperationsCheckIn from './OperationsCheckIn';
 import PairingsImport from './PairingsImport';
+import SaturdayMorningDashboard from './SaturdayMorningDashboard';
 
 type Props = {
   players: Player[];
@@ -89,49 +90,24 @@ export default function OperationsWorkspace({
 
       {groups.length > 0 && (
         <>
-          <section className="card">
-            <h3>Today&apos;s Round</h3>
+        <SaturdayMorningDashboard
+  expectedCount={expectedCount}
+  checkedInCount={checkedInCount}
+  paidCount={paidCount}
+  scorecardCount={groups.length}
+  onOpenCheckIn={() => setShowCheckIn(true)}
+/>
 
-            <div className="score-grid">
-              <div className="score-row">
-                <strong>Expected Players</strong>
-                <span>{expectedCount}</span>
-              </div>
-
-              <div className="score-row">
-                <strong>Checked In</strong>
-                <span>{checkedInCount}</span>
-              </div>
-
-              <div className="score-row">
-                <strong>Paid</strong>
-                <span>{paidCount}</span>
-              </div>
-
-              <div className="score-row">
-                <strong>Scorecards</strong>
-                <span>{groups.length}</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowCheckIn((current) => !current)}
-            >
-              {showCheckIn ? 'Hide Check-In' : 'Open Check-In'}
-            </button>
-
-            {showCheckIn && (
-              <OperationsCheckIn
-                players={players}
-                expectedPlayerIds={expectedPlayerIds}
-                checkedInPlayerIds={checkedInPlayerIds}
-                paidPlayerIds={paidPlayerIds}
-                onToggleCheckedIn={onToggleCheckedIn}
-                onTogglePaid={onTogglePaid}
-              />
-            )}
-          </section>
+{showCheckIn && (
+  <OperationsCheckIn
+    players={players}
+    expectedPlayerIds={expectedPlayerIds}
+    checkedInPlayerIds={checkedInPlayerIds}
+    paidPlayerIds={paidPlayerIds}
+    onToggleCheckedIn={onToggleCheckedIn}
+    onTogglePaid={onTogglePaid}
+  />
+)}  
 
           <h3>Round Scorecards</h3>
 

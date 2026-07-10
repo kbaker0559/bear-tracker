@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import type { Player } from '../types';
 import { sortPlayersByLastName } from '../utils/playerSort';
 
@@ -18,9 +19,19 @@ export default function OperationsCheckIn({
   onToggleCheckedIn,
   onTogglePaid
 }: Props) {
-  const expectedPlayers = sortPlayersByLastName(
-    players.filter((player) => expectedPlayerIds.includes(player.id))
-  );
+  const [searchText, setSearchText] = useState('');
+
+  const expectedPlayers = useMemo(() => {
+    const normalizedSearch = searchText.trim().toLowerCase();
+
+    return sortPlayersByLastName(
+      players.filter(
+        (player) =>
+          expectedPlayerIds.includes(player.id) &&
+          player.name.toLowerCase().includes(normalizedSearch)
+      )
+    );
+  }, [players, expectedPlayerIds, searchText]);
 
   return (
     <section className="card">
@@ -32,6 +43,25 @@ export default function OperationsCheckIn({
         <strong>{paidPlayerIds.length}</strong> paid
       </p>
 
+      <label>
+        <strong>Find Player</strong>
+
+        <input
+          type="search"
+          value={searchText}
+          onChange={(event) => setSearchText(event.target.value)}
+          placeholder="Type a player’s name..."
+          style={{
+            display: 'block',
+            width: '100%',
+            marginTop: '0.5rem',
+            marginBottom: '1rem',
+            padding: '0.75rem',
+            fontSize: '1rem'
+          }}
+        />
+      </label>
+
       <div className="score-grid">
         {expectedPlayers.map((player) => {
           const checkedIn = checkedInPlayerIds.includes(player.id);
@@ -41,33 +71,34 @@ export default function OperationsCheckIn({
             <div className="score-row" key={player.id}>
               <div>
                 <strong>{player.name}</strong>
+
                 <div>
                   HDCP {player.handicap} · Quota {player.quota}
                 </div>
               </div>
 
-              <label>
-                <input
-                  type="checkbox"
-                  checked={checkedIn}
-                  onChange={() => onToggleCheckedIn(player.id)}
-                />{' '}
-                Checked In
-              </label>
+              <button
+                type="button"
+                onClick={() => onToggleCheckedIn(player.id)}
+              >
+                {checkedIn ? '✓ Checked In' : 'Check In'}
+              </button>
 
-              <label>
-                <input
-                  type="checkbox"
-                  checked={paid}
-                  disabled={!checkedIn}
-                  onChange={() => onTogglePaid(player.id)}
-                />{' '}
-                Paid
-              </label>
+              <button
+                type="button"
+                disabled={!checkedIn}
+                onClick={() => onTogglePaid(player.id)}
+              >
+                {paid ? '✓ Paid' : 'Mark Paid'}
+              </button>
             </div>
           );
         })}
       </div>
+
+      {expectedPlayers.length === 0 && (
+        <p>No expected players match that search.</p>
+      )}
     </section>
   );
 }
