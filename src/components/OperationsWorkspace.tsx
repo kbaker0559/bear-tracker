@@ -1,22 +1,32 @@
+import PairingsImport from './PairingsImport';
 import { calculatePayoutSummary } from '../engine/payoutEngine';
+import type { Group, Player } from '../types';
 
 type Props = {
+  players: Player[];
+  groups: Group[];
   expectedCount: number;
   checkedInCount: number;
   paidCount: number;
+  onApplyPairings: (groups: Group[]) => void;
+  findPlayerIdByName: (name: string) => string | null;
 };
 
 export default function OperationsWorkspace({
+  players,
+  groups,
   expectedCount,
   checkedInCount,
-  paidCount
+  paidCount,
+  onApplyPairings,
+  findPlayerIdByName
 }: Props) {
   const payout = calculatePayoutSummary(checkedInCount);
 
   return (
     <section className="card">
       <h2>Operations Workspace</h2>
-      <p>Check-in, payments, no-shows, walk-ons, and round readiness.</p>
+      <p>Round setup, pairings, check-in, payments, no-shows, and walk-ons.</p>
 
       <div className="score-grid">
         <div className="score-row">
@@ -35,6 +45,11 @@ export default function OperationsWorkspace({
         </div>
 
         <div className="score-row">
+          <strong>Scorecards</strong>
+          <span>{groups.length}</span>
+        </div>
+
+        <div className="score-row">
           <strong>Entry Fees Collected</strong>
           <span>${payout.entryFees}</span>
         </div>
@@ -49,6 +64,31 @@ export default function OperationsWorkspace({
           <span>${payout.prizePool}</span>
         </div>
       </div>
+
+      <PairingsImport
+  players={players}
+  onApplyPairings={onApplyPairings}
+/>
+
+      {groups.length > 0 && (
+        <>
+          <h3>Imported Scorecards</h3>
+          <div className="score-grid">
+            {groups.map((group) => (
+              <div className="score-row" key={group.id}>
+                <strong>{group.name.replace('Group', 'Card')}</strong>
+                <span>{group.playerIds.length} players</span>
+                <ul>
+                  {group.playerIds.map((playerId) => {
+                    const player = players.find((p) => p.id === playerId);
+                    return <li key={playerId}>{player?.name ?? playerId}</li>;
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }

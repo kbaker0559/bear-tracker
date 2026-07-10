@@ -1,3 +1,4 @@
+import App from './App';
 import React, { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import AppShell from './components/AppShell';
@@ -76,7 +77,7 @@ function createCurrentRound(players: Player[], scores: ScoreMap, groups: Group[]
 }
 
 
-function App() {
+function LegacyApp() {
   const [state, setState] = useState<AppState>(() =>
     loadJson(STORAGE_KEY, {
       players: initialPlayers,
