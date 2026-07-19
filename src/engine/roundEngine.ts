@@ -1,11 +1,14 @@
 import type { CurrentRound } from '../types/currentRound';
 import type { RoundPlayer } from '../types/roundPlayer';
 import type { Scorecard } from '../types/scorecard';
+import type { ScorecardImport } from '../types/scorecardImport';
+import { createScorecardImport } from './scorecardImportEngine';
 
 export type RoundBundle = {
   round: CurrentRound;
   roundPlayers: RoundPlayer[];
   scorecards: Scorecard[];
+  scorecardImports: ScorecardImport[];
 };
 
 export function createEmptyRound(date: string): RoundBundle {
@@ -22,7 +25,8 @@ export function createEmptyRound(date: string): RoundBundle {
       scorecardCount: 0
     },
     roundPlayers: [],
-    scorecards: []
+    scorecards: [],
+    scorecardImports: []
   };
 }
 
@@ -37,24 +41,33 @@ export function createRoundFromScorecards(
     roundId
   }));
 
-  const roundPlayers: RoundPlayer[] = normalizedScorecards.flatMap((card) =>
-    card.players.map((cardPlayer) => ({
-      roundId,
-      playerId: cardPlayer.playerId,
-      status: 'expected',
-      checkedIn: false,
-      paid: false,
-      scorecardId: card.id,
-      scorekeeperForScorecardId:
-        card.scorekeeperId === cardPlayer.playerId ? card.id : undefined,
-      isEligibleForPlaces: true,
-      isEligibleForSkins: true,
-      isEligibleForGreenies: true,
-      isEligibleForHorseAss: true,
-      amountPaid: 0,
-      amountWon: 0,
-      amountOwed: 0
-    }))
+  const roundPlayers: RoundPlayer[] =
+    normalizedScorecards.flatMap((card) =>
+      card.players.map((cardPlayer) => ({
+        roundId,
+        playerId: cardPlayer.playerId,
+        status: 'expected',
+        checkedIn: false,
+        paid: false,
+        scorecardId: card.id,
+        scorekeeperForScorecardId:
+          card.scorekeeperId === cardPlayer.playerId
+            ? card.id
+            : undefined,
+        isEligibleForPlaces: true,
+        isEligibleForSkins: true,
+        isEligibleForGreenies: true,
+        isEligibleForHorseAss: true,
+        amountPaid: 0,
+        cashPaid: 0,
+        creditApplied: 0,
+        amountWon: 0,
+        amountOwed: 0
+      }))
+    );
+
+  const scorecardImports = normalizedScorecards.map((card) =>
+    createScorecardImport(roundId, card)
   );
 
   return {
@@ -68,18 +81,25 @@ export function createRoundFromScorecards(
       scorecardCount: normalizedScorecards.length
     },
     roundPlayers,
-    scorecards: normalizedScorecards
+    scorecards: normalizedScorecards,
+    scorecardImports
   };
 }
 
-export function refreshRoundCounts(bundle: RoundBundle): RoundBundle {
+export function refreshRoundCounts(
+  bundle: RoundBundle
+): RoundBundle {
   return {
     ...bundle,
     round: {
       ...bundle.round,
       expectedPlayerCount: bundle.roundPlayers.length,
-      checkedInCount: bundle.roundPlayers.filter((player) => player.checkedIn).length,
-      paidCount: bundle.roundPlayers.filter((player) => player.paid).length,
+      checkedInCount: bundle.roundPlayers.filter(
+        (player) => player.checkedIn
+      ).length,
+      paidCount: bundle.roundPlayers.filter(
+        (player) => player.paid
+      ).length,
       scorecardCount: bundle.scorecards.length
     }
   };

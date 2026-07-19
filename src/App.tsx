@@ -1,13 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AppShell from './components/AppShell';
 import HomeWorkspace from './components/HomeWorkspace';
 import OperationsWorkspace from './components/OperationsWorkspace';
+import TournamentWorkspace from './components/TournamentWorkspace';
 import { initialPlayers } from './data/players';
 import {
   createEmptyRound,
+  createRoundFromScorecards,
   type RoundBundle
 } from './engine/roundEngine';
+import {
+  addLedgerEntry,
+  availablePlayerCredit,
+  createPlayerAccount
+} from './engine/playerAccountEngine';
+import {
+  getRoundGuidance,
+  recommendRoundState
+} from './engine/roundDirector';
+import {
+  clearSavedCurrentRound,
+  loadCurrentRound,
+  saveCurrentRound
+} from './storage/currentRoundStorage';
 import type { Group, Player } from './types';
+import type { PlayerAccount } from './types/playerAccount';
+import type { Scorecard } from './types/scorecard';
+import { bearTrackerTournamentVisibility } from './types/tournamentVisibility';
 import './styles.css';
 
 type Workspace =
@@ -18,214 +37,529 @@ type Workspace =
   | 'league'
   | 'admin';
 
+type ArrivalPayment = {
+  cashPaid: number;
+  creditApplied: number;
+};
+
+const ENTRY_FEE = 25;
+
 export default function App() {
   const [currentWorkspace, setCurrentWorkspace] =
     useState<Workspace>('home');
 
-  const [roundBundle, setRoundBundle] = useState<RoundBundle>(() =>
-    createEmptyRound(new Date().toISOString().slice(0, 10))
-  );
-
   const [players] = useState<Player[]>(initialPlayers);
-  const [groups, setGroups] = useState<Group[]>([]);
 
-  const expectedCount = roundBundle.round.expectedPlayerCount;
-  const checkedInCount = roundBundle.round.checkedInCount;
-  const paidCount = roundBundle.round.paidCount;
-  const scorecardCount = roundBundle.round.scorecardCount;
-
-  const expectedPlayerIds = roundBundle.roundPlayers.map(
-    (player) => player.playerId
+  const [savedCurrentRound] = useState(() =>
+    loadCurrentRound()
   );
 
-  const checkedInPlayerIds = roundBundle.roundPlayers
-    .filter((player) => player.checkedIn)
-    .map((player) => player.playerId);
-
-  const paidPlayerIds = roundBundle.roundPlayers
-    .filter((player) => player.paid)
-    .map((player) => player.playerId);
-
-  function applyPairings(importedGroups: Group[]) {
-    setGroups(importedGroups);
-
-    const roundId = roundBundle.round.id;
-
-    const roundPlayers = importedGroups.flatMap((group) =>
-      group.playerIds.map((playerId) => ({
-        roundId,
-        playerId,
-        status: 'expected' as const,
-        checkedIn: false,
-        paid: false,
-        scorecardId: group.id,
-        isEligibleForPlaces: true,
-        isEligibleForSkins: true,
-        isEligibleForGreenies: true,
-        isEligibleForHorseAss: true,
-        amountPaid: 0,
-        amountWon: 0,
-        amountOwed: 0
-      }))
+  const [roundBundle, setRoundBundle] =
+    useState<RoundBundle>(() =>
+      savedCurrentRound?.roundBundle ??
+      createEmptyRound(
+        new Date().toISOString().slice(0, 10)
+      )
     );
+
+  const [playerAccounts, setPlayerAccounts] = useState<
+    PlayerAccount[]
+  >(() =>
+    savedCurrentRound?.playerAccounts ??
+    initialPlayers.map((player) =>
+      createPlayerAccount(player.id)
+    )
+  );
+
+  const [groups, setGroups] = useState<Group[]>(
+    () => savedCurrentRound?.groups ?? []
+  );
+
+  useEffect(() => {
+    saveCurrentRound({
+      roundBundle,
+      groups,
+      playerAccounts
+    });
+  }, [roundBundle, groups, playerAccounts]);
+
+  useEffect(() => {
+    const recommendedState =
+      recommendRoundState(roundBundle);
+
+    if (
+      recommendedState === roundBundle.round.state
+    ) {
+      return;
+    }
 
     setRoundBundle((current) => ({
       ...current,
       round: {
         ...current.round,
-        state: 'pairings-ready',
-        expectedPlayerCount: roundPlayers.length,
-        checkedInCount: 0,
-        paidCount: 0,
-        scorecardCount: importedGroups.length
-      },
-      roundPlayers
+        state: recommendedState
+      }
     }));
-  }
+  }, [roundBundle]);
 
-  function toggleCheckedIn(playerId: string) {
-    setRoundBundle((current) => {
-      const roundPlayers = current.roundPlayers.map((player) => {
-        if (player.playerId !== playerId) {
-          return player;
-        }
+  const roundGuidance =
+    getRoundGuidance(roundBundle);
 
-        const checkedIn = !player.checkedIn;
+  const expectedCount =
+    roundBundle.round.expectedPlayerCount;
 
-        return {
-          ...player,
-          checkedIn,
-          status: checkedIn
-            ? ('checked-in' as const)
-            : ('expected' as const),
+  const checkedInCount =
+    roundBundle.round.checkedInCount;
 
-          // Unchecking a player also removes payment.
-          paid: checkedIn ? player.paid : false,
-          amountPaid: checkedIn ? player.amountPaid : 0
-        };
-      });
+  const paidCount =
+    roundBundle.round.paidCount;
 
-      return {
-        ...current,
-        roundPlayers,
-        round: {
-          ...current.round,
-          checkedInCount: roundPlayers.filter(
-            (player) => player.checkedIn
-          ).length,
-          paidCount: roundPlayers.filter(
-            (player) => player.paid
-          ).length
-        }
-      };
-    });
-  }
+  const scorecardCount =
+    roundBundle.round.scorecardCount;
 
-  function togglePaid(playerId: string) {
-    setRoundBundle((current) => {
-      const roundPlayers = current.roundPlayers.map((player) =>
-        player.playerId === playerId && player.checkedIn
-          ? {
-              ...player,
-              paid: !player.paid,
-              amountPaid: !player.paid ? 25 : 0
-            }
-          : player
+  const expectedPlayerIds =
+    roundBundle.roundPlayers.map(
+      (player) => player.playerId
+    );
+
+  const checkedInPlayerIds =
+    roundBundle.roundPlayers
+      .filter((player) => player.checkedIn)
+      .map((player) => player.playerId);
+
+  const paidPlayerIds =
+    roundBundle.roundPlayers
+      .filter((player) => player.paid)
+      .map((player) => player.playerId);
+
+  function applyPairings(
+    importedGroups: Group[]
+  ) {
+    const scorecards: Scorecard[] =
+      importedGroups.map((group, index) => ({
+        id: group.id,
+        roundId: roundBundle.round.id,
+        cardNumber: index + 1,
+        teeTime: '',
+        players: group.playerIds.map(
+          (playerId) => {
+            const player = players.find(
+              (candidate) =>
+                candidate.id === playerId
+            );
+
+            return {
+              playerId,
+              tee: '',
+              handicapAtPairing:
+                player?.handicap ?? 0
+            };
+          }
+        ),
+        scorekeeperId:
+          group.scorekeeperIds[0],
+        status: 'scheduled',
+        notes: undefined
+      }));
+
+    const createdRound =
+      createRoundFromScorecards(
+        roundBundle.round.date,
+        scorecards
       );
 
+    setGroups(importedGroups);
+    setRoundBundle(createdRound);
+  }
+
+  function getAvailableCredit(
+    playerId: string
+  ): number {
+    const account = playerAccounts.find(
+      (candidate) =>
+        candidate.playerId === playerId
+    );
+
+    return account
+      ? availablePlayerCredit(account)
+      : 0;
+  }
+
+  function completeArrival(
+    playerId: string,
+    payment: ArrivalPayment
+  ) {
+    const totalApplied =
+      payment.cashPaid +
+      payment.creditApplied;
+
+    if (totalApplied !== ENTRY_FEE) {
+      window.alert(
+        `The payment must total $${ENTRY_FEE}.`
+      );
+      return;
+    }
+
+    const availableCredit =
+      getAvailableCredit(playerId);
+
+    if (
+      payment.creditApplied >
+      availableCredit
+    ) {
+      window.alert(
+        'The credit applied exceeds the player’s available balance.'
+      );
+      return;
+    }
+
+    setRoundBundle((current) => {
+      const roundPlayers =
+        current.roundPlayers.map((player) =>
+          player.playerId === playerId
+            ? {
+                ...player,
+                status:
+                  'checked-in' as const,
+                checkedIn: true,
+                paid: true,
+                amountPaid: ENTRY_FEE,
+                cashPaid:
+                  payment.cashPaid,
+                creditApplied:
+                  payment.creditApplied,
+                paidByPlayerId: undefined
+              }
+            : player
+        );
+
       return {
         ...current,
         roundPlayers,
         round: {
           ...current.round,
-          checkedInCount: roundPlayers.filter(
-            (player) => player.checkedIn
-          ).length,
-          paidCount: roundPlayers.filter(
-            (player) => player.paid
-          ).length
+          state: 'registration-open',
+          checkedInCount:
+            roundPlayers.filter(
+              (player) =>
+                player.checkedIn
+            ).length,
+          paidCount:
+            roundPlayers.filter(
+              (player) => player.paid
+            ).length
         }
       };
     });
+
+    if (payment.creditApplied > 0) {
+      setPlayerAccounts(
+        (currentAccounts) =>
+          currentAccounts.map((account) =>
+            account.playerId === playerId
+              ? addLedgerEntry(account, {
+                  playerId,
+                  date:
+                    roundBundle.round.date,
+                  type: 'credit-applied',
+                  description:
+                    'League credit applied to round entry fee',
+                  amount:
+                    -payment.creditApplied,
+                  roundId:
+                    roundBundle.round.id
+                })
+              : account
+          )
+      );
+    }
+  }
+
+  function removePlayerFromRound(
+    playerId: string
+  ) {
+    setGroups((currentGroups) =>
+      currentGroups.map((group) => ({
+        ...group,
+        playerIds:
+          group.playerIds.filter(
+            (id) => id !== playerId
+          ),
+        scorekeeperIds:
+          group.scorekeeperIds.filter(
+            (id) => id !== playerId
+          )
+      }))
+    );
+
+    setRoundBundle((current) => {
+      const roundPlayers =
+        current.roundPlayers.filter(
+          (player) =>
+            player.playerId !== playerId
+        );
+
+      const scorecards =
+        current.scorecards.map((card) => ({
+          ...card,
+          players: card.players.filter(
+            (player) =>
+              player.playerId !== playerId
+          ),
+          scorekeeperId:
+            card.scorekeeperId === playerId
+              ? undefined
+              : card.scorekeeperId
+        }));
+
+      const scorecardImports =
+        current.scorecardImports.map(
+          (scorecardImport) => ({
+            ...scorecardImport,
+            cells:
+              scorecardImport.cells.filter(
+                (cell) =>
+                  cell.playerId !== playerId
+              ),
+            issues:
+              scorecardImport.issues.filter(
+                (issue) =>
+                  issue.playerId !== playerId
+              )
+          })
+        );
+
+      return {
+        ...current,
+        roundPlayers,
+        scorecards,
+        scorecardImports,
+        round: {
+          ...current.round,
+          expectedPlayerCount:
+            roundPlayers.length,
+          checkedInCount:
+            roundPlayers.filter(
+              (player) =>
+                player.checkedIn
+            ).length,
+          paidCount:
+            roundPlayers.filter(
+              (player) => player.paid
+            ).length,
+          scorecardCount:
+            scorecards.length
+        }
+      };
+    });
+  }
+
+  function continueCurrentRound() {
+    const state = roundGuidance.state;
+
+    if (state === 'pairings-ready') {
+      setRoundBundle((current) => ({
+        ...current,
+        round: {
+          ...current.round,
+          state: 'registration-open'
+        }
+      }));
+
+      setCurrentWorkspace('operations');
+      return;
+    }
+
+    switch (state) {
+      case 'planning':
+      case 'registration-open':
+      case 'registration-closing':
+      case 'ready-to-start':
+        setCurrentWorkspace('operations');
+        break;
+
+      case 'round-live':
+      case 'scoring-complete':
+        setCurrentWorkspace('tournament');
+        break;
+
+      case 'payouts':
+      case 'financial-closeout':
+        setCurrentWorkspace('finance');
+        break;
+
+      case 'archived':
+        setCurrentWorkspace('admin');
+        break;
+    }
+  }
+
+  function startNewRound() {
+    const confirmed = window.confirm(
+      'Start a new round? This will clear the current saved round and all current arrival progress.'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const newRound = createEmptyRound(
+      new Date().toISOString().slice(0, 10)
+    );
+
+    clearSavedCurrentRound();
+
+    setRoundBundle(newRound);
+    setGroups([]);
+    setPlayerAccounts(
+      initialPlayers.map((player) =>
+        createPlayerAccount(player.id)
+      )
+    );
+    setCurrentWorkspace('home');
+  }
+
+  function startRound() {
+    setRoundBundle((current) => ({
+      ...current,
+      round: {
+        ...current.round,
+        state: 'round-live'
+      }
+    }));
+
+    setCurrentWorkspace('tournament');
   }
 
   return (
     <main className="app">
       <header className="hero">
         <div>
-          <p className="eyebrow">Golf League Operating System</p>
+          <p className="eyebrow">
+            Golf League Operating System
+          </p>
+
           <h1>Bear Tracker</h1>
-          <p>League operations, scoring, payouts, and history.</p>
+
+          <p>
+            League operations, scoring,
+            payouts, and history.
+          </p>
         </div>
       </header>
 
       <AppShell
         activeWorkspace={currentWorkspace}
-        onChangeWorkspace={setCurrentWorkspace}
+        onChangeWorkspace={
+          setCurrentWorkspace
+        }
       />
 
       {currentWorkspace === 'home' && (
         <HomeWorkspace
+          guidance={roundGuidance}
           expectedCount={expectedCount}
           checkedInCount={checkedInCount}
           paidCount={paidCount}
           scorecardCount={scorecardCount}
+          onContinue={
+            continueCurrentRound
+          }
         />
       )}
 
-      {currentWorkspace === 'operations' && (
+      {currentWorkspace ===
+        'operations' && (
         <OperationsWorkspace
           players={players}
           groups={groups}
           expectedCount={expectedCount}
-          checkedInCount={checkedInCount}
+          checkedInCount={
+            checkedInCount
+          }
           paidCount={paidCount}
-          expectedPlayerIds={expectedPlayerIds}
-          checkedInPlayerIds={checkedInPlayerIds}
-          paidPlayerIds={paidPlayerIds}
-          onApplyPairings={applyPairings}
-          onToggleCheckedIn={toggleCheckedIn}
-          onTogglePaid={togglePaid}
+          expectedPlayerIds={
+            expectedPlayerIds
+          }
+          checkedInPlayerIds={
+            checkedInPlayerIds
+          }
+          paidPlayerIds={
+            paidPlayerIds
+          }
+          onApplyPairings={
+            applyPairings
+          }
+          onRemovePlayer={
+            removePlayerFromRound
+          }
+          onStartRound={startRound}
+          getAvailableCredit={
+            getAvailableCredit
+          }
+          onCompleteArrival={
+            completeArrival
+          }
         />
       )}
 
-      {currentWorkspace === 'tournament' && (
-        <section className="card">
-          <h2>Tournament Workspace</h2>
-          <p>
-            Live scoring, leaderboard, skins, greenies, H/A,
-            and round review will live here.
-          </p>
-        </section>
+      {currentWorkspace ===
+        'tournament' && (
+        <TournamentWorkspace
+          groups={groups}
+          players={players}
+          visibility={
+            bearTrackerTournamentVisibility
+          }
+        />
       )}
 
-      {currentWorkspace === 'finance' && (
+      {currentWorkspace ===
+        'finance' && (
         <section className="card">
           <h2>Finance Workspace</h2>
+
           <p>
-            Payouts, owed players, the hole-in-one fund,
-            the extra fund, and financial checks will live here.
+            Payouts, owed players, the
+            hole-in-one fund, the extra
+            fund, and financial checks will
+            live here.
           </p>
         </section>
       )}
 
       {currentWorkspace === 'league' && (
         <section className="card">
-          <h2>League Manager Workspace</h2>
+          <h2>
+            League Manager Workspace
+          </h2>
+
           <p>
-            Signups, pairings, tee times, publishing,
-            and communications will live here.
+            Signups, pairings, tee times,
+            publishing, and communications
+            will live here.
           </p>
         </section>
       )}
 
       {currentWorkspace === 'admin' && (
         <section className="card">
-          <h2>Administration Workspace</h2>
+          <h2>
+            Administration Workspace
+          </h2>
+
           <p>
-            Players, rules, GHIN, courses, seasons,
-            and reports will live here.
+            Players, rules, GHIN, courses,
+            seasons, reports, and system
+            controls.
           </p>
+
+          <button
+            type="button"
+            onClick={startNewRound}
+          >
+            Start New Round
+          </button>
         </section>
       )}
     </main>

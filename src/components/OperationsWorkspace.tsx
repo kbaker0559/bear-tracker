@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import type { Group, Player } from '../types';
 import { calculatePayoutSummary } from '../engine/payoutEngine';
+import CardArrivalStatus from './CardArrivalStatus';
 import OperationsCheckIn from './OperationsCheckIn';
 import PairingsImport from './PairingsImport';
+import RegistrationReadyPanel from './RegistrationReadyPanel';
+import RemoveRoundPlayer from './RemoveRoundPlayer';
 import SaturdayMorningDashboard from './SaturdayMorningDashboard';
+
+type ArrivalPayment = {
+  cashPaid: number;
+  creditApplied: number;
+};
 
 type Props = {
   players: Player[];
@@ -18,8 +26,15 @@ type Props = {
   paidPlayerIds: string[];
 
   onApplyPairings: (groups: Group[]) => void;
-  onToggleCheckedIn: (playerId: string) => void;
-  onTogglePaid: (playerId: string) => void;
+  onRemovePlayer: (playerId: string) => void;
+  onStartRound: () => void;
+
+  getAvailableCredit: (playerId: string) => number;
+
+  onCompleteArrival: (
+    playerId: string,
+    payment: ArrivalPayment
+  ) => void;
 };
 
 export default function OperationsWorkspace({
@@ -32,10 +47,14 @@ export default function OperationsWorkspace({
   checkedInPlayerIds,
   paidPlayerIds,
   onApplyPairings,
-  onToggleCheckedIn,
-  onTogglePaid
+  onRemovePlayer,
+  onStartRound,
+  getAvailableCredit,
+  onCompleteArrival
 }: Props) {
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showRemovePlayer, setShowRemovePlayer] = useState(false);
+
   const payout = calculatePayoutSummary(paidCount);
 
   return (
@@ -43,7 +62,8 @@ export default function OperationsWorkspace({
       <h2>Operations Workspace</h2>
 
       <p>
-        Round setup, pairings, check-in, payments, no-shows, and walk-ons.
+        Round setup, pairings, arrivals, entry payments,
+        withdrawals, and walk-ons.
       </p>
 
       <div className="score-grid">
@@ -53,12 +73,12 @@ export default function OperationsWorkspace({
         </div>
 
         <div className="score-row">
-          <strong>Checked In</strong>
+          <strong>Arrived</strong>
           <span>{checkedInCount}</span>
         </div>
 
         <div className="score-row">
-          <strong>Paid</strong>
+          <strong>Entries Satisfied</strong>
           <span>{paidCount}</span>
         </div>
 
@@ -68,17 +88,17 @@ export default function OperationsWorkspace({
         </div>
 
         <div className="score-row">
-          <strong>Entry Fees Collected</strong>
+          <strong>Entry Value Satisfied</strong>
           <span>${payout.entryFees}</span>
         </div>
 
         <div className="score-row">
-          <strong>Hole-in-One Contribution</strong>
+          <strong>Hole-in-One Allocation</strong>
           <span>${payout.holeInOneContribution}</span>
         </div>
 
         <div className="score-row">
-          <strong>Today&apos;s Prize Pool Collected</strong>
+          <strong>Prize-Pool Allocation</strong>
           <span>${payout.prizePool}</span>
         </div>
       </div>
@@ -90,24 +110,53 @@ export default function OperationsWorkspace({
 
       {groups.length > 0 && (
         <>
-        <SaturdayMorningDashboard
-  expectedCount={expectedCount}
-  checkedInCount={checkedInCount}
-  paidCount={paidCount}
-  scorecardCount={groups.length}
-  onOpenCheckIn={() => setShowCheckIn(true)}
-/>
+          <SaturdayMorningDashboard
+            expectedCount={expectedCount}
+            checkedInCount={checkedInCount}
+            paidCount={paidCount}
+            scorecardCount={groups.length}
+            onOpenCheckIn={() => {
+              setShowCheckIn(true);
+              setShowRemovePlayer(false);
+            }}
+            onOpenRemovePlayer={() => {
+              setShowRemovePlayer(true);
+              setShowCheckIn(false);
+            }}
+          />
 
-{showCheckIn && (
-  <OperationsCheckIn
-    players={players}
-    expectedPlayerIds={expectedPlayerIds}
-    checkedInPlayerIds={checkedInPlayerIds}
-    paidPlayerIds={paidPlayerIds}
-    onToggleCheckedIn={onToggleCheckedIn}
-    onTogglePaid={onTogglePaid}
-  />
-)}  
+          <CardArrivalStatus
+            groups={groups}
+            players={players}
+            checkedInPlayerIds={checkedInPlayerIds}
+          />
+
+          <RegistrationReadyPanel
+            expectedCount={expectedCount}
+            checkedInCount={checkedInCount}
+            paidCount={paidCount}
+            onStartRound={onStartRound}
+          />
+
+          {showCheckIn && (
+            <OperationsCheckIn
+              players={players}
+              expectedPlayerIds={expectedPlayerIds}
+              checkedInPlayerIds={checkedInPlayerIds}
+              paidPlayerIds={paidPlayerIds}
+              getAvailableCredit={getAvailableCredit}
+              onCompleteArrival={onCompleteArrival}
+            />
+          )}
+
+          {showRemovePlayer && (
+            <RemoveRoundPlayer
+              players={players}
+              expectedPlayerIds={expectedPlayerIds}
+              onRemovePlayer={onRemovePlayer}
+              onClose={() => setShowRemovePlayer(false)}
+            />
+          )}
 
           <h3>Round Scorecards</h3>
 

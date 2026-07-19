@@ -23,6 +23,11 @@ export type RoundPlayer = {
   isEligibleForHorseAss: boolean;
 
   amountPaid: number;
+
+  cashPaid: number;
+  creditApplied: number;
+  paidByPlayerId?: string;
+
   amountWon: number;
   amountOwed: number;
 };

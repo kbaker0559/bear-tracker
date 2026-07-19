@@ -4,6 +4,7 @@ type Props = {
   paidCount: number;
   scorecardCount: number;
   onOpenCheckIn: () => void;
+  onOpenRemovePlayer: () => void;
 };
 
 export default function SaturdayMorningDashboard({
@@ -11,11 +12,62 @@ export default function SaturdayMorningDashboard({
   checkedInCount,
   paidCount,
   scorecardCount,
-  onOpenCheckIn
+  onOpenCheckIn,
+  onOpenRemovePlayer
 }: Props) {
+  const progress =
+    expectedCount > 0
+      ? Math.round((checkedInCount / expectedCount) * 100)
+      : 0;
+
+  const remainingCount = Math.max(
+    expectedCount - checkedInCount,
+    0
+  );
+
   return (
     <section className="card">
       <h2>Saturday Morning</h2>
+
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            marginBottom: '0.5rem'
+          }}
+        >
+          <strong>Arrival Progress</strong>
+
+          <span>
+            {checkedInCount} of {expectedCount}
+          </span>
+        </div>
+
+        <div
+          style={{
+            width: '100%',
+            height: '1.25rem',
+            background: '#e5e7eb',
+            borderRadius: '999px',
+            overflow: 'hidden'
+          }}
+        >
+          <div
+            style={{
+              width: `${progress}%`,
+              height: '100%',
+              background: '#2f855a',
+              transition: 'width 200ms ease'
+            }}
+          />
+        </div>
+
+        <p style={{ marginBottom: 0 }}>
+          {progress}% arrived · {remainingCount} remaining
+        </p>
+      </div>
 
       <div className="score-grid">
         <div className="score-row">
@@ -24,12 +76,12 @@ export default function SaturdayMorningDashboard({
         </div>
 
         <div className="score-row">
-          <strong>✅ Checked In</strong>
+          <strong>✅ Arrived</strong>
           <span>{checkedInCount}</span>
         </div>
 
         <div className="score-row">
-          <strong>💵 Paid</strong>
+          <strong>💵 Entries Satisfied</strong>
           <span>{paidCount}</span>
         </div>
 
@@ -47,19 +99,19 @@ export default function SaturdayMorningDashboard({
           flexWrap: 'wrap'
         }}
       >
-        <button onClick={onOpenCheckIn}>
-          Open Check-In
+        <button type="button" onClick={onOpenCheckIn}>
+          Arrive Player
         </button>
 
-        <button disabled>
-          Payments
+        <button type="button" disabled>
+          Add Walk-On
         </button>
 
-        <button disabled>
-          Walk-Ons
+        <button type="button" onClick={onOpenRemovePlayer}>
+          Remove Player
         </button>
 
-        <button disabled>
+        <button type="button" disabled>
           Round Scorecards
         </button>
       </div>

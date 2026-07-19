@@ -1,15 +1,20 @@
 export type RoundState =
   | 'planning'
   | 'pairings-ready'
-  | 'check-in-open'
-  | 'round-in-progress'
-  | 'reviewing'
-  | 'finalized';
+  | 'registration-open'
+  | 'registration-closing'
+  | 'ready-to-start'
+  | 'round-live'
+  | 'scoring-complete'
+  | 'payouts'
+  | 'financial-closeout'
+  | 'archived';
 
 export type CurrentRound = {
   id: string;
   date: string;
   state: RoundState;
+
   expectedPlayerCount: number;
   checkedInCount: number;
   paidCount: number;
