@@ -12,27 +12,39 @@ export type SavedCurrentRound = {
 
 export function loadCurrentRound(): SavedCurrentRound | null {
   try {
-    const savedValue = window.localStorage.getItem(STORAGE_KEY);
+    const savedValue =
+      window.localStorage.getItem(STORAGE_KEY);
 
     if (!savedValue) {
       return null;
     }
 
-    const parsed = JSON.parse(savedValue) as SavedCurrentRound;
+    const parsed =
+      JSON.parse(savedValue) as SavedCurrentRound;
 
     return {
       ...parsed,
+
       roundBundle: {
         ...parsed.roundBundle,
+
         roundPlayers:
           parsed.roundBundle.roundPlayers ?? [],
+
         scorecards:
           parsed.roundBundle.scorecards ?? [],
+
         scorecardImports:
-          parsed.roundBundle.scorecardImports ?? []
+          parsed.roundBundle.scorecardImports ?? [],
+
+        scorecardEntries:
+          parsed.roundBundle.scorecardEntries ?? []
       },
+
       groups: parsed.groups ?? [],
-      playerAccounts: parsed.playerAccounts ?? []
+
+      playerAccounts:
+        parsed.playerAccounts ?? []
     };
   } catch (error) {
     console.error(

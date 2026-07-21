@@ -7,6 +7,7 @@ import PairingsImport from './PairingsImport';
 import RegistrationReadyPanel from './RegistrationReadyPanel';
 import RemoveRoundPlayer from './RemoveRoundPlayer';
 import SaturdayMorningDashboard from './SaturdayMorningDashboard';
+import SaturdayPairingManager from './SaturdayPairingManager';
 
 type ArrivalPayment = {
   cashPaid: number;
@@ -27,6 +28,23 @@ type Props = {
 
   onApplyPairings: (groups: Group[]) => void;
   onRemovePlayer: (playerId: string) => void;
+
+  onMovePlayer: (
+    playerId: string,
+    fromGroupId: string,
+    toGroupId: string
+  ) => void;
+
+  onSwapPlayers: (
+    firstPlayerId: string,
+    secondPlayerId: string
+  ) => void;
+
+  onChangeScorekeeper: (
+    groupId: string,
+    playerId: string
+  ) => void;
+
   onStartRound: () => void;
 
   getAvailableCredit: (playerId: string) => number;
@@ -48,14 +66,37 @@ export default function OperationsWorkspace({
   paidPlayerIds,
   onApplyPairings,
   onRemovePlayer,
+  onMovePlayer,
+  onSwapPlayers,
+  onChangeScorekeeper,
   onStartRound,
   getAvailableCredit,
   onCompleteArrival
 }: Props) {
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showRemovePlayer, setShowRemovePlayer] = useState(false);
+  const [showPairingManager, setShowPairingManager] =
+    useState(false);
 
   const payout = calculatePayoutSummary(paidCount);
+
+  function openCheckIn() {
+    setShowCheckIn(true);
+    setShowRemovePlayer(false);
+    setShowPairingManager(false);
+  }
+
+  function openRemovePlayer() {
+    setShowRemovePlayer(true);
+    setShowCheckIn(false);
+    setShowPairingManager(false);
+  }
+
+  function openPairingManager() {
+    setShowPairingManager(true);
+    setShowCheckIn(false);
+    setShowRemovePlayer(false);
+  }
 
   return (
     <section className="card">
@@ -63,7 +104,7 @@ export default function OperationsWorkspace({
 
       <p>
         Round setup, pairings, arrivals, entry payments,
-        withdrawals, and walk-ons.
+        withdrawals, walk-ons, and final card adjustments.
       </p>
 
       <div className="score-grid">
@@ -115,15 +156,35 @@ export default function OperationsWorkspace({
             checkedInCount={checkedInCount}
             paidCount={paidCount}
             scorecardCount={groups.length}
-            onOpenCheckIn={() => {
-              setShowCheckIn(true);
-              setShowRemovePlayer(false);
-            }}
-            onOpenRemovePlayer={() => {
-              setShowRemovePlayer(true);
-              setShowCheckIn(false);
-            }}
+            onOpenCheckIn={openCheckIn}
+            onOpenRemovePlayer={openRemovePlayer}
           />
+
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              flexWrap: 'wrap',
+              marginBottom: '1rem'
+            }}
+          >
+            <button
+              type="button"
+              onClick={openPairingManager}
+            >
+              Manage Pairings
+            </button>
+          </div>
+
+          {showPairingManager && (
+            <SaturdayPairingManager
+              groups={groups}
+              players={players}
+              onMovePlayer={onMovePlayer}
+              onSwapPlayers={onSwapPlayers}
+              onChangeScorekeeper={onChangeScorekeeper}
+            />
+          )}
 
           <CardArrivalStatus
             groups={groups}
@@ -175,9 +236,13 @@ export default function OperationsWorkspace({
                       (candidate) => candidate.id === playerId
                     );
 
+                    const isScorekeeper =
+                      group.scorekeeperIds.includes(playerId);
+
                     return (
                       <li key={playerId}>
                         {player?.name ?? playerId}
+                        {isScorekeeper ? ' — Scorekeeper' : ''}
                       </li>
                     );
                   })}
