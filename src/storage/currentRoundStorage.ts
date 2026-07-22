@@ -38,7 +38,9 @@ export function loadCurrentRound(): SavedCurrentRound | null {
           parsed.roundBundle.scorecardImports ?? [],
 
         scorecardEntries:
-          parsed.roundBundle.scorecardEntries ?? []
+          parsed.roundBundle.scorecardEntries ?? [],
+        scoreCorrections:
+          parsed.roundBundle.scoreCorrections ?? []
       },
 
       groups: parsed.groups ?? [],

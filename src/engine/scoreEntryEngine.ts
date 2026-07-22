@@ -72,7 +72,8 @@ export function createScorecardEntry(
           scorecardPlayer.handicapAtPairing,
           players
         )
-    )
+    ),
+    paperTotals: []
   };
 }
 

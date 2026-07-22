@@ -3,7 +3,11 @@ import type { Player } from '../types';
 import type { Scorecard } from '../types/scorecard';
 import type { ScorecardEntry } from '../types/scoreEntry';
 import type { TournamentVisibilitySettings } from '../types/tournamentVisibility';
+import {
+  buildLeaderboard
+} from '../engine/leaderboardEngine';
 import FastScorecardEntry from './FastScorecardEntry';
+import PrivateLeaderboard from './PrivateLeaderboard';
 import ScorecardReview from './ScorecardReview';
 
 type Props = {
@@ -47,6 +51,11 @@ export default function TournamentWorkspace({
   const [activeView, setActiveView] =
     useState<ActiveView>(null);
 
+  const [
+    showAdministratorStandings,
+    setShowAdministratorStandings
+  ] = useState(false);
+
   const orderedScorecards = useMemo(
     () =>
       [...scorecards].sort(
@@ -54,6 +63,14 @@ export default function TournamentWorkspace({
           first.cardNumber - second.cardNumber
       ),
     [scorecards]
+  );
+
+  const leaderboard = useMemo(
+    () =>
+      buildLeaderboard(
+        scorecardEntries
+      ),
+    [scorecardEntries]
   );
 
   const activeScorecardId =
@@ -245,11 +262,13 @@ export default function TournamentWorkspace({
             playerIndex
           })
         }
-        onVerify={() =>
-          onVerifyScorecard(
-            activeScorecard.id
-          )
-        }
+        onVerify={() => {
+  onVerifyScorecard(
+    activeScorecard.id
+  );
+
+  setActiveView(null);
+}}
         onClose={() =>
           setActiveView(null)
         }
@@ -313,6 +332,36 @@ export default function TournamentWorkspace({
           Tournament calculations may still be reviewed privately by an
           administrator.
         </div>
+      )}
+
+      <div
+        style={{
+          display: 'flex',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          marginTop: '1rem',
+          marginBottom: '1.5rem'
+        }}
+      >
+        <button
+          type="button"
+          onClick={() =>
+            setShowAdministratorStandings(
+              (current) => !current
+            )
+          }
+        >
+          {showAdministratorStandings
+            ? 'Hide Administrator Standings'
+            : 'Show Administrator Standings'}
+        </button>
+      </div>
+
+      {showAdministratorStandings && (
+        <PrivateLeaderboard
+          leaderboard={leaderboard}
+          players={players}
+        />
       )}
 
       <h3>Scorecard Queue</h3>
@@ -409,6 +458,19 @@ export default function TournamentWorkspace({
                           playerEntry?.grossTotal !==
                             undefined
                             ? ` — ${playerEntry.grossTotal} gross`
+                            : ''}
+
+                          {playerEntry
+                            ?.quotaResult !== null &&
+                          playerEntry?.quotaResult !==
+                            undefined
+                            ? ` / ${
+                                playerEntry.quotaResult > 0
+                                  ? `+${playerEntry.quotaResult}`
+                                  : playerEntry.quotaResult === 0
+                                    ? 'E'
+                                    : playerEntry.quotaResult
+                              }`
                             : ''}
                         </li>
                       );

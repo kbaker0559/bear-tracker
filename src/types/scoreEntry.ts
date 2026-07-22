@@ -1,3 +1,4 @@
+import type { PaperPlayerTotals } from './paperScorecardTotals';
 export type ScoreEntryStatus =
   | 'not-started'
   | 'in-progress'
@@ -44,6 +45,8 @@ export type ScorecardEntry = {
   status: ScoreEntryStatus;
 
   players: PlayerScoreEntry[];
+
+  paperTotals: PaperPlayerTotals[];
 
   startedAt?: string;
   completedAt?: string;
