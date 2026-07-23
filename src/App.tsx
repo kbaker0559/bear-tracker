@@ -3,6 +3,7 @@ import AppShell from './components/AppShell';
 import HomeWorkspace from './components/HomeWorkspace';
 import OperationsWorkspace from './components/OperationsWorkspace';
 import TournamentWorkspace from './components/TournamentWorkspace';
+import DeveloperTools from './components/DeveloperTools';
 import { bearTrackerScoringSettings } from './config/bearTrackerScoring';
 import { initialPlayers } from './data/players';
 import { blackBearCourse } from './data/blackBearCourse';
@@ -17,6 +18,10 @@ import {
   createPlayerAccount
 } from './engine/playerAccountEngine';
 import {
+  createBenchmark,
+  loadBenchmark
+} from './engine/benchmarkEngine';
+import {
   getRoundGuidance,
   recommendRoundState
 } from './engine/roundDirector';
@@ -26,6 +31,13 @@ import {
   swapPlayersBetweenCards
 } from './engine/roundManager';
 import {
+  deleteBenchmark,
+  getBenchmark,
+  listBenchmarks,
+  saveBenchmark
+} from './storage/benchmarkStorage';
+import {
+  createPlayerScoreEntry,
   markScorecardEntryVerified,
   updateGrossScore,
   updatePaperPlayerTotals
@@ -38,6 +50,8 @@ import {
 import type { Group, Player } from './types';
 import type { PlayerAccount } from './types/playerAccount';
 import type { Scorecard } from './types/scorecard';
+import type { RoundPlayerStatus } from './types/roundPlayer';
+import type { BenchmarkSummary } from './types/benchmark';
 import type { PaperPlayerTotals } from './types/paperScorecardTotals';
 import {
   bearTrackerTournamentVisibility
@@ -65,6 +79,13 @@ export default function App() {
 
   const [players] =
     useState<Player[]>(initialPlayers);
+
+  const [
+  benchmarkSummaries,
+  setBenchmarkSummaries
+] = useState<BenchmarkSummary[]>(
+  () => listBenchmarks()
+);  
 
   const [savedCurrentRound] = useState(() =>
     loadCurrentRound()
@@ -137,20 +158,74 @@ export default function App() {
   const scorecardCount =
     roundBundle.round.scorecardCount;
 
+  const activeRoundPlayers =
+    roundBundle.roundPlayers.filter(
+      (player) =>
+        player.status !== 'dns' &&
+        player.status !== 'no-show' &&
+        player.status !== 'withdrawn' &&
+        player.status !== 'removed'
+    );
+
   const expectedPlayerIds =
-    roundBundle.roundPlayers.map(
+    activeRoundPlayers.map(
       (player) => player.playerId
     );
 
   const checkedInPlayerIds =
-    roundBundle.roundPlayers
+    activeRoundPlayers
       .filter((player) => player.checkedIn)
       .map((player) => player.playerId);
 
   const paidPlayerIds =
-    roundBundle.roundPlayers
+    activeRoundPlayers
       .filter((player) => player.paid)
       .map((player) => player.playerId);
+
+  const weeklyPlayers =
+    roundBundle.roundPlayers.map((roundPlayer) => {
+      const scorecard =
+        roundBundle.scorecards.find(
+          (card) => card.id === roundPlayer.scorecardId
+        );
+
+      const scorecardPlayer =
+        scorecard?.players.find(
+          (player) =>
+            player.playerId === roundPlayer.playerId
+        );
+
+      const scoreEntry =
+        roundBundle.scorecardEntries
+          .find(
+            (entry) =>
+              entry.scorecardId === roundPlayer.scorecardId
+          )
+          ?.players.find(
+            (entry) =>
+              entry.playerId === roundPlayer.playerId
+          );
+
+      const profile = players.find(
+        (player) => player.id === roundPlayer.playerId
+      );
+
+      return {
+        playerId: roundPlayer.playerId,
+        handicap:
+          scorecardPlayer?.handicapAtPairing ??
+          scoreEntry?.courseHandicap ??
+          profile?.handicap ??
+          0,
+        quota:
+          scorecardPlayer?.quotaAtPairing ??
+          scoreEntry?.quota ??
+          profile?.quota ??
+          0,
+        status: roundPlayer.status,
+        reviewed: roundPlayer.weeklyReviewed ?? false
+      };
+    });
 
   function applyPairings(
     importedGroups: Group[]
@@ -173,7 +248,9 @@ export default function App() {
                 playerId,
                 tee: '',
                 handicapAtPairing:
-                  player?.handicap ?? 0
+                  player?.handicap ?? 0,
+                quotaAtPairing:
+                  player?.quota ?? 0
               };
             }
           ),
@@ -208,6 +285,122 @@ export default function App() {
       ? availablePlayerCredit(account)
       : 0;
   }
+
+  function refreshBenchmarkList() {
+  setBenchmarkSummaries(
+    listBenchmarks()
+  );
+}
+
+function createCurrentRoundBenchmark() {
+  const name = window.prompt(
+    'Benchmark name:',
+    `${roundBundle.round.date} Benchmark`
+  );
+
+  if (!name?.trim()) {
+    return;
+  }
+
+  const description =
+    window.prompt(
+      'Benchmark description:',
+      `${roundBundle.roundPlayers.length} players and ${roundBundle.scorecards.length} scorecards`
+    ) ?? '';
+
+  try {
+    const benchmark =
+      createBenchmark(
+        name.trim(),
+        description.trim(),
+        roundBundle
+      );
+
+    saveBenchmark(benchmark);
+    refreshBenchmarkList();
+
+    window.alert(
+      'Benchmark saved successfully.'
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'The benchmark could not be saved.';
+
+    window.alert(message);
+  }
+}
+
+function loadSavedBenchmark(
+  benchmarkId: string
+) {
+  const benchmark =
+    getBenchmark(benchmarkId);
+
+  if (!benchmark) {
+    window.alert(
+      'The benchmark could not be found.'
+    );
+
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      `Load "${benchmark.name}"? This will replace the current round.`
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const loadedRound =
+    loadBenchmark(benchmark);
+
+  const loadedGroups: Group[] =
+    loadedRound.scorecards.map(
+      (scorecard) => ({
+        id: scorecard.id,
+        name: `Group ${scorecard.cardNumber}`,
+        playerIds:
+          scorecard.players.map(
+            (player) => player.playerId
+          ),
+        scorekeeperIds:
+          scorecard.scorekeeperId
+            ? [scorecard.scorekeeperId]
+            : []
+      })
+    );
+
+  setRoundBundle(loadedRound);
+  setGroups(loadedGroups);
+  setCurrentWorkspace('tournament');
+}
+
+function removeSavedBenchmark(
+  benchmarkId: string
+) {
+  const benchmark =
+    getBenchmark(benchmarkId);
+
+  if (!benchmark) {
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      `Delete "${benchmark.name}"?`
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  deleteBenchmark(benchmarkId);
+  refreshBenchmarkList();
+}
 
   function completeArrival(
     playerId: string,
@@ -309,104 +502,429 @@ export default function App() {
     }
   }
 
-  function removePlayerFromRound(
-    playerId: string
+  function setPlayerInactiveStatus(
+    playerId: string,
+    status: Extract<
+      RoundPlayerStatus,
+      'dns' | 'withdrawn' | 'removed'
+    >,
+    reason: string
   ) {
     setGroups((currentGroups) =>
       currentGroups.map((group) => ({
         ...group,
-        playerIds:
-          group.playerIds.filter(
-            (id) => id !== playerId
-          ),
-        scorekeeperIds:
-          group.scorekeeperIds.filter(
-            (id) => id !== playerId
-          )
+        playerIds: group.playerIds.filter(
+          (id) => id !== playerId
+        ),
+        scorekeeperIds: group.scorekeeperIds.filter(
+          (id) => id !== playerId
+        )
       }))
     );
 
     setRoundBundle((current) => {
-      const roundPlayers =
-        current.roundPlayers.filter(
-          (player) =>
-            player.playerId !== playerId
+      const currentRoundPlayer =
+        current.roundPlayers.find(
+          (player) => player.playerId === playerId
         );
 
-      const scorecards =
-        current.scorecards.map(
-          (card) => ({
-            ...card,
-            players:
-              card.players.filter(
-                (player) =>
-                  player.playerId !==
-                  playerId
-              ),
-            scorekeeperId:
-              card.scorekeeperId ===
-              playerId
-                ? undefined
-                : card.scorekeeperId
-          })
-        );
+      const currentCard = current.scorecards.find(
+        (card) =>
+          card.players.some(
+            (player) => player.playerId === playerId
+          )
+      );
 
-      const scorecardImports =
-        current.scorecardImports.map(
-          (scorecardImport) => ({
-            ...scorecardImport,
-            cells:
-              scorecardImport.cells.filter(
-                (cell) =>
-                  cell.playerId !==
-                  playerId
-              ),
-            issues:
-              scorecardImport.issues.filter(
-                (issue) =>
-                  issue.playerId !==
-                  playerId
-              )
-          })
-        );
+      const cardPlayer = currentCard?.players.find(
+        (player) => player.playerId === playerId
+      );
+
+      const roundPlayers = current.roundPlayers.map(
+        (player) =>
+          player.playerId === playerId
+            ? {
+                ...player,
+                status,
+                statusReason: reason || undefined,
+                originalScorecardId:
+                  player.originalScorecardId ??
+                  player.scorecardId ??
+                  currentCard?.id,
+                storedHandicapAtPairing:
+                  player.storedHandicapAtPairing ??
+                  cardPlayer?.handicapAtPairing,
+                storedQuotaAtPairing:
+                  player.storedQuotaAtPairing ??
+                  cardPlayer?.quotaAtPairing,
+                originalScorekeeperForScorecardId:
+                  player.originalScorekeeperForScorecardId ??
+                  player.scorekeeperForScorecardId,
+                isEligibleForPlaces: false,
+                isEligibleForSkins: false,
+                isEligibleForGreenies: false,
+                isEligibleForHorseAss: false
+              }
+            : player
+      );
+
+      const scorecards = current.scorecards.map((card) => ({
+        ...card,
+        players: card.players.filter(
+          (player) => player.playerId !== playerId
+        ),
+        scorekeeperId:
+          card.scorekeeperId === playerId
+            ? undefined
+            : card.scorekeeperId
+      }));
 
       const scorecardEntries =
-        current.scorecardEntries.map(
-          (scorecardEntry) => ({
-            ...scorecardEntry,
-            players:
-              scorecardEntry.players.filter(
-                (playerEntry) =>
-                  playerEntry.playerId !==
-                  playerId
-              )
-          })
-        );
+        current.scorecardEntries.map((entry) => ({
+          ...entry,
+          players: entry.players.filter(
+            (player) => player.playerId !== playerId
+          ),
+          paperTotals: (entry.paperTotals ?? []).filter(
+            (paper) => paper.playerId !== playerId
+          )
+        }));
+
+      const activePlayers = roundPlayers.filter(
+        (player) =>
+          player.status !== 'dns' &&
+          player.status !== 'withdrawn' &&
+          player.status !== 'removed' &&
+          player.status !== 'no-show'
+      );
 
       return {
         ...current,
         roundPlayers,
         scorecards,
-        scorecardImports,
+        scorecardEntries,
+        round: {
+          ...current.round,
+          expectedPlayerCount: activePlayers.length,
+          checkedInCount: activePlayers.filter(
+            (player) => player.checkedIn
+          ).length,
+          paidCount: activePlayers.filter(
+            (player) => player.paid
+          ).length
+        }
+      };
+    });
+  }
+
+  function restorePlayerToRound(playerId: string) {
+    const roundPlayer = roundBundle.roundPlayers.find(
+      (player) => player.playerId === playerId
+    );
+
+    if (!roundPlayer) {
+      window.alert(
+        'This player is no longer in the round history. Use Add Player Back to Round.'
+      );
+      return;
+    }
+
+    const targetCardId =
+      roundPlayer.originalScorecardId ??
+      roundPlayer.scorecardId;
+
+    if (!targetCardId) {
+      window.alert(
+        'The original card could not be determined. Use Add Player Back to Round.'
+      );
+      return;
+    }
+
+    const profile = players.find(
+      (player) => player.id === playerId
+    );
+
+    if (!profile) return;
+
+    const handicap =
+      roundPlayer.storedHandicapAtPairing ??
+      profile.handicap;
+    const quota =
+      roundPlayer.storedQuotaAtPairing ??
+      profile.quota;
+
+    setGroups((currentGroups) =>
+      currentGroups.map((group) =>
+        group.id === targetCardId &&
+        !group.playerIds.includes(playerId)
+          ? {
+              ...group,
+              playerIds: [...group.playerIds, playerId]
+            }
+          : group
+      )
+    );
+
+    setRoundBundle((current) => {
+      const scorecards = current.scorecards.map((card) =>
+        card.id === targetCardId &&
+        !card.players.some(
+          (player) => player.playerId === playerId
+        )
+          ? {
+              ...card,
+              players: [
+                ...card.players,
+                {
+                  playerId,
+                  tee: '',
+                  handicapAtPairing: handicap,
+                  quotaAtPairing: quota
+                }
+              ]
+            }
+          : card
+      );
+
+      const scorecardEntries =
+        current.scorecardEntries.map((entry) =>
+          entry.scorecardId === targetCardId &&
+          !entry.players.some(
+            (player) => player.playerId === playerId
+          )
+            ? {
+                ...entry,
+                status: 'not-started' as const,
+                players: [
+                  ...entry.players,
+                  createPlayerScoreEntry(
+                    playerId,
+                    handicap,
+                    quota,
+                    players
+                  )
+                ]
+              }
+            : entry
+        );
+
+      const roundPlayers = current.roundPlayers.map(
+        (player) =>
+          player.playerId === playerId
+            ? {
+                ...player,
+                status: player.checkedIn
+                  ? ('checked-in' as const)
+                  : ('expected' as const),
+                statusReason: undefined,
+                scorecardId: targetCardId,
+                isEligibleForPlaces: true,
+                isEligibleForSkins: true,
+                isEligibleForGreenies: true,
+                isEligibleForHorseAss: true
+              }
+            : player
+      );
+
+      const activePlayers = roundPlayers.filter(
+        (player) =>
+          player.status !== 'dns' &&
+          player.status !== 'withdrawn' &&
+          player.status !== 'removed' &&
+          player.status !== 'no-show'
+      );
+
+      return {
+        ...current,
+        roundPlayers,
+        scorecards,
+        scorecardEntries,
+        round: {
+          ...current.round,
+          expectedPlayerCount: activePlayers.length,
+          checkedInCount: activePlayers.filter(
+            (player) => player.checkedIn
+          ).length,
+          paidCount: activePlayers.filter(
+            (player) => player.paid
+          ).length
+        }
+      };
+    });
+  }
+
+  function addPlayerBackToRound(
+    playerId: string,
+    groupId: string,
+    handicap: number,
+    quota: number
+  ) {
+    const profile = players.find(
+      (player) => player.id === playerId
+    );
+
+    if (!profile) return;
+
+    setGroups((currentGroups) =>
+      currentGroups.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              playerIds: group.playerIds.includes(playerId)
+                ? group.playerIds
+                : [...group.playerIds, playerId]
+            }
+          : group
+      )
+    );
+
+    setRoundBundle((current) => {
+      const scorecards = current.scorecards.map((card) =>
+        card.id === groupId
+          ? {
+              ...card,
+              players: card.players.some(
+                (player) => player.playerId === playerId
+              )
+                ? card.players
+                : [
+                    ...card.players,
+                    {
+                      playerId,
+                      tee: '',
+                      handicapAtPairing: handicap,
+                      quotaAtPairing: quota
+                    }
+                  ]
+            }
+          : card
+      );
+
+      const scorecardEntries =
+        current.scorecardEntries.map((entry) =>
+          entry.scorecardId === groupId
+            ? {
+                ...entry,
+                status: 'not-started' as const,
+                players: entry.players.some(
+                  (player) => player.playerId === playerId
+                )
+                  ? entry.players
+                  : [
+                      ...entry.players,
+                      createPlayerScoreEntry(
+                        playerId,
+                        handicap,
+                        quota,
+                        players
+                      )
+                    ]
+              }
+            : entry
+        );
+
+      const newRoundPlayer = {
+        roundId: current.round.id,
+        playerId,
+        status: 'expected' as const,
+        weeklyReviewed: true,
+        checkedIn: false,
+        paid: false,
+        scorecardId: groupId,
+        originalScorecardId: groupId,
+        storedHandicapAtPairing: handicap,
+        storedQuotaAtPairing: quota,
+        isEligibleForPlaces: true,
+        isEligibleForSkins: true,
+        isEligibleForGreenies: true,
+        isEligibleForHorseAss: true,
+        amountPaid: 0,
+        cashPaid: 0,
+        creditApplied: 0,
+        amountWon: 0,
+        amountOwed: 0
+      };
+
+      const roundPlayers = [
+        ...current.roundPlayers,
+        newRoundPlayer
+      ];
+
+      return {
+        ...current,
+        roundPlayers,
+        scorecards,
         scorecardEntries,
         round: {
           ...current.round,
           expectedPlayerCount:
-            roundPlayers.length,
-          checkedInCount:
-            roundPlayers.filter(
-              (player) =>
-                player.checkedIn
-            ).length,
-          paidCount:
-            roundPlayers.filter(
-              (player) => player.paid
-            ).length,
-          scorecardCount:
-            scorecards.length
+            current.round.expectedPlayerCount + 1
         }
       };
     });
+  }
+
+  function updateWeeklyPlayer(
+    playerId: string,
+    handicap: number,
+    quota: number
+  ) {
+    const playerEntry =
+      roundBundle.scorecardEntries
+        .flatMap((entry) => entry.players)
+        .find((entry) => entry.playerId === playerId);
+
+    const scoreAlreadyEntered =
+      playerEntry?.scores.some(
+        (score) => score.grossScore !== null
+      ) ?? false;
+
+    if (scoreAlreadyEntered) {
+      window.alert(
+        'Weekly handicap and Points Needed cannot be changed after scores have been entered for this player. Clear the player scores first.'
+      );
+      return;
+    }
+
+    setRoundBundle((current) => ({
+      ...current,
+      roundPlayers: current.roundPlayers.map((player) =>
+        player.playerId === playerId
+          ? {
+              ...player,
+              weeklyReviewed: true
+            }
+          : player
+      ),
+      scorecards: current.scorecards.map((card) => ({
+        ...card,
+        players: card.players.map((player) =>
+          player.playerId === playerId
+            ? {
+                ...player,
+                handicapAtPairing: handicap,
+                quotaAtPairing: quota
+              }
+            : player
+        )
+      })),
+      scorecardEntries:
+        current.scorecardEntries.map((entry) => ({
+          ...entry,
+          players: entry.players.map((player) =>
+            player.playerId === playerId
+              ? {
+                  ...player,
+                  courseHandicap: handicap,
+                  quota,
+                  quotaResult:
+                    player.stablefordPoints !== null
+                      ? player.stablefordPoints - quota
+                      : null
+                }
+              : player
+          )
+        }))
+    }));
   }
 
   function movePlayer(
@@ -797,6 +1315,8 @@ function completeRound() {
         <OperationsWorkspace
           players={players}
           groups={groups}
+          weeklyPlayers={weeklyPlayers}
+          roundPlayers={roundBundle.roundPlayers}
           expectedCount={
             expectedCount
           }
@@ -816,8 +1336,17 @@ function completeRound() {
           onApplyPairings={
             applyPairings
           }
-          onRemovePlayer={
-            removePlayerFromRound
+          onSetInactiveStatus={
+            setPlayerInactiveStatus
+          }
+          onRestorePlayer={
+            restorePlayerToRound
+          }
+          onAddPlayerBack={
+            addPlayerBackToRound
+          }
+          onUpdateWeeklyPlayer={
+            updateWeeklyPlayer
           }
           onMovePlayer={movePlayer}
           onSwapPlayers={swapPlayers}
@@ -911,6 +1440,18 @@ function completeRound() {
           >
             Start New Round
           </button>
+         <DeveloperTools
+  benchmarks={benchmarkSummaries}
+  onCreateBenchmark={
+    createCurrentRoundBenchmark
+  }
+  onLoadBenchmark={
+    loadSavedBenchmark
+  }
+  onDeleteBenchmark={
+    removeSavedBenchmark
+  }
+/> 
         </section>
       )}
     </main>

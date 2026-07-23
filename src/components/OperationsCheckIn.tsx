@@ -85,6 +85,17 @@ export default function OperationsCheckIn({
     players.find((player) => player.id === selectedPlayerId) ??
     null;
 
+  useEffect(() => {
+    if (!selectedPlayerId) {
+      return;
+    }
+
+    sectionRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }, [selectedPlayerId]);
+
   function completeArrival(
     playerId: string,
     payment: ArrivalPayment

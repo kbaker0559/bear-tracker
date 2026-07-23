@@ -1,13 +1,21 @@
-import { useState } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState
+} from 'react';
 import type { Group, Player } from '../types';
+import type { RoundPlayer, RoundPlayerStatus } from '../types/roundPlayer';
 import { calculatePayoutSummary } from '../engine/payoutEngine';
 import CardArrivalStatus from './CardArrivalStatus';
 import OperationsCheckIn from './OperationsCheckIn';
 import PairingsImport from './PairingsImport';
 import RegistrationReadyPanel from './RegistrationReadyPanel';
-import RemoveRoundPlayer from './RemoveRoundPlayer';
+import PlayerStatusManager from './PlayerStatusManager';
 import SaturdayMorningDashboard from './SaturdayMorningDashboard';
 import SaturdayPairingManager from './SaturdayPairingManager';
+import WeeklyPlayerReview, {
+  type WeeklyPlayerSnapshot
+} from './WeeklyPlayerReview';
 
 type ArrivalPayment = {
   cashPaid: number;
@@ -17,6 +25,8 @@ type ArrivalPayment = {
 type Props = {
   players: Player[];
   groups: Group[];
+  weeklyPlayers: WeeklyPlayerSnapshot[];
+  roundPlayers: RoundPlayer[];
 
   expectedCount: number;
   checkedInCount: number;
@@ -27,7 +37,23 @@ type Props = {
   paidPlayerIds: string[];
 
   onApplyPairings: (groups: Group[]) => void;
-  onRemovePlayer: (playerId: string) => void;
+  onSetInactiveStatus: (
+    playerId: string,
+    status: Extract<RoundPlayerStatus, 'dns' | 'withdrawn' | 'removed'>,
+    reason: string
+  ) => void;
+  onRestorePlayer: (playerId: string) => void;
+  onAddPlayerBack: (
+    playerId: string,
+    groupId: string,
+    handicap: number,
+    quota: number
+  ) => void;
+  onUpdateWeeklyPlayer: (
+    playerId: string,
+    handicap: number,
+    quota: number
+  ) => void;
 
   onMovePlayer: (
     playerId: string,
@@ -58,6 +84,8 @@ type Props = {
 export default function OperationsWorkspace({
   players,
   groups,
+  weeklyPlayers,
+  roundPlayers,
   expectedCount,
   checkedInCount,
   paidCount,
@@ -65,7 +93,10 @@ export default function OperationsWorkspace({
   checkedInPlayerIds,
   paidPlayerIds,
   onApplyPairings,
-  onRemovePlayer,
+  onSetInactiveStatus,
+  onRestorePlayer,
+  onAddPlayerBack,
+  onUpdateWeeklyPlayer,
   onMovePlayer,
   onSwapPlayers,
   onChangeScorekeeper,
@@ -78,33 +109,66 @@ export default function OperationsWorkspace({
   const [showPairingManager, setShowPairingManager] =
     useState(false);
 
+  const checkInRef = useRef<HTMLDivElement | null>(null);
+  const removePlayerRef = useRef<HTMLDivElement | null>(null);
+  const pairingManagerRef = useRef<HTMLDivElement | null>(null);
+
   const payout = calculatePayoutSummary(paidCount);
 
-  function openCheckIn() {
-    setShowCheckIn(true);
+  useEffect(() => {
+    const target = showCheckIn
+      ? checkInRef.current
+      : showRemovePlayer
+        ? removePlayerRef.current
+        : showPairingManager
+          ? pairingManagerRef.current
+          : null;
+
+    if (!target) return;
+
+    window.setTimeout(() => {
+      target.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 0);
+  }, [
+    showCheckIn,
+    showRemovePlayer,
+    showPairingManager
+  ]);
+
+  function closeAllPanels() {
+    setShowCheckIn(false);
     setShowRemovePlayer(false);
     setShowPairingManager(false);
+  }
+
+  function openCheckIn() {
+    closeAllPanels();
+    setShowCheckIn(true);
   }
 
   function openRemovePlayer() {
+    closeAllPanels();
     setShowRemovePlayer(true);
-    setShowCheckIn(false);
-    setShowPairingManager(false);
   }
 
   function openPairingManager() {
+    closeAllPanels();
     setShowPairingManager(true);
-    setShowCheckIn(false);
-    setShowRemovePlayer(false);
   }
+
+
 
   return (
     <section className="card">
-      <h2>Operations Workspace</h2>
+      <h2>Weekly Round Operations</h2>
 
       <p>
-        Round setup, pairings, arrivals, entry payments,
-        withdrawals, walk-ons, and final card adjustments.
+        Complete Friday preparation first, then use the
+        Saturday Morning section for arrivals and final
+        changes.
       </p>
 
       <div className="score-grid">
@@ -144,10 +208,26 @@ export default function OperationsWorkspace({
         </div>
       </div>
 
-      <PairingsImport
-        players={players}
-        onApplyPairings={onApplyPairings}
-      />
+      <section className="card">
+        <p className="eyebrow">Friday Preparation</p>
+        <h2>Pairings and Weekly Player Values</h2>
+
+        <p>
+          Import the weekly pairings, then work down the
+          handicap and Points Needed list before Saturday.
+        </p>
+
+        <PairingsImport
+          players={players}
+          onApplyPairings={onApplyPairings}
+        />
+
+        <WeeklyPlayerReview
+          players={players}
+          weeklyPlayers={weeklyPlayers}
+          onUpdateWeeklyPlayer={onUpdateWeeklyPlayer}
+        />
+      </section>
 
       {groups.length > 0 && (
         <>
@@ -177,13 +257,15 @@ export default function OperationsWorkspace({
           </div>
 
           {showPairingManager && (
-            <SaturdayPairingManager
-              groups={groups}
-              players={players}
-              onMovePlayer={onMovePlayer}
-              onSwapPlayers={onSwapPlayers}
-              onChangeScorekeeper={onChangeScorekeeper}
-            />
+            <div ref={pairingManagerRef}>
+              <SaturdayPairingManager
+                groups={groups}
+                players={players}
+                onMovePlayer={onMovePlayer}
+                onSwapPlayers={onSwapPlayers}
+                onChangeScorekeeper={onChangeScorekeeper}
+              />
+            </div>
           )}
 
           <CardArrivalStatus
@@ -200,23 +282,30 @@ export default function OperationsWorkspace({
           />
 
           {showCheckIn && (
-            <OperationsCheckIn
-              players={players}
-              expectedPlayerIds={expectedPlayerIds}
-              checkedInPlayerIds={checkedInPlayerIds}
-              paidPlayerIds={paidPlayerIds}
-              getAvailableCredit={getAvailableCredit}
-              onCompleteArrival={onCompleteArrival}
-            />
+            <div ref={checkInRef}>
+              <OperationsCheckIn
+                players={players}
+                expectedPlayerIds={expectedPlayerIds}
+                checkedInPlayerIds={checkedInPlayerIds}
+                paidPlayerIds={paidPlayerIds}
+                getAvailableCredit={getAvailableCredit}
+                onCompleteArrival={onCompleteArrival}
+              />
+            </div>
           )}
 
           {showRemovePlayer && (
-            <RemoveRoundPlayer
-              players={players}
-              expectedPlayerIds={expectedPlayerIds}
-              onRemovePlayer={onRemovePlayer}
-              onClose={() => setShowRemovePlayer(false)}
-            />
+            <div ref={removePlayerRef}>
+              <PlayerStatusManager
+                players={players}
+                groups={groups}
+                roundPlayers={roundPlayers}
+                onSetInactiveStatus={onSetInactiveStatus}
+                onRestorePlayer={onRestorePlayer}
+                onAddPlayerBack={onAddPlayerBack}
+                onClose={() => setShowRemovePlayer(false)}
+              />
+            </div>
           )}
 
           <h3>Round Scorecards</h3>

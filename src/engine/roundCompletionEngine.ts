@@ -24,9 +24,12 @@ export type RoundCompletionReadiness = {
 function everyPlayerHasPaperTotals(
   scorecardEntry: ScorecardEntry
 ): boolean {
+  const paperTotals =
+    scorecardEntry.paperTotals ?? [];
+
   return scorecardEntry.players.every(
     (playerEntry) =>
-      scorecardEntry.paperTotals.some(
+      paperTotals.some(
         (paperEntry) =>
           paperEntry.playerId ===
           playerEntry.playerId
@@ -44,7 +47,7 @@ function scorecardHasValidationErrors(
   return scorecardEntry.players.some(
     (playerEntry) => {
       const paper =
-        scorecardEntry.paperTotals.find(
+  (scorecardEntry.paperTotals ?? []).find(
           (paperEntry) =>
             paperEntry.playerId ===
             playerEntry.playerId

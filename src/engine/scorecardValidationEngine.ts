@@ -151,7 +151,10 @@ export function validateScorecardEntry(
 ): ScorecardValidationResult {
   const issues: PlayerValidationIssue[] = [];
 
-  for (const paperTotals of scorecardEntry.paperTotals) {
+  for (
+  const paperTotals of
+  scorecardEntry.paperTotals ?? []
+) {
     const calculatedPlayer =
       scorecardEntry.players.find(
         (playerEntry) =>
@@ -180,5 +183,7 @@ export function validateScorecardEntry(
 export function hasPaperTotals(
   scorecardEntry: ScorecardEntry
 ): boolean {
-  return scorecardEntry.paperTotals.length > 0;
+  return (
+  scorecardEntry.paperTotals?.length ?? 0
+) > 0;
 }

@@ -92,7 +92,7 @@ export function getCardHealth(
   const everyPlayerHasPaperTotals =
     scorecardEntry.players.every(
       (playerEntry) =>
-        scorecardEntry.paperTotals.some(
+        (scorecardEntry.paperTotals ?? []).some(
           (paperEntry) =>
             paperEntry.playerId ===
             playerEntry.playerId

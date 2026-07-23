@@ -23,9 +23,10 @@ function createEmptyHoleScores(): HoleScore[] {
   );
 }
 
-function createPlayerScoreEntry(
+export function createPlayerScoreEntry(
   playerId: string,
   courseHandicap: number,
+  quotaAtPairing: number | undefined,
   players: Player[]
 ): PlayerScoreEntry {
   const player = players.find(
@@ -35,7 +36,7 @@ function createPlayerScoreEntry(
   return {
     playerId,
     courseHandicap,
-    quota: player?.quota ?? 0,
+    quota: quotaAtPairing ?? player?.quota ?? 0,
 
     scores: createEmptyHoleScores(),
 
@@ -71,6 +72,7 @@ export function createScorecardEntry(
         createPlayerScoreEntry(
           scorecardPlayer.playerId,
           scorecardPlayer.handicapAtPairing,
+          scorecardPlayer.quotaAtPairing,
           players
         )
     ),

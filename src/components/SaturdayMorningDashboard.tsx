@@ -108,7 +108,7 @@ export default function SaturdayMorningDashboard({
         </button>
 
         <button type="button" onClick={onOpenRemovePlayer}>
-          Remove Player
+          Player Status
         </button>
 
         <button type="button" disabled>

@@ -59,12 +59,20 @@ export function createRoundFromScorecards(
         roundId,
         playerId: cardPlayer.playerId,
         status: 'expected',
+        weeklyReviewed: false,
         checkedIn: false,
         paid: false,
         scorecardId: card.id,
+        originalScorecardId: card.id,
+        storedHandicapAtPairing: cardPlayer.handicapAtPairing,
+        storedQuotaAtPairing: cardPlayer.quotaAtPairing,
         scorekeeperForScorecardId:
           card.scorekeeperId ===
           cardPlayer.playerId
+            ? card.id
+            : undefined,
+        originalScorekeeperForScorecardId:
+          card.scorekeeperId === cardPlayer.playerId
             ? card.id
             : undefined,
         isEligibleForPlaces: true,

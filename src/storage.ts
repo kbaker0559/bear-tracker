@@ -1,4 +1,5 @@
-import type { Group, Player, Score } from './types/models';
+import type { Group, Player } from './types';
+import type { Score } from './types/models';
 import { initialPlayers } from './data/players';
 
 const PLAYERS_KEY = 'bear-tracker.players.v3';

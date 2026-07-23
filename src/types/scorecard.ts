@@ -9,6 +9,7 @@ export type ScorecardPlayer = {
   playerId: string;
   tee: string;
   handicapAtPairing: number;
+  quotaAtPairing?: number;
 };
 
 export type Scorecard = {

@@ -38,7 +38,13 @@ export function loadCurrentRound(): SavedCurrentRound | null {
           parsed.roundBundle.scorecardImports ?? [],
 
         scorecardEntries:
-          parsed.roundBundle.scorecardEntries ?? [],
+  (
+    parsed.roundBundle.scorecardEntries ?? []
+  ).map((entry) => ({
+    ...entry,
+    paperTotals:
+      entry.paperTotals ?? []
+  })),
         scoreCorrections:
           parsed.roundBundle.scoreCorrections ?? []
       },
