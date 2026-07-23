@@ -1,10 +1,16 @@
-import { Fragment } from 'react';
+import { Fragment, useMemo } from 'react';
 import type { Player } from '../types';
 import type { Scorecard } from '../types/scorecard';
 import type {
   PlayerScoreEntry,
   ScorecardEntry
 } from '../types/scoreEntry';
+import type { PaperPlayerTotals } from '../types/paperScorecardTotals';
+import {
+  hasPaperTotals,
+  validateScorecardEntry
+} from '../engine/scorecardValidationEngine';
+import PaperScorecardTotalsEntry from './PaperScorecardTotalsEntry';
 
 type Props = {
   scorecard: Scorecard;
@@ -12,6 +18,11 @@ type Props = {
   players: Player[];
 
   onEditPlayer: (playerIndex: number) => void;
+
+  onSavePaperTotals: (
+    paperTotals: PaperPlayerTotals
+  ) => void;
+
   onVerify: () => void;
   onClose: () => void;
 };
@@ -58,6 +69,7 @@ export default function ScorecardReview({
   scorecardEntry,
   players,
   onEditPlayer,
+  onSavePaperTotals,
   onVerify,
   onClose
 }: Props) {
@@ -65,6 +77,32 @@ export default function ScorecardReview({
     scorecardEntry.players.every(
       isPlayerComplete
     );
+
+  const validation = useMemo(
+    () =>
+      validateScorecardEntry(
+        scorecardEntry
+      ),
+    [scorecardEntry]
+  );
+
+  const paperTotalsStarted =
+    hasPaperTotals(scorecardEntry);
+
+  const everyPlayerHasPaperTotals =
+    scorecardEntry.players.every(
+      (playerEntry) =>
+        scorecardEntry.paperTotals.some(
+          (paperEntry) =>
+            paperEntry.playerId ===
+            playerEntry.playerId
+        )
+    );
+
+  const readyToVerify =
+    cardComplete &&
+    everyPlayerHasPaperTotals &&
+    validation.passed;
 
   return (
     <section className="card">
@@ -85,8 +123,8 @@ export default function ScorecardReview({
           <h2>Review Scorecard</h2>
 
           <p>
-            Compare these totals with the paper scorecard
-            before verification.
+            Compare Bear Tracker’s calculations with the
+            totals written on the paper scorecard.
           </p>
         </div>
 
@@ -113,55 +151,35 @@ export default function ScorecardReview({
         >
           <thead>
             <tr>
-              <th
-                style={{
-                  padding: '0.75rem',
-                  textAlign: 'left',
-                  borderBottom:
-                    '2px solid rgba(0, 0, 0, 0.18)'
-                }}
-              >
+              <th style={leftHeaderStyle}>
                 Player
               </th>
 
-              <th
-                style={{
-                  padding: '0.75rem',
-                  textAlign: 'left',
-                  borderBottom:
-                    '2px solid rgba(0, 0, 0, 0.18)'
-                }}
-              >
+              <th style={leftHeaderStyle}>
                 Type
               </th>
 
-              <th style={headerNumberStyle}>
+              <th style={numberHeaderStyle}>
                 Out
               </th>
 
-              <th style={headerNumberStyle}>
+              <th style={numberHeaderStyle}>
                 In
               </th>
 
-              <th style={headerNumberStyle}>
+              <th style={numberHeaderStyle}>
                 Total
               </th>
 
-              <th style={headerNumberStyle}>
+              <th style={numberHeaderStyle}>
                 Quota
               </th>
 
-              <th style={headerNumberStyle}>
+              <th style={numberHeaderStyle}>
                 +/-
               </th>
 
-              <th
-                style={{
-                  padding: '0.75rem',
-                  borderBottom:
-                    '2px solid rgba(0, 0, 0, 0.18)'
-                }}
-              >
+              <th style={actionHeaderStyle}>
                 Action
               </th>
             </tr>
@@ -180,13 +198,7 @@ export default function ScorecardReview({
                     <tr>
                       <th
                         rowSpan={2}
-                        style={{
-                          padding: '0.75rem',
-                          textAlign: 'left',
-                          verticalAlign: 'middle',
-                          borderBottom:
-                            '1px solid rgba(0, 0, 0, 0.14)'
-                        }}
+                        style={playerCellStyle}
                       >
                         <div>
                           {playerName(
@@ -208,9 +220,7 @@ export default function ScorecardReview({
                         </div>
                       </th>
 
-                      <th
-                        style={rowLabelStyle}
-                      >
+                      <th style={rowLabelStyle}>
                         Score
                       </th>
 
@@ -236,10 +246,7 @@ export default function ScorecardReview({
 
                       <td
                         rowSpan={2}
-                        style={{
-                          ...numberCellStyle,
-                          verticalAlign: 'middle'
-                        }}
+                        style={combinedCellStyle}
                       >
                         {playerEntry.quota}
                       </td>
@@ -247,8 +254,7 @@ export default function ScorecardReview({
                       <td
                         rowSpan={2}
                         style={{
-                          ...numberCellStyle,
-                          verticalAlign: 'middle',
+                          ...combinedCellStyle,
                           fontWeight: 700
                         }}
                       >
@@ -259,13 +265,7 @@ export default function ScorecardReview({
 
                       <td
                         rowSpan={2}
-                        style={{
-                          padding: '0.75rem',
-                          textAlign: 'center',
-                          verticalAlign: 'middle',
-                          borderBottom:
-                            '1px solid rgba(0, 0, 0, 0.14)'
-                        }}
+                        style={actionCellStyle}
                       >
                         <button
                           type="button"
@@ -279,43 +279,23 @@ export default function ScorecardReview({
                     </tr>
 
                     <tr>
-                      <th
-                        style={{
-                          ...rowLabelStyle,
-                          borderBottom:
-                            '1px solid rgba(0, 0, 0, 0.14)'
-                        }}
-                      >
+                      <th style={bottomRowLabelStyle}>
                         Points
                       </th>
 
-                      <td
-                        style={{
-                          ...numberCellStyle,
-                          borderBottom:
-                            '1px solid rgba(0, 0, 0, 0.14)'
-                        }}
-                      >
+                      <td style={bottomNumberCellStyle}>
                         {playerEntry.frontNinePoints ??
                           '—'}
                       </td>
 
-                      <td
-                        style={{
-                          ...numberCellStyle,
-                          borderBottom:
-                            '1px solid rgba(0, 0, 0, 0.14)'
-                        }}
-                      >
+                      <td style={bottomNumberCellStyle}>
                         {playerEntry.backNinePoints ??
                           '—'}
                       </td>
 
                       <td
                         style={{
-                          ...numberCellStyle,
-                          borderBottom:
-                            '1px solid rgba(0, 0, 0, 0.14)',
+                          ...bottomNumberCellStyle,
                           fontWeight: 700
                         }}
                       >
@@ -331,6 +311,92 @@ export default function ScorecardReview({
         </table>
       </div>
 
+      <PaperScorecardTotalsEntry
+        scorecardEntry={scorecardEntry}
+        players={players}
+        onSavePlayerTotals={
+          onSavePaperTotals
+        }
+      />
+
+      <section
+        className="card"
+        style={{
+          marginTop: '1.5rem'
+        }}
+      >
+        <h3>Scorecard Validation</h3>
+
+        {!paperTotalsStarted && (
+          <div className="status-box">
+            Enter the paper totals for every player before
+            verifying this scorecard.
+          </div>
+        )}
+
+        {paperTotalsStarted &&
+          !everyPlayerHasPaperTotals && (
+            <div className="status-box">
+              Paper totals are still missing for one or
+              more players.
+            </div>
+          )}
+
+        {everyPlayerHasPaperTotals &&
+          validation.passed && (
+            <div className="status-box">
+              ✓ Card validated. The paper totals match Bear
+              Tracker’s calculations.
+            </div>
+          )}
+
+        {validation.issues.length > 0 && (
+          <div>
+            <div className="status-box">
+              ⚠ Validation differences were found. Review
+              them before verifying the scorecard.
+            </div>
+
+            <div
+              style={{
+                marginTop: '1rem',
+                display: 'grid',
+                gap: '0.75rem'
+              }}
+            >
+              {validation.issues.map(
+                (issue, index) => (
+                  <div
+                    key={`${issue.playerId}-${issue.field}-${index}`}
+                    style={{
+                      padding: '0.75rem',
+                      border:
+                        '1px solid rgba(0, 0, 0, 0.16)',
+                      borderRadius: '0.5rem'
+                    }}
+                  >
+                    <strong>
+                      {playerName(
+                        issue.playerId,
+                        players
+                      )}
+                    </strong>
+
+                    <div
+                      style={{
+                        marginTop: '0.25rem'
+                      }}
+                    >
+                      {issue.message}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
       <div
         style={{
           marginTop: '1.5rem',
@@ -344,15 +410,19 @@ export default function ScorecardReview({
         <div>
           Status:{' '}
           <strong>
-            {cardComplete
-              ? 'Ready to verify'
-              : 'Scores are incomplete'}
+            {!cardComplete
+              ? 'Scores are incomplete'
+              : !everyPlayerHasPaperTotals
+                ? 'Paper totals are incomplete'
+                : validation.passed
+                  ? 'Ready to verify'
+                  : 'Validation differences require review'}
           </strong>
         </div>
 
         <button
           type="button"
-          disabled={!cardComplete}
+          disabled={!readyToVerify}
           onClick={onVerify}
         >
           Verify Scorecard
@@ -362,11 +432,33 @@ export default function ScorecardReview({
   );
 }
 
-const headerNumberStyle = {
+const leftHeaderStyle = {
+  padding: '0.75rem',
+  textAlign: 'left' as const,
+  borderBottom:
+    '2px solid rgba(0, 0, 0, 0.18)'
+};
+
+const numberHeaderStyle = {
   padding: '0.75rem',
   textAlign: 'center' as const,
   borderBottom:
     '2px solid rgba(0, 0, 0, 0.18)'
+};
+
+const actionHeaderStyle = {
+  padding: '0.75rem',
+  textAlign: 'center' as const,
+  borderBottom:
+    '2px solid rgba(0, 0, 0, 0.18)'
+};
+
+const playerCellStyle = {
+  padding: '0.75rem',
+  textAlign: 'left' as const,
+  verticalAlign: 'middle' as const,
+  borderBottom:
+    '1px solid rgba(0, 0, 0, 0.14)'
 };
 
 const rowLabelStyle = {
@@ -377,4 +469,32 @@ const rowLabelStyle = {
 const numberCellStyle = {
   padding: '0.75rem',
   textAlign: 'center' as const
+};
+
+const combinedCellStyle = {
+  padding: '0.75rem',
+  textAlign: 'center' as const,
+  verticalAlign: 'middle' as const,
+  borderBottom:
+    '1px solid rgba(0, 0, 0, 0.14)'
+};
+
+const actionCellStyle = {
+  padding: '0.75rem',
+  textAlign: 'center' as const,
+  verticalAlign: 'middle' as const,
+  borderBottom:
+    '1px solid rgba(0, 0, 0, 0.14)'
+};
+
+const bottomRowLabelStyle = {
+  ...rowLabelStyle,
+  borderBottom:
+    '1px solid rgba(0, 0, 0, 0.14)'
+};
+
+const bottomNumberCellStyle = {
+  ...numberCellStyle,
+  borderBottom:
+    '1px solid rgba(0, 0, 0, 0.14)'
 };

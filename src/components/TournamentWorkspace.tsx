@@ -3,12 +3,19 @@ import type { Player } from '../types';
 import type { Scorecard } from '../types/scorecard';
 import type { ScorecardEntry } from '../types/scoreEntry';
 import type { TournamentVisibilitySettings } from '../types/tournamentVisibility';
+import type { PaperPlayerTotals } from '../types/paperScorecardTotals';
 import {
   buildLeaderboard
 } from '../engine/leaderboardEngine';
 import FastScorecardEntry from './FastScorecardEntry';
 import PrivateLeaderboard from './PrivateLeaderboard';
 import ScorecardReview from './ScorecardReview';
+import {
+  getCardHealth
+} from '../engine/cardHealthEngine';
+import {
+  getRoundCompletionReadiness
+} from '../engine/roundCompletionEngine';
 
 type Props = {
   scorecards: Scorecard[];
@@ -23,10 +30,17 @@ type Props = {
     grossScore: number | null
   ) => void;
 
+  onSavePaperTotals: (
+  scorecardId: string,
+  paperTotals: PaperPlayerTotals
+) => void;
+
   onVerifyScorecard: (
     scorecardId: string
   ) => void;
+  onCompleteRound: () => void;
 };
+
 
 type ActiveView =
   | {
@@ -46,7 +60,9 @@ export default function TournamentWorkspace({
   players,
   visibility,
   onUpdateScore,
-  onVerifyScorecard
+onSavePaperTotals,
+onVerifyScorecard,
+onCompleteRound
 }: Props) {
   const [activeView, setActiveView] =
     useState<ActiveView>(null);
@@ -72,6 +88,14 @@ export default function TournamentWorkspace({
       ),
     [scorecardEntries]
   );
+
+  const roundCompletion = useMemo(
+  () =>
+    getRoundCompletionReadiness(
+      scorecardEntries
+    ),
+  [scorecardEntries]
+);
 
   const activeScorecardId =
     activeView?.scorecardId ?? null;
@@ -120,27 +144,7 @@ export default function TournamentWorkspace({
     );
   }
 
-  function getStatusLabel(
-    entry: ScorecardEntry | null
-  ): string {
-    if (!entry) {
-      return 'Not Ready';
-    }
-
-    switch (entry.status) {
-      case 'not-started':
-        return 'Waiting';
-
-      case 'in-progress':
-        return 'In Progress';
-
-      case 'complete':
-        return 'Ready to Verify';
-
-      case 'verified':
-        return 'Verified';
-    }
-  }
+  
 
   function getButtonLabel(
     entry: ScorecardEntry | null
@@ -262,6 +266,12 @@ export default function TournamentWorkspace({
             playerIndex
           })
         }
+        onSavePaperTotals={(paperTotals) =>
+  onSavePaperTotals(
+    activeScorecard.id,
+    paperTotals
+  )
+}
         onVerify={() => {
   onVerifyScorecard(
     activeScorecard.id
@@ -363,7 +373,86 @@ export default function TournamentWorkspace({
           players={players}
         />
       )}
+<section
+  className="card"
+  style={{
+    marginTop: '1.5rem',
+    marginBottom: '1.5rem'
+  }}
+>
+  <h3>Round Completion</h3>
 
+  <div className="score-grid">
+    <div className="score-row">
+      <strong>Status</strong>
+      <span>{roundCompletion.label}</span>
+    </div>
+
+    <div className="score-row">
+      <strong>Verified Scorecards</strong>
+      <span>
+        {roundCompletion.verifiedScorecards} of{' '}
+        {roundCompletion.totalScorecards}
+      </span>
+    </div>
+
+    <div className="score-row">
+      <strong>Incomplete Scorecards</strong>
+      <span>
+        {roundCompletion.incompleteScorecards}
+      </span>
+    </div>
+
+    <div className="score-row">
+      <strong>Missing Paper Totals</strong>
+      <span>
+        {
+          roundCompletion
+            .missingPaperTotalsScorecards
+        }
+      </span>
+    </div>
+
+    <div className="score-row">
+      <strong>Cards with Validation Errors</strong>
+      <span>
+        {
+          roundCompletion
+            .validationErrorScorecards
+        }
+      </span>
+    </div>
+  </div>
+
+  <div
+    style={{
+      display: 'flex',
+      justifyContent: 'flex-end',
+      marginTop: '1rem'
+    }}
+  >
+    <button
+      type="button"
+      disabled={
+        !roundCompletion.readyToComplete
+      }
+      onClick={() => {
+        const confirmed =
+          window.confirm(
+            'Complete this round? Verified scores will become the official tournament results.'
+          );
+
+        if (confirmed) {
+          onCompleteRound();
+        }
+      }}
+    >
+      Complete Round
+    </button>
+  </div>
+</section>
+
+<h3>Scorecard Queue</h3>
       <h3>Scorecard Queue</h3>
 
       {orderedScorecards.length === 0 && (
@@ -374,11 +463,16 @@ export default function TournamentWorkspace({
 
       <div className="score-grid">
         {orderedScorecards.map(
-          (scorecard) => {
-            const entry =
-              getEntry(scorecard.id);
+  (scorecard) => {
+    const entry =
+      getEntry(scorecard.id);
 
-            return (
+    const cardHealth =
+      entry
+        ? getCardHealth(entry)
+        : null;
+
+    return (
               <section
                 className="card"
                 key={scorecard.id}
@@ -406,10 +500,28 @@ export default function TournamentWorkspace({
                       {scorecard.cardNumber}
                     </h3>
 
-                    <div>
-                      <strong>Status:</strong>{' '}
-                      {getStatusLabel(entry)}
-                    </div>
+                    <div
+  style={{
+    marginTop: '0.35rem'
+  }}
+>
+  <div>
+    <strong>Card Health:</strong>{' '}
+    {cardHealth?.label ?? 'Not Ready'}
+  </div>
+
+  {cardHealth && (
+    <div
+      style={{
+        marginTop: '0.25rem'
+      }}
+    >
+      <strong>Players Complete:</strong>{' '}
+      {cardHealth.completedPlayerCount} of{' '}
+      {cardHealth.totalPlayerCount}
+    </div>
+  )}
+</div>
                   </div>
 
                   <button

@@ -8,7 +8,8 @@ export type RoundState =
   | 'scoring-complete'
   | 'payouts'
   | 'financial-closeout'
-  | 'archived';
+  | 'archived'
+  | 'completed';  
 
 export type CurrentRound = {
   id: string;

@@ -1,3 +1,4 @@
+import type { PaperPlayerTotals } from '../types/paperScorecardTotals';
 import type { Player } from '../types';
 import type { CourseHole } from '../data/blackBearCourse';
 import type { LeagueScoringSettings } from '../types/scoringSettings';
@@ -332,5 +333,49 @@ export function markScorecardEntryVerified(
     ...scorecardEntry,
     status: 'verified',
     verifiedAt: new Date().toISOString()
+  };
+}
+export function updatePaperPlayerTotals(
+  scorecardEntry: ScorecardEntry,
+  paperTotals: PaperPlayerTotals
+): ScorecardEntry {
+  const playerExists =
+    scorecardEntry.players.some(
+      (playerEntry) =>
+        playerEntry.playerId ===
+        paperTotals.playerId
+    );
+
+  if (!playerExists) {
+    throw new Error(
+      'The player could not be found on this scorecard.'
+    );
+  }
+
+  const existingPaperTotals =
+    scorecardEntry.paperTotals ?? [];
+
+  const alreadyExists =
+    existingPaperTotals.some(
+      (entry) =>
+        entry.playerId ===
+        paperTotals.playerId
+    );
+
+  return {
+    ...scorecardEntry,
+
+    paperTotals: alreadyExists
+      ? existingPaperTotals.map(
+          (entry) =>
+            entry.playerId ===
+            paperTotals.playerId
+              ? paperTotals
+              : entry
+        )
+      : [
+          ...existingPaperTotals,
+          paperTotals
+        ]
   };
 }

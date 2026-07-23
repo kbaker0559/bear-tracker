@@ -27,7 +27,8 @@ import {
 } from './engine/roundManager';
 import {
   markScorecardEntryVerified,
-  updateGrossScore
+  updateGrossScore,
+  updatePaperPlayerTotals
 } from './engine/scoreEntryEngine';
 import {
   clearSavedCurrentRound,
@@ -37,6 +38,7 @@ import {
 import type { Group, Player } from './types';
 import type { PlayerAccount } from './types/playerAccount';
 import type { Scorecard } from './types/scorecard';
+import type { PaperPlayerTotals } from './types/paperScorecardTotals';
 import {
   bearTrackerTournamentVisibility
 } from './types/tournamentVisibility';
@@ -548,6 +550,52 @@ export default function App() {
     }
   }
 
+  function savePaperPlayerTotals(
+  scorecardId: string,
+  paperTotals: PaperPlayerTotals
+) {
+  const scorecardEntry =
+    roundBundle.scorecardEntries.find(
+      (entry) =>
+        entry.scorecardId === scorecardId
+    );
+
+  if (!scorecardEntry) {
+    window.alert(
+      'The score-entry record could not be found.'
+    );
+
+    return;
+  }
+
+  try {
+    const updatedEntry =
+      updatePaperPlayerTotals(
+        scorecardEntry,
+        paperTotals
+      );
+
+    setRoundBundle((current) => ({
+      ...current,
+
+      scorecardEntries:
+        current.scorecardEntries.map(
+          (entry) =>
+            entry.scorecardId === scorecardId
+              ? updatedEntry
+              : entry
+        )
+    }));
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'The paper totals could not be saved.';
+
+    window.alert(message);
+  }
+}
+
   function verifyScorecard(
     scorecardId: string
   ) {
@@ -591,6 +639,21 @@ export default function App() {
       window.alert(message);
     }
   }
+
+function completeRound() {
+  setRoundBundle((current) => ({
+    ...current,
+
+    round: {
+      ...current.round,
+      state: 'completed'
+    }
+  }));
+
+  window.alert(
+    'Round completed successfully. (Archive processing will be added in the next sprint.)'
+  );
+}
 
   function continueCurrentRound() {
     const state = roundGuidance.state;
@@ -787,9 +850,13 @@ export default function App() {
           onUpdateScore={
             updateScorecardScore
           }
+          onSavePaperTotals={
+            savePaperPlayerTotals
+          }
           onVerifyScorecard={
             verifyScorecard
           }
+          onCompleteRound={completeRound}
         />
       )}
 
