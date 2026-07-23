@@ -16,7 +16,6 @@ export type CardHealth = {
   status: CardHealthStatus;
   label: string;
   issueCount: number;
-
   completedPlayerCount: number;
   totalPlayerCount: number;
 };
@@ -27,14 +26,12 @@ function playerIsComplete(
 ): boolean {
   const playerEntry =
     scorecardEntry.players.find(
-      (player) =>
-        player.playerId === playerId
+      (player) => player.playerId === playerId
     );
 
   return (
     playerEntry?.scores.every(
-      (score) =>
-        score.grossScore !== null
+      (score) => score.grossScore !== null
     ) ?? false
   );
 }
@@ -54,9 +51,7 @@ export function getCardHealth(
         )
     ).length;
 
-  if (
-    scorecardEntry.status === 'verified'
-  ) {
+  if (scorecardEntry.status === 'verified') {
     return {
       status: 'verified',
       label: 'Verified',
@@ -76,10 +71,7 @@ export function getCardHealth(
     };
   }
 
-  if (
-    completedPlayerCount <
-    totalPlayerCount
-  ) {
+  if (completedPlayerCount < totalPlayerCount) {
     return {
       status: 'entering',
       label: 'In Progress',
@@ -89,40 +81,17 @@ export function getCardHealth(
     };
   }
 
-  const everyPlayerHasPaperTotals =
-    scorecardEntry.players.every(
-      (playerEntry) =>
-        (scorecardEntry.paperTotals ?? []).some(
-          (paperEntry) =>
-            paperEntry.playerId ===
-            playerEntry.playerId
-        )
-    );
+  const validation =
+    validateScorecardEntry(scorecardEntry);
 
   if (
-    !hasPaperTotals(scorecardEntry) ||
-    !everyPlayerHasPaperTotals
+    hasPaperTotals(scorecardEntry) &&
+    !validation.passed
   ) {
-    return {
-      status: 'missing-paper-totals',
-      label: 'Missing Paper Totals',
-      issueCount: 0,
-      completedPlayerCount,
-      totalPlayerCount
-    };
-  }
-
-  const validation =
-    validateScorecardEntry(
-      scorecardEntry
-    );
-
-  if (!validation.passed) {
     return {
       status: 'validation-errors',
       label: `Validation Errors (${validation.issues.length})`,
-      issueCount:
-        validation.issues.length,
+      issueCount: validation.issues.length,
       completedPlayerCount,
       totalPlayerCount
     };
@@ -130,7 +99,9 @@ export function getCardHealth(
 
   return {
     status: 'ready-to-verify',
-    label: 'Validated — Ready to Verify',
+    label: hasPaperTotals(scorecardEntry)
+      ? 'Validated — Ready to Verify'
+      : 'Ready to Verify',
     issueCount: 0,
     completedPlayerCount,
     totalPlayerCount

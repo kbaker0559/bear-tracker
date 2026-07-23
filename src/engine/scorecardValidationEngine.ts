@@ -8,16 +8,6 @@ import type {
   ScorecardValidationResult
 } from '../types/scorecardValidation';
 
-type NumericField =
-  | 'frontNineGross'
-  | 'backNineGross'
-  | 'grossTotal'
-  | 'frontNinePoints'
-  | 'backNinePoints'
-  | 'totalPoints'
-  | 'quota'
-  | 'quotaResult';
-
 function addIssue(
   issues: PlayerValidationIssue[],
   playerId: string,
@@ -46,12 +36,9 @@ function compareValue(
 ): void {
   if (
     paperValue === null ||
-    calculatedValue === null
+    calculatedValue === null ||
+    paperValue === calculatedValue
   ) {
-    return;
-  }
-
-  if (paperValue === calculatedValue) {
     return;
   }
 
@@ -65,83 +52,35 @@ function compareValue(
   );
 }
 
+function paperTotalsHaveValue(
+  paper: PaperPlayerTotals
+): boolean {
+  return [
+    paper.frontNineGross,
+    paper.backNineGross,
+    paper.grossTotal,
+    paper.frontNinePoints,
+    paper.backNinePoints,
+    paper.totalPoints,
+    paper.quota,
+    paper.quotaResult
+  ].some((value) => value !== null);
+}
+
 function validatePlayerTotals(
   paper: PaperPlayerTotals,
   calculated: PlayerScoreEntry
 ): PlayerValidationIssue[] {
   const issues: PlayerValidationIssue[] = [];
 
-  compareValue(
-    issues,
-    paper.playerId,
-    'front-nine',
-    'Front-nine gross',
-    paper.frontNineGross,
-    calculated.frontNineGrossTotal
-  );
-
-  compareValue(
-    issues,
-    paper.playerId,
-    'back-nine',
-    'Back-nine gross',
-    paper.backNineGross,
-    calculated.backNineGrossTotal
-  );
-
-  compareValue(
-    issues,
-    paper.playerId,
-    'total',
-    'Total gross',
-    paper.grossTotal,
-    calculated.grossTotal
-  );
-
-  compareValue(
-    issues,
-    paper.playerId,
-    'front-nine',
-    'Front-nine points',
-    paper.frontNinePoints,
-    calculated.frontNinePoints
-  );
-
-  compareValue(
-    issues,
-    paper.playerId,
-    'back-nine',
-    'Back-nine points',
-    paper.backNinePoints,
-    calculated.backNinePoints
-  );
-
-  compareValue(
-    issues,
-    paper.playerId,
-    'total',
-    'Total points',
-    paper.totalPoints,
-    calculated.stablefordPoints
-  );
-
-  compareValue(
-    issues,
-    paper.playerId,
-    'quota',
-    'Quota',
-    paper.quota,
-    calculated.quota
-  );
-
-  compareValue(
-    issues,
-    paper.playerId,
-    'quota',
-    'Quota result',
-    paper.quotaResult,
-    calculated.quotaResult
-  );
+  compareValue(issues, paper.playerId, 'front-nine', 'Front-nine gross', paper.frontNineGross, calculated.frontNineGrossTotal);
+  compareValue(issues, paper.playerId, 'back-nine', 'Back-nine gross', paper.backNineGross, calculated.backNineGrossTotal);
+  compareValue(issues, paper.playerId, 'total', 'Total gross', paper.grossTotal, calculated.grossTotal);
+  compareValue(issues, paper.playerId, 'front-nine', 'Front-nine points', paper.frontNinePoints, calculated.frontNinePoints);
+  compareValue(issues, paper.playerId, 'back-nine', 'Back-nine points', paper.backNinePoints, calculated.backNinePoints);
+  compareValue(issues, paper.playerId, 'total', 'Total points', paper.totalPoints, calculated.stablefordPoints);
+  compareValue(issues, paper.playerId, 'quota', 'Quota', paper.quota, calculated.quota);
+  compareValue(issues, paper.playerId, 'quota', 'Quota result', paper.quotaResult, calculated.quotaResult);
 
   return issues;
 }
@@ -152,9 +91,13 @@ export function validateScorecardEntry(
   const issues: PlayerValidationIssue[] = [];
 
   for (
-  const paperTotals of
-  scorecardEntry.paperTotals ?? []
-) {
+    const paperTotals of
+      scorecardEntry.paperTotals ?? []
+  ) {
+    if (!paperTotalsHaveValue(paperTotals)) {
+      continue;
+    }
+
     const calculatedPlayer =
       scorecardEntry.players.find(
         (playerEntry) =>
@@ -184,6 +127,6 @@ export function hasPaperTotals(
   scorecardEntry: ScorecardEntry
 ): boolean {
   return (
-  scorecardEntry.paperTotals?.length ?? 0
-) > 0;
+    scorecardEntry.paperTotals ?? []
+  ).some(paperTotalsHaveValue);
 }

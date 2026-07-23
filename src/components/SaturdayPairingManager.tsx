@@ -20,6 +20,11 @@ type Props = {
     groupId: string,
     playerId: string
   ) => void;
+
+  onReorderScorecard: (
+    groupId: string,
+    orderedPlayerIds: string[]
+  ) => void;
 };
 
 type PlayerAction = 'move' | 'swap' | null;
@@ -29,7 +34,8 @@ export default function SaturdayPairingManager({
   players,
   onMovePlayer,
   onSwapPlayers,
-  onChangeScorekeeper
+  onChangeScorekeeper,
+  onReorderScorecard
 }: Props) {
   const [activePlayerId, setActivePlayerId] =
     useState<string | null>(null);
@@ -173,6 +179,55 @@ export default function SaturdayPairingManager({
     closePlayerActions();
   }
 
+  function movePlayerInOrder(
+    groupId: string,
+    playerId: string,
+    direction: 'up' | 'down'
+  ) {
+    const group = groups.find(
+      (candidate) => candidate.id === groupId
+    );
+
+    if (!group) {
+      return;
+    }
+
+    const currentIndex =
+      group.playerIds.indexOf(playerId);
+
+    if (currentIndex < 0) {
+      return;
+    }
+
+    const nextIndex =
+      direction === 'up'
+        ? currentIndex - 1
+        : currentIndex + 1;
+
+    if (
+      nextIndex < 0 ||
+      nextIndex >= group.playerIds.length
+    ) {
+      return;
+    }
+
+    const orderedPlayerIds =
+      [...group.playerIds];
+
+    [
+      orderedPlayerIds[currentIndex],
+      orderedPlayerIds[nextIndex]
+    ] = [
+      orderedPlayerIds[nextIndex],
+      orderedPlayerIds[currentIndex]
+    ];
+
+    onReorderScorecard(
+      groupId,
+      orderedPlayerIds
+    );
+  }
+
   return (
     <section className="card">
       <h2>Saturday Card Manager</h2>
@@ -180,7 +235,8 @@ export default function SaturdayPairingManager({
       <p>
         Make final card changes before play begins. All
         changes become part of the official scorecards
-        used for score entry.
+        used for score entry. Use the arrow buttons to
+        match the name order written on the paper card.
       </p>
 
       <div className="score-grid">
@@ -236,7 +292,7 @@ export default function SaturdayPairingManager({
                   marginTop: '1rem'
                 }}
               >
-                {group.playerIds.map((playerId) => {
+                {group.playerIds.map((playerId, playerIndex) => {
                   const isScorekeeper =
                     scorekeeperId === playerId;
 
@@ -275,16 +331,55 @@ export default function SaturdayPairingManager({
                           )}
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openPlayerActions(playerId)
-                          }
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '0.5rem',
+                            flexWrap: 'wrap'
+                          }}
                         >
-                          {actionsOpen
-                            ? 'Close Actions'
-                            : 'Actions'}
-                        </button>
+                          <button
+                            type="button"
+                            disabled={playerIndex === 0}
+                            onClick={() =>
+                              movePlayerInOrder(
+                                group.id,
+                                playerId,
+                                'up'
+                              )
+                            }
+                          >
+                            Move Up
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={
+                              playerIndex ===
+                              group.playerIds.length - 1
+                            }
+                            onClick={() =>
+                              movePlayerInOrder(
+                                group.id,
+                                playerId,
+                                'down'
+                              )
+                            }
+                          >
+                            Move Down
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openPlayerActions(playerId)
+                            }
+                          >
+                            {actionsOpen
+                              ? 'Close Actions'
+                              : 'Actions'}
+                          </button>
+                        </div>
                       </div>
 
                       {actionsOpen &&

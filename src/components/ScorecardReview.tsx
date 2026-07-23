@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import type { Player } from '../types';
 import type { Scorecard } from '../types/scorecard';
 import type {
@@ -89,20 +89,11 @@ export default function ScorecardReview({
   const paperTotalsStarted =
     hasPaperTotals(scorecardEntry);
 
-  const everyPlayerHasPaperTotals =
-    scorecardEntry.players.every(
-      (playerEntry) =>
-        scorecardEntry.paperTotals.some(
-          (paperEntry) =>
-            paperEntry.playerId ===
-            playerEntry.playerId
-        )
-    );
+  const [showPaperTotals, setShowPaperTotals] =
+    useState(paperTotalsStarted);
 
   const readyToVerify =
-    cardComplete &&
-    everyPlayerHasPaperTotals &&
-    validation.passed;
+    cardComplete && validation.passed;
 
   return (
     <section className="card">
@@ -123,8 +114,9 @@ export default function ScorecardReview({
           <h2>Review Scorecard</h2>
 
           <p>
-            Compare Bear Tracker’s calculations with the
-            totals written on the paper scorecard.
+            Review Bear Tracker’s calculated totals. Paper
+            totals are optional and only needed when you
+            are investigating a discrepancy.
           </p>
         </div>
 
@@ -311,13 +303,34 @@ export default function ScorecardReview({
         </table>
       </div>
 
-      <PaperScorecardTotalsEntry
-        scorecardEntry={scorecardEntry}
-        players={players}
-        onSavePlayerTotals={
-          onSavePaperTotals
-        }
-      />
+      <div
+        style={{
+          marginTop: '1.5rem'
+        }}
+      >
+        <button
+          type="button"
+          onClick={() =>
+            setShowPaperTotals(
+              (current) => !current
+            )
+          }
+        >
+          {showPaperTotals
+            ? 'Hide Paper Discrepancy Review'
+            : 'Investigate Paper Discrepancy (Optional)'}
+        </button>
+      </div>
+
+      {showPaperTotals && (
+        <PaperScorecardTotalsEntry
+          scorecardEntry={scorecardEntry}
+          players={players}
+          onSavePlayerTotals={
+            onSavePaperTotals
+          }
+        />
+      )}
 
       <section
         className="card"
@@ -329,23 +342,15 @@ export default function ScorecardReview({
 
         {!paperTotalsStarted && (
           <div className="status-box">
-            Enter the paper totals for every player before
-            verifying this scorecard.
+            ✓ Calculated totals are ready for review. Paper
+            totals are optional.
           </div>
         )}
 
         {paperTotalsStarted &&
-          !everyPlayerHasPaperTotals && (
-            <div className="status-box">
-              Paper totals are still missing for one or
-              more players.
-            </div>
-          )}
-
-        {everyPlayerHasPaperTotals &&
           validation.passed && (
             <div className="status-box">
-              ✓ Card validated. The paper totals match Bear
+              ✓ The entered paper totals match Bear
               Tracker’s calculations.
             </div>
           )}
@@ -412,11 +417,9 @@ export default function ScorecardReview({
           <strong>
             {!cardComplete
               ? 'Scores are incomplete'
-              : !everyPlayerHasPaperTotals
-                ? 'Paper totals are incomplete'
-                : validation.passed
-                  ? 'Ready to verify'
-                  : 'Validation differences require review'}
+              : validation.passed
+                ? 'Ready to verify'
+                : 'Validation differences require review'}
           </strong>
         </div>
 

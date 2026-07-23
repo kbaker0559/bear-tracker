@@ -46,7 +46,10 @@ export function loadCurrentRound(): SavedCurrentRound | null {
       entry.paperTotals ?? []
   })),
         scoreCorrections:
-          parsed.roundBundle.scoreCorrections ?? []
+          parsed.roundBundle.scoreCorrections ?? [],
+
+        tournamentEvents:
+          parsed.roundBundle.tournamentEvents ?? []
       },
 
       groups: parsed.groups ?? [],

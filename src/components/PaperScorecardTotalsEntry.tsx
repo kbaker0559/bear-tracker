@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { Player } from '../types';
 import type { ScorecardEntry } from '../types/scoreEntry';
 import type { PaperPlayerTotals } from '../types/paperScorecardTotals';
@@ -85,6 +85,12 @@ export default function PaperScorecardTotalsEntry({
   players,
   onSavePlayerTotals
 }: Props) {
+  const inputRefs = useRef<
+    Partial<
+      Record<keyof DraftTotals, HTMLInputElement | null>
+    >
+  >({});
+
   const [selectedPlayerId, setSelectedPlayerId] =
     useState(
       scorecardEntry.players[0]?.playerId ?? ''
@@ -92,7 +98,7 @@ export default function PaperScorecardTotalsEntry({
 
   const selectedPaperTotals = useMemo(
     () =>
-      scorecardEntry.paperTotals.find(
+      (scorecardEntry.paperTotals ?? []).find(
         (entry) =>
           entry.playerId === selectedPlayerId
       ) ?? null,
@@ -140,7 +146,7 @@ export default function PaperScorecardTotalsEntry({
     setSelectedPlayerId(playerId);
 
     const existing =
-      scorecardEntry.paperTotals.find(
+      (scorecardEntry.paperTotals ?? []).find(
         (entry) =>
           entry.playerId === playerId
       );
@@ -177,6 +183,17 @@ export default function PaperScorecardTotalsEntry({
     );
   }
 
+  function focusField(
+    field: keyof DraftTotals
+  ) {
+    window.setTimeout(() => {
+      const input = inputRefs.current[field];
+
+      input?.focus();
+      input?.select();
+    }, 0);
+  }
+
   function updateDraft(
     field: keyof DraftTotals,
     value: string
@@ -185,6 +202,21 @@ export default function PaperScorecardTotalsEntry({
       ...current,
       [field]: value
     }));
+
+    const numericCharacters =
+      value.replace(/\D/g, '');
+
+    if (numericCharacters.length < 2) {
+      return;
+    }
+
+    if (field === 'frontNineGross') {
+      focusField('backNineGross');
+    } else if (field === 'backNineGross') {
+      focusField('grossTotal');
+    } else if (field === 'grossTotal') {
+      focusField('frontNinePoints');
+    }
   }
 
   function savePlayerTotals() {
@@ -227,12 +259,11 @@ export default function PaperScorecardTotalsEntry({
 
   return (
     <section className="card">
-      <h3>Paper Scorecard Totals</h3>
+      <h3>Investigate Paper Discrepancy</h3>
 
       <p>
-        Enter the totals exactly as written on the
-        physical scorecard. Bear Tracker will compare
-        them with its own calculations.
+        Enter only the paper values you want Bear Tracker
+        to compare. Blank fields are ignored.
       </p>
 
       <label>
@@ -332,7 +363,13 @@ export default function PaperScorecardTotalsEntry({
               <td style={numberCellStyle}>
                 <input
                   type="number"
+                  ref={(element) => {
+                    inputRefs.current.frontNineGross = element;
+                  }}
                   value={draft.frontNineGross}
+                  onFocus={(event) =>
+                    event.currentTarget.select()
+                  }
                   onChange={(event) =>
                     updateDraft(
                       'frontNineGross',
@@ -346,7 +383,13 @@ export default function PaperScorecardTotalsEntry({
               <td style={numberCellStyle}>
                 <input
                   type="number"
+                  ref={(element) => {
+                    inputRefs.current.backNineGross = element;
+                  }}
                   value={draft.backNineGross}
+                  onFocus={(event) =>
+                    event.currentTarget.select()
+                  }
                   onChange={(event) =>
                     updateDraft(
                       'backNineGross',
@@ -360,7 +403,13 @@ export default function PaperScorecardTotalsEntry({
               <td style={numberCellStyle}>
                 <input
                   type="number"
+                  ref={(element) => {
+                    inputRefs.current.grossTotal = element;
+                  }}
                   value={draft.grossTotal}
+                  onFocus={(event) =>
+                    event.currentTarget.select()
+                  }
                   onChange={(event) =>
                     updateDraft(
                       'grossTotal',
@@ -388,7 +437,13 @@ export default function PaperScorecardTotalsEntry({
               <td style={numberCellStyle}>
                 <input
                   type="number"
+                  ref={(element) => {
+                    inputRefs.current.frontNinePoints = element;
+                  }}
                   value={draft.frontNinePoints}
+                  onFocus={(event) =>
+                    event.currentTarget.select()
+                  }
                   onChange={(event) =>
                     updateDraft(
                       'frontNinePoints',
@@ -402,7 +457,13 @@ export default function PaperScorecardTotalsEntry({
               <td style={numberCellStyle}>
                 <input
                   type="number"
+                  ref={(element) => {
+                    inputRefs.current.backNinePoints = element;
+                  }}
                   value={draft.backNinePoints}
+                  onFocus={(event) =>
+                    event.currentTarget.select()
+                  }
                   onChange={(event) =>
                     updateDraft(
                       'backNinePoints',
@@ -416,7 +477,13 @@ export default function PaperScorecardTotalsEntry({
               <td style={numberCellStyle}>
                 <input
                   type="number"
+                  ref={(element) => {
+                    inputRefs.current.totalPoints = element;
+                  }}
                   value={draft.totalPoints}
+                  onFocus={(event) =>
+                    event.currentTarget.select()
+                  }
                   onChange={(event) =>
                     updateDraft(
                       'totalPoints',
@@ -430,7 +497,13 @@ export default function PaperScorecardTotalsEntry({
               <td style={numberCellStyle}>
                 <input
                   type="number"
+                  ref={(element) => {
+                    inputRefs.current.quota = element;
+                  }}
                   value={draft.quota}
+                  onFocus={(event) =>
+                    event.currentTarget.select()
+                  }
                   onChange={(event) =>
                     updateDraft(
                       'quota',
@@ -444,7 +517,13 @@ export default function PaperScorecardTotalsEntry({
               <td style={numberCellStyle}>
                 <input
                   type="text"
+                  ref={(element) => {
+                    inputRefs.current.quotaResult = element;
+                  }}
                   value={draft.quotaResult}
+                  onFocus={(event) =>
+                    event.currentTarget.select()
+                  }
                   placeholder="E, +3, -2"
                   onChange={(event) =>
                     updateDraft(

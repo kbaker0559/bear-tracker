@@ -11,6 +11,8 @@ import ArrivalPaymentForm from './ArrivalPaymentForm';
 type ArrivalPayment = {
   cashPaid: number;
   creditApplied: number;
+  paidByPlayerId?: string;
+  note?: string;
 };
 
 type Props = {
@@ -85,17 +87,6 @@ export default function OperationsCheckIn({
     players.find((player) => player.id === selectedPlayerId) ??
     null;
 
-  useEffect(() => {
-    if (!selectedPlayerId) {
-      return;
-    }
-
-    sectionRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
-    });
-  }, [selectedPlayerId]);
-
   function completeArrival(
     playerId: string,
     payment: ArrivalPayment
@@ -120,6 +111,13 @@ export default function OperationsCheckIn({
       <section ref={sectionRef}>
         <ArrivalPaymentForm
           player={selectedPlayer}
+          payerOptions={sortPlayersByLastName(
+            players.filter(
+              (candidate) =>
+                expectedPlayerIds.includes(candidate.id) &&
+                candidate.id !== selectedPlayer.id
+            )
+          )}
           entryFee={25}
           availableCredit={getAvailableCredit(
             selectedPlayer.id
@@ -218,14 +216,35 @@ export default function OperationsCheckIn({
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setSelectedPlayerId(player.id)
-                }
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  flexWrap: 'wrap',
+                  justifyContent: 'flex-end'
+                }}
               >
-                Complete Arrival
-              </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    completeArrival(player.id, {
+                      cashPaid: 25,
+                      creditApplied: 0
+                    })
+                  }
+                >
+                  Complete Arrival — $25 Cash
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedPlayerId(player.id)
+                  }
+                >
+                  Complete Arrival — Other
+                </button>
+              </div>
             </div>
           );
         })}

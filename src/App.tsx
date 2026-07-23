@@ -53,6 +53,7 @@ import type { Scorecard } from './types/scorecard';
 import type { RoundPlayerStatus } from './types/roundPlayer';
 import type { BenchmarkSummary } from './types/benchmark';
 import type { PaperPlayerTotals } from './types/paperScorecardTotals';
+import type { TournamentEvent, TournamentEventType } from './types/tournamentEvent';
 import {
   bearTrackerTournamentVisibility
 } from './types/tournamentVisibility';
@@ -69,9 +70,30 @@ type Workspace =
 type ArrivalPayment = {
   cashPaid: number;
   creditApplied: number;
+  paidByPlayerId?: string;
+  note?: string;
 };
 
 const ENTRY_FEE = 25;
+
+function createTournamentEvent(
+  roundId: string,
+  type: TournamentEventType,
+  summary: string,
+  details: Omit<
+    TournamentEvent,
+    'id' | 'roundId' | 'type' | 'occurredAt' | 'summary'
+  > = {}
+): TournamentEvent {
+  return {
+    id: crypto.randomUUID(),
+    roundId,
+    type,
+    occurredAt: new Date().toISOString(),
+    summary,
+    ...details
+  };
+}
 
 export default function App() {
   const [currentWorkspace, setCurrentWorkspace] =
@@ -447,7 +469,9 @@ function removeSavedBenchmark(
                   creditApplied:
                     payment.creditApplied,
                   paidByPlayerId:
-                    undefined
+                    payment.paidByPlayerId,
+                  paymentNote:
+                    payment.note
                 }
               : player
         );
@@ -500,6 +524,27 @@ function removeSavedBenchmark(
           )
       );
     }
+  }
+
+  function addTournamentNote(note: string) {
+    const trimmed = note.trim();
+
+    if (!trimmed) {
+      return;
+    }
+
+    setRoundBundle((current) => ({
+      ...current,
+      tournamentEvents: [
+        ...(current.tournamentEvents ?? []),
+        createTournamentEvent(
+          current.round.id,
+          'note',
+          'Round note added',
+          { note: trimmed }
+        )
+      ]
+    }));
   }
 
   function setPlayerInactiveStatus(
@@ -597,11 +642,37 @@ function removeSavedBenchmark(
           player.status !== 'no-show'
       );
 
+      const profileName =
+        players.find((player) => player.id === playerId)
+          ?.name ?? playerId;
+
+      const statusSummary =
+        status === 'dns'
+          ? `${profileName} marked DNS`
+          : status === 'withdrawn'
+            ? `${profileName} withdrawn`
+            : `${profileName} removed from round`;
+
       return {
         ...current,
         roundPlayers,
         scorecards,
         scorecardEntries,
+        tournamentEvents: [
+          ...(current.tournamentEvents ?? []),
+          createTournamentEvent(
+            current.round.id,
+            status,
+            statusSummary,
+            {
+              playerIds: [playerId],
+              scorecardId:
+                currentRoundPlayer?.scorecardId ??
+                currentCard?.id,
+              note: reason || undefined
+            }
+          )
+        ],
         round: {
           ...current.round,
           expectedPlayerCount: activePlayers.length,
@@ -733,11 +804,25 @@ function removeSavedBenchmark(
           player.status !== 'no-show'
       );
 
+      const profileName = profile.name;
+
       return {
         ...current,
         roundPlayers,
         scorecards,
         scorecardEntries,
+        tournamentEvents: [
+          ...(current.tournamentEvents ?? []),
+          createTournamentEvent(
+            current.round.id,
+            'restored',
+            `${profileName} restored to round`,
+            {
+              playerIds: [playerId],
+              scorecardId: targetCardId
+            }
+          )
+        ],
         round: {
           ...current.round,
           expectedPlayerCount: activePlayers.length,
@@ -756,7 +841,9 @@ function removeSavedBenchmark(
     playerId: string,
     groupId: string,
     handicap: number,
-    quota: number
+    quota: number,
+    additionType: 'late-add' | 'restore-missing',
+    note: string
   ) {
     const profile = players.find(
       (player) => player.id === playerId
@@ -854,6 +941,23 @@ function removeSavedBenchmark(
         roundPlayers,
         scorecards,
         scorecardEntries,
+        tournamentEvents: [
+          ...(current.tournamentEvents ?? []),
+          createTournamentEvent(
+            current.round.id,
+            additionType === 'late-add'
+              ? 'late-add'
+              : 'restored',
+            additionType === 'late-add'
+              ? `${profile.name} added as a late player`
+              : `${profile.name} restored to round`,
+            {
+              playerIds: [playerId],
+              scorecardId: groupId,
+              note: note || undefined
+            }
+          )
+        ],
         round: {
           ...current.round,
           expectedPlayerCount:
@@ -945,9 +1049,22 @@ function removeSavedBenchmark(
         );
 
       setGroups(updatedState.groups);
-      setRoundBundle(
-        updatedState.roundBundle
-      );
+      setRoundBundle({
+        ...updatedState.roundBundle,
+        tournamentEvents: [
+          ...(updatedState.roundBundle.tournamentEvents ?? []),
+          createTournamentEvent(
+            updatedState.roundBundle.round.id,
+            'player-moved',
+            `${players.find((player) => player.id === playerId)?.name ?? playerId} moved to another card`,
+            {
+              playerIds: [playerId],
+              fromScorecardId: fromGroupId,
+              toScorecardId: toGroupId
+            }
+          )
+        ]
+      });
     } catch (error) {
       const message =
         error instanceof Error
@@ -974,9 +1091,20 @@ function removeSavedBenchmark(
         );
 
       setGroups(updatedState.groups);
-      setRoundBundle(
-        updatedState.roundBundle
-      );
+      setRoundBundle({
+        ...updatedState.roundBundle,
+        tournamentEvents: [
+          ...(updatedState.roundBundle.tournamentEvents ?? []),
+          createTournamentEvent(
+            updatedState.roundBundle.round.id,
+            'players-swapped',
+            'Players swapped between cards',
+            {
+              playerIds: [firstPlayerId, secondPlayerId]
+            }
+          )
+        ]
+      });
     } catch (error) {
       const message =
         error instanceof Error
@@ -985,6 +1113,97 @@ function removeSavedBenchmark(
 
       window.alert(message);
     }
+  }
+
+  function reorderScorecardPlayers(
+    groupId: string,
+    orderedPlayerIds: string[]
+  ) {
+    const group = groups.find(
+      (candidate) => candidate.id === groupId
+    );
+
+    if (!group) {
+      window.alert(
+        'The scorecard could not be found.'
+      );
+      return;
+    }
+
+    const samePlayers =
+      orderedPlayerIds.length ===
+        group.playerIds.length &&
+      orderedPlayerIds.every((playerId) =>
+        group.playerIds.includes(playerId)
+      );
+
+    if (!samePlayers) {
+      window.alert(
+        'The scorecard order could not be saved because the player list changed.'
+      );
+      return;
+    }
+
+    setGroups((currentGroups) =>
+      currentGroups.map((currentGroup) =>
+        currentGroup.id === groupId
+          ? {
+              ...currentGroup,
+              playerIds: [...orderedPlayerIds]
+            }
+          : currentGroup
+      )
+    );
+
+    setRoundBundle((current) => ({
+      ...current,
+      tournamentEvents: [
+        ...(current.tournamentEvents ?? []),
+        createTournamentEvent(
+          current.round.id,
+          'scorecard-reordered',
+          'Scorecard player order changed',
+          { scorecardId: groupId }
+        )
+      ],
+      scorecards: current.scorecards.map((card) =>
+        card.id === groupId
+          ? {
+              ...card,
+              players: orderedPlayerIds
+                .map((playerId) =>
+                  card.players.find(
+                    (player) =>
+                      player.playerId === playerId
+                  )
+                )
+                .filter(
+                  (player): player is typeof card.players[number] =>
+                    player !== undefined
+                )
+            }
+          : card
+      ),
+      scorecardEntries:
+        current.scorecardEntries.map((entry) =>
+          entry.scorecardId === groupId
+            ? {
+                ...entry,
+                players: orderedPlayerIds
+                  .map((playerId) =>
+                    entry.players.find(
+                      (player) =>
+                        player.playerId === playerId
+                    )
+                  )
+                  .filter(
+                    (player): player is typeof entry.players[number] =>
+                      player !== undefined
+                  )
+              }
+            : entry
+        )
+    }));
   }
 
   function changeScorekeeper(
@@ -1003,9 +1222,21 @@ function removeSavedBenchmark(
         );
 
       setGroups(updatedState.groups);
-      setRoundBundle(
-        updatedState.roundBundle
-      );
+      setRoundBundle({
+        ...updatedState.roundBundle,
+        tournamentEvents: [
+          ...(updatedState.roundBundle.tournamentEvents ?? []),
+          createTournamentEvent(
+            updatedState.roundBundle.round.id,
+            'scorekeeper-changed',
+            `${players.find((player) => player.id === playerId)?.name ?? playerId} assigned as scorekeeper`,
+            {
+              playerIds: [playerId],
+              scorecardId: groupId
+            }
+          )
+        ]
+      });
     } catch (error) {
       const message =
         error instanceof Error
@@ -1317,6 +1548,7 @@ function completeRound() {
           groups={groups}
           weeklyPlayers={weeklyPlayers}
           roundPlayers={roundBundle.roundPlayers}
+          tournamentEvents={roundBundle.tournamentEvents ?? []}
           expectedCount={
             expectedCount
           }
@@ -1353,12 +1585,18 @@ function completeRound() {
           onChangeScorekeeper={
             changeScorekeeper
           }
+          onReorderScorecard={
+            reorderScorecardPlayers
+          }
           onStartRound={startRound}
           getAvailableCredit={
             getAvailableCredit
           }
           onCompleteArrival={
             completeArrival
+          }
+          onAddTournamentNote={
+            addTournamentNote
           }
         />
       )}

@@ -13,6 +13,7 @@ import RegistrationReadyPanel from './RegistrationReadyPanel';
 import PlayerStatusManager from './PlayerStatusManager';
 import SaturdayMorningDashboard from './SaturdayMorningDashboard';
 import SaturdayPairingManager from './SaturdayPairingManager';
+import TournamentEventLog from './TournamentEventLog';
 import WeeklyPlayerReview, {
   type WeeklyPlayerSnapshot
 } from './WeeklyPlayerReview';
@@ -20,6 +21,8 @@ import WeeklyPlayerReview, {
 type ArrivalPayment = {
   cashPaid: number;
   creditApplied: number;
+  paidByPlayerId?: string;
+  note?: string;
 };
 
 type Props = {
@@ -27,6 +30,7 @@ type Props = {
   groups: Group[];
   weeklyPlayers: WeeklyPlayerSnapshot[];
   roundPlayers: RoundPlayer[];
+  tournamentEvents: import('../types/tournamentEvent').TournamentEvent[];
 
   expectedCount: number;
   checkedInCount: number;
@@ -47,7 +51,9 @@ type Props = {
     playerId: string,
     groupId: string,
     handicap: number,
-    quota: number
+    quota: number,
+    additionType: 'late-add' | 'restore-missing',
+    note: string
   ) => void;
   onUpdateWeeklyPlayer: (
     playerId: string,
@@ -71,6 +77,11 @@ type Props = {
     playerId: string
   ) => void;
 
+  onReorderScorecard: (
+    groupId: string,
+    orderedPlayerIds: string[]
+  ) => void;
+
   onStartRound: () => void;
 
   getAvailableCredit: (playerId: string) => number;
@@ -79,6 +90,8 @@ type Props = {
     playerId: string,
     payment: ArrivalPayment
   ) => void;
+
+  onAddTournamentNote: (note: string) => void;
 };
 
 export default function OperationsWorkspace({
@@ -86,6 +99,7 @@ export default function OperationsWorkspace({
   groups,
   weeklyPlayers,
   roundPlayers,
+  tournamentEvents,
   expectedCount,
   checkedInCount,
   paidCount,
@@ -100,9 +114,11 @@ export default function OperationsWorkspace({
   onMovePlayer,
   onSwapPlayers,
   onChangeScorekeeper,
+  onReorderScorecard,
   onStartRound,
   getAvailableCredit,
-  onCompleteArrival
+  onCompleteArrival,
+  onAddTournamentNote
 }: Props) {
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showRemovePlayer, setShowRemovePlayer] = useState(false);
@@ -264,6 +280,7 @@ export default function OperationsWorkspace({
                 onMovePlayer={onMovePlayer}
                 onSwapPlayers={onSwapPlayers}
                 onChangeScorekeeper={onChangeScorekeeper}
+                onReorderScorecard={onReorderScorecard}
               />
             </div>
           )}
@@ -307,6 +324,13 @@ export default function OperationsWorkspace({
               />
             </div>
           )}
+
+          <TournamentEventLog
+            events={tournamentEvents}
+            players={players}
+            groups={groups}
+            onAddNote={onAddTournamentNote}
+          />
 
           <h3>Round Scorecards</h3>
 

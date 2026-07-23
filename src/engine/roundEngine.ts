@@ -1,4 +1,5 @@
 import type { ScoreCorrection } from '../types/scoreCorrection';
+import type { TournamentEvent } from '../types/tournamentEvent';
 import type { Player } from '../types';
 import type { CurrentRound } from '../types/currentRound';
 import type { RoundPlayer } from '../types/roundPlayer';
@@ -15,6 +16,7 @@ export type RoundBundle = {
   scorecardImports: ScorecardImport[];
   scorecardEntries: ScorecardEntry[];
   scoreCorrections: ScoreCorrection[];
+  tournamentEvents: TournamentEvent[];
 };
 
 export function createEmptyRound(
@@ -36,7 +38,8 @@ export function createEmptyRound(
     scorecards: [],
     scorecardImports: [],
     scorecardEntries: [],
-    scoreCorrections: []
+    scoreCorrections: [],
+    tournamentEvents: []
   };
 }
 
@@ -117,7 +120,8 @@ export function createRoundFromScorecards(
     scorecards: normalizedScorecards,
     scorecardImports,
     scorecardEntries,
-    scoreCorrections: []
+    scoreCorrections: [],
+    tournamentEvents: []
   };
 }
 

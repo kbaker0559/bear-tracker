@@ -23,7 +23,9 @@ type Props = {
     playerId: string,
     groupId: string,
     handicap: number,
-    quota: number
+    quota: number,
+    additionType: 'late-add' | 'restore-missing',
+    note: string
   ) => void;
   onClose: () => void;
 };
@@ -63,6 +65,10 @@ export default function PlayerStatusManager({
   const [addBackHandicap, setAddBackHandicap] =
     useState('');
   const [addBackQuota, setAddBackQuota] =
+    useState('');
+  const [additionType, setAdditionType] =
+    useState<'late-add' | 'restore-missing'>('late-add');
+  const [addBackNote, setAddBackNote] =
     useState('');
 
   const activeRoundPlayers = useMemo(
@@ -170,12 +176,16 @@ export default function PlayerStatusManager({
       addBackPlayerId,
       addBackGroupId,
       handicap,
-      quota
+      quota,
+      additionType,
+      addBackNote.trim()
     );
 
     setAddBackPlayerId('');
     setAddBackHandicap('');
     setAddBackQuota('');
+    setAdditionType('late-add');
+    setAddBackNote('');
   }
 
   return (
@@ -275,19 +285,40 @@ export default function PlayerStatusManager({
       </div>
 
       <h3 style={{ marginTop: '2rem' }}>
-        Add Back a Player Missing from the Round
+        Add a Late Player or Restore a Missing Player
       </h3>
 
       <p>
-        Use this when a golfer was removed by an older
-        version of Bear Tracker. This is the recovery path
-        for Bruce Coleman.
+        Use this for a late add or when a golfer needs to be
+        restored after being removed by an older version of
+        Bear Tracker.
       </p>
 
       {availablePlayers.length === 0 ? (
         <p>Every player profile is already in this round.</p>
       ) : (
         <div className="score-grid">
+          <label className="score-row">
+            <strong>Addition Type</strong>
+            <select
+              value={additionType}
+              onChange={(event) =>
+                setAdditionType(
+                  event.target.value as
+                    | 'late-add'
+                    | 'restore-missing'
+                )
+              }
+            >
+              <option value="late-add">
+                Late Add
+              </option>
+              <option value="restore-missing">
+                Restore Missing Player
+              </option>
+            </select>
+          </label>
+
           <label className="score-row">
             <strong>Player</strong>
             <select
@@ -342,12 +373,33 @@ export default function PlayerStatusManager({
               }
             />
           </label>
+
+          <label className="score-row">
+            <strong>
+              {additionType === 'late-add'
+                ? 'Late Add Note (optional)'
+                : 'Restore Note (optional)'}
+            </strong>
+            <input
+              value={addBackNote}
+              onChange={(event) =>
+                setAddBackNote(event.target.value)
+              }
+              placeholder={
+                additionType === 'late-add'
+                  ? 'Showed up, called the pro shop, message was missed...'
+                  : 'Restored after an earlier removal...'
+              }
+            />
+          </label>
         </div>
       )}
 
       {availablePlayers.length > 0 && (
         <button type="button" onClick={addBack}>
-          Add Player Back to Round
+          {additionType === 'late-add'
+            ? 'Add Late Player to Round'
+            : 'Restore Missing Player to Round'}
         </button>
       )}
 

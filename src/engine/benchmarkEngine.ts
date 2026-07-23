@@ -52,6 +52,9 @@ export function loadBenchmark(
       })),
 
     scoreCorrections:
-      loadedRound.scoreCorrections ?? []
+      loadedRound.scoreCorrections ?? [],
+
+    tournamentEvents:
+      loadedRound.tournamentEvents ?? []
   };
 }

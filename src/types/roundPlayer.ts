@@ -35,6 +35,7 @@ export type RoundPlayer = {
   cashPaid: number;
   creditApplied: number;
   paidByPlayerId?: string;
+  paymentNote?: string;
 
   amountWon: number;
   amountOwed: number;
