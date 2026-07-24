@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Player } from '../types';
 import type { Scorecard } from '../types/scorecard';
 import type { ScorecardEntry } from '../types/scoreEntry';
 import type { TournamentVisibilitySettings } from '../types/tournamentVisibility';
 import type { PaperPlayerTotals } from '../types/paperScorecardTotals';
+import type { NavigationSection } from '../types/navigation';
 import {
   buildLeaderboard
 } from '../engine/leaderboardEngine';
@@ -39,6 +40,8 @@ type Props = {
     scorecardId: string
   ) => void;
   onCompleteRound: () => void;
+  navigationSection?: NavigationSection;
+  onNavigationHandled: () => void;
 };
 
 
@@ -62,10 +65,13 @@ export default function TournamentWorkspace({
   onUpdateScore,
 onSavePaperTotals,
 onVerifyScorecard,
-onCompleteRound
+onCompleteRound,
+navigationSection,
+onNavigationHandled
 }: Props) {
   const [activeView, setActiveView] =
     useState<ActiveView>(null);
+  const queueRef = useRef<HTMLElement | null>(null);
 
   const [
     showAdministratorStandings,
@@ -145,6 +151,29 @@ onCompleteRound
   }
 
   
+
+
+  useEffect(() => {
+    if (!navigationSection) return;
+
+    if (navigationSection === 'scorecard-queue') {
+      queueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      queueRef.current?.classList.add('navigation-highlight');
+      window.setTimeout(() => queueRef.current?.classList.remove('navigation-highlight'), 1400);
+      onNavigationHandled();
+      return;
+    }
+
+    const match = /^scorecard-(\d+)$/.exec(navigationSection);
+    if (!match) return;
+
+    const cardNumber = Number(match[1]);
+    const scorecard = orderedScorecards.find((card) => card.cardNumber === cardNumber);
+    if (scorecard) {
+      openScorecard(scorecard.id, getEntry(scorecard.id));
+    }
+    onNavigationHandled();
+  }, [navigationSection, orderedScorecards, scorecardEntries, onNavigationHandled]);
 
   function getButtonLabel(
     entry: ScorecardEntry | null
@@ -273,12 +302,23 @@ onCompleteRound
   )
 }
         onVerify={() => {
-  onVerifyScorecard(
-    activeScorecard.id
-  );
+          onVerifyScorecard(activeScorecard.id);
 
-  setActiveView(null);
-}}
+          const currentIndex = orderedScorecards.findIndex(
+            (card) => card.id === activeScorecard.id
+          );
+          const nextScorecard = orderedScorecards
+            .slice(currentIndex + 1)
+            .find((card) => getEntry(card.id)?.status !== 'verified');
+
+          if (nextScorecard) {
+            window.setTimeout(() => {
+              openScorecard(nextScorecard.id, getEntry(nextScorecard.id));
+            }, 0);
+          } else {
+            setActiveView(null);
+          }
+        }}
         onClose={() =>
           setActiveView(null)
         }
@@ -452,7 +492,7 @@ onCompleteRound
   </div>
 </section>
 
-<h3>Scorecard Queue</h3>
+<section ref={queueRef} id="scorecard-queue">
       <h3>Scorecard Queue</h3>
 
       {orderedScorecards.length === 0 && (
@@ -594,6 +634,7 @@ onCompleteRound
           }
         )}
       </div>
+      </section>
     </section>
   );
 }

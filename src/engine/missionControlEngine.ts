@@ -1,6 +1,7 @@
 import type { Player } from '../types';
 import type { AwardCategory } from '../types/awardEntry';
 import type { RoundBundle } from './roundEngine';
+import type { NavigationSection } from '../types/navigation';
 import { buildAwardEntries } from './awardEntryEngine';
 import { getFinalizeReadiness } from './finalizeReadinessEngine';
 
@@ -34,6 +35,7 @@ export type MissionAlert = {
   id: string;
   message: string;
   workspace: MissionWorkspace;
+  section?: NavigationSection;
 };
 
 export type MissionControl = {
@@ -43,6 +45,7 @@ export type MissionControl = {
   nextActionLabel: string;
   nextActionDetail: string;
   nextWorkspace: MissionWorkspace;
+  nextSection?: NavigationSection;
   stages: MissionStage[];
   alerts: MissionAlert[];
   snapshot: {
@@ -228,22 +231,27 @@ export function getMissionControl(
   let nextActionLabel = 'Import Pairings';
   let nextActionDetail = 'Create the round and import the official pairings.';
   let nextWorkspace: MissionWorkspace = 'operations';
+  let nextSection: NavigationSection | undefined = 'pairings-import';
 
   if (finalized) {
     stageLabel = 'Tournament Complete';
     nextActionLabel = 'Review Finalized Tournament';
     nextActionDetail = 'Treasury balanced and tournament archived. See you next Saturday.';
     nextWorkspace = 'finalize';
+    nextSection = 'finalize';
   } else if (bundle.scorecards.length === 0) {
     stageLabel = 'Tournament Setup';
+    nextSection = 'pairings-import';
   } else if (!setupComplete) {
     stageLabel = 'Friday Preparation';
     nextActionLabel = 'Review Handicaps & Quotas';
     nextActionDetail = `${activePlayers.length - reviewedPlayers.length} player${activePlayers.length - reviewedPlayers.length === 1 ? '' : 's'} still need review.`;
+    nextSection = 'weekly-review';
   } else if (!arrivalsComplete) {
     stageLabel = 'Player Arrivals';
     nextActionLabel = 'Continue Player Arrivals';
     nextActionDetail = `${activePlayers.length - accountedPlayers.length} player${activePlayers.length - accountedPlayers.length === 1 ? '' : 's'} still need check-in or payment.`;
+    nextSection = 'arrivals';
   } else if (!allScorecardsVerified) {
     stageLabel = 'Score Entry';
     const nextCard = bundle.scorecardEntries.find(
@@ -254,6 +262,9 @@ export function getMissionControl(
       : 'Continue Score Entry';
     nextActionDetail = `${bundle.scorecardEntries.length - verifiedScorecards.length} scorecard${bundle.scorecardEntries.length - verifiedScorecards.length === 1 ? '' : 's'} remaining.`;
     nextWorkspace = 'tournament';
+    nextSection = nextCard
+      ? `scorecard-${bundle.scorecards.find((card) => card.id === nextCard.scorecardId)?.cardNumber ?? 1}`
+      : 'scorecard-queue';
   } else if (!resultsComplete) {
     stageLabel = 'Official Results';
     nextActionLabel = greeniesDecided ? 'Review Official Results' : 'Complete Greenies';
@@ -261,6 +272,7 @@ export function getMissionControl(
       ? 'Review places, skins, Greenies, and Horse\'s Ass.'
       : 'Select a winner or No Winner for every Greenie hole.';
     nextWorkspace = 'results';
+    nextSection = 'results';
   } else if (!settlementComplete) {
     stageLabel = 'Treasurer Settlement';
     const priority: AwardCategory[] = ['greenie', 'place', 'horse-ass', 'skin'];
@@ -275,21 +287,25 @@ export function getMissionControl(
       : 'Settle Awards';
     nextActionDetail = `${categoryEntries.length} payment${categoryEntries.length === 1 ? '' : 's'} remaining in this group.`;
     nextWorkspace = 'finance';
+    nextSection = 'settlement';
   } else if (!treasuryBalanced) {
     stageLabel = 'Count Cash';
     nextActionLabel = 'Reconcile Treasury';
     nextActionDetail = 'Count the Tournament Prize Pot, Hole-in-One Pot, and Owe envelope.';
     nextWorkspace = 'finance';
+    nextSection = 'cash-count';
   } else if (!quotasReviewed) {
     stageLabel = 'Quota Review';
     nextActionLabel = 'Review Quota Updates';
     nextActionDetail = `${quotaUpdates.filter((update) => !update.reviewed).length} quota update${quotaUpdates.filter((update) => !update.reviewed).length === 1 ? '' : 's'} still need review.`;
     nextWorkspace = 'quotas';
+    nextSection = 'quota-review';
   } else {
     stageLabel = 'Ready to Finalize';
     nextActionLabel = 'Finalize Tournament';
     nextActionDetail = 'All readiness checks are complete.';
     nextWorkspace = 'finalize';
+    nextSection = 'finalize';
   }
 
   const alerts: MissionAlert[] = [];
@@ -297,35 +313,40 @@ export function getMissionControl(
     alerts.push({
       id: 'weekly-review',
       message: `${activePlayers.length - reviewedPlayers.length} handicap/quota review${activePlayers.length - reviewedPlayers.length === 1 ? '' : 's'} remaining.`,
-      workspace: 'operations'
+      workspace: 'operations',
+      section: 'weekly-review'
     });
   }
   if (activePlayers.length > accountedPlayers.length) {
     alerts.push({
       id: 'arrivals',
       message: `${activePlayers.length - accountedPlayers.length} participating player${activePlayers.length - accountedPlayers.length === 1 ? '' : 's'} not fully checked in and paid.`,
-      workspace: 'operations'
+      workspace: 'operations',
+      section: 'arrivals'
     });
   }
   if (bundle.scorecardEntries.length > verifiedScorecards.length) {
     alerts.push({
       id: 'scorecards',
       message: `${bundle.scorecardEntries.length - verifiedScorecards.length} scorecard${bundle.scorecardEntries.length - verifiedScorecards.length === 1 ? '' : 's'} not verified.`,
-      workspace: 'tournament'
+      workspace: 'tournament',
+      section: 'scorecard-queue'
     });
   }
   if (allScorecardsVerified && !greeniesDecided) {
     alerts.push({
       id: 'greenies',
       message: 'One or more Greenie holes still need a winner or No Winner decision.',
-      workspace: 'results'
+      workspace: 'results',
+      section: 'results'
     });
   }
   if (unsettledAwards.length > 0) {
     alerts.push({
       id: 'awards',
       message: `${unsettledAwards.length} award payment${unsettledAwards.length === 1 ? '' : 's'} remain unresolved.`,
-      workspace: 'finance'
+      workspace: 'finance',
+      section: 'settlement'
     });
   }
 
@@ -333,7 +354,8 @@ export function getMissionControl(
     alerts.push({
       id: 'quota-review',
       message: `${quotaUpdates.filter((update) => !update.reviewed).length} quota update${quotaUpdates.filter((update) => !update.reviewed).length === 1 ? '' : 's'} still need review.`,
-      workspace: 'quotas'
+      workspace: 'quotas',
+      section: 'quota-review'
     });
   }
 
@@ -345,7 +367,8 @@ export function getMissionControl(
     alerts.push({
       id: 'credits',
       message: `$${outstandingCredit} in league credit was applied to this round.`,
-      workspace: 'finance'
+      workspace: 'finance',
+      section: 'cash-count'
     });
   }
   if (settlementComplete && !treasuryBalanced) {
@@ -378,6 +401,7 @@ export function getMissionControl(
     nextActionLabel,
     nextActionDetail,
     nextWorkspace,
+    nextSection,
     stages,
     alerts,
     snapshot: {

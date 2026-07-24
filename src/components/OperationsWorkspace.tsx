@@ -14,6 +14,7 @@ import PlayerStatusManager from './PlayerStatusManager';
 import SaturdayMorningDashboard from './SaturdayMorningDashboard';
 import SaturdayPairingManager from './SaturdayPairingManager';
 import TournamentEventLog from './TournamentEventLog';
+import type { NavigationSection } from '../types/navigation';
 import WeeklyPlayerReview, {
   type WeeklyPlayerSnapshot
 } from './WeeklyPlayerReview';
@@ -92,6 +93,8 @@ type Props = {
   ) => void;
 
   onAddTournamentNote: (note: string) => void;
+  navigationSection?: NavigationSection;
+  onNavigationHandled: () => void;
 };
 
 export default function OperationsWorkspace({
@@ -118,16 +121,69 @@ export default function OperationsWorkspace({
   onStartRound,
   getAvailableCredit,
   onCompleteArrival,
-  onAddTournamentNote
+  onAddTournamentNote,
+  navigationSection,
+  onNavigationHandled
 }: Props) {
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showRemovePlayer, setShowRemovePlayer] = useState(false);
   const [showPairingManager, setShowPairingManager] =
     useState(false);
 
+  const pairingsRef = useRef<HTMLDivElement | null>(null);
+  const weeklyReviewRef = useRef<HTMLDivElement | null>(null);
   const checkInRef = useRef<HTMLDivElement | null>(null);
   const removePlayerRef = useRef<HTMLDivElement | null>(null);
   const pairingManagerRef = useRef<HTMLDivElement | null>(null);
+
+
+  useEffect(() => {
+    if (!navigationSection) return;
+
+    let target: HTMLElement | null = null;
+    let focusSelector: string | null = null;
+
+    if (navigationSection === 'pairings-import') {
+      target = pairingsRef.current;
+      focusSelector = 'textarea';
+    } else if (navigationSection === 'weekly-review') {
+      target = weeklyReviewRef.current;
+      focusSelector = 'input[type="number"]';
+    } else if (navigationSection === 'card-order') {
+      setShowPairingManager(true);
+      target = pairingManagerRef.current;
+    } else if (navigationSection === 'arrivals') {
+      setShowCheckIn(true);
+      target = checkInRef.current;
+    }
+
+    window.setTimeout(() => {
+      const resolvedTarget =
+        navigationSection === 'card-order'
+          ? pairingManagerRef.current
+          : navigationSection === 'arrivals'
+            ? checkInRef.current
+            : target;
+
+      resolvedTarget?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+
+      resolvedTarget?.classList.add('navigation-highlight');
+      window.setTimeout(() => {
+        resolvedTarget?.classList.remove('navigation-highlight');
+      }, 1400);
+
+      if (focusSelector) {
+        (resolvedTarget?.querySelector(focusSelector) as HTMLElement | null)?.focus({
+          preventScroll: true
+        });
+      }
+
+      onNavigationHandled();
+    }, 100);
+  }, [navigationSection, onNavigationHandled]);
 
   const payout = calculatePayoutSummary(paidCount);
 
@@ -173,6 +229,33 @@ export default function OperationsWorkspace({
   function openPairingManager() {
     closeAllPanels();
     setShowPairingManager(true);
+  }
+
+
+  function handleApplyPairings(importedGroups: Group[]) {
+    onApplyPairings(importedGroups);
+
+    window.setTimeout(() => {
+      const reorganize = window.confirm(
+        'Pairings applied. Do you want to reorganize the player order on the scorecards now?'
+      );
+
+      if (reorganize) {
+        setShowPairingManager(true);
+        window.setTimeout(() => {
+          pairingManagerRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }, 100);
+        return;
+      }
+
+      weeklyReviewRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 150);
   }
 
 
@@ -233,16 +316,20 @@ export default function OperationsWorkspace({
           handicap and Points Needed list before Saturday.
         </p>
 
-        <PairingsImport
-          players={players}
-          onApplyPairings={onApplyPairings}
-        />
+        <div ref={pairingsRef} id="pairings-import">
+          <PairingsImport
+            players={players}
+            onApplyPairings={handleApplyPairings}
+          />
+        </div>
 
+        <div ref={weeklyReviewRef} id="weekly-review">
         <WeeklyPlayerReview
           players={players}
           weeklyPlayers={weeklyPlayers}
           onUpdateWeeklyPlayer={onUpdateWeeklyPlayer}
         />
+        </div>
       </section>
 
       {groups.length > 0 && (
@@ -273,7 +360,7 @@ export default function OperationsWorkspace({
           </div>
 
           {showPairingManager && (
-            <div ref={pairingManagerRef}>
+            <div ref={pairingManagerRef} id="card-order">
               <SaturdayPairingManager
                 groups={groups}
                 players={players}
@@ -299,7 +386,7 @@ export default function OperationsWorkspace({
           />
 
           {showCheckIn && (
-            <div ref={checkInRef}>
+            <div ref={checkInRef} id="arrivals">
               <OperationsCheckIn
                 players={players}
                 expectedPlayerIds={expectedPlayerIds}

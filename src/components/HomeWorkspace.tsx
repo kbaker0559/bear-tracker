@@ -4,12 +4,13 @@ import type {
   MissionWorkspace
 } from '../engine/missionControlEngine';
 import { formatQuotaResult } from '../engine/missionControlEngine';
+import type { NavigationSection } from '../types/navigation';
 
 type Props = {
   roundDate: string;
   mission: MissionControl;
   recentEvents: TournamentEvent[];
-  onNavigate: (workspace: MissionWorkspace) => void;
+  onNavigate: (workspace: MissionWorkspace, section?: NavigationSection) => void;
 };
 
 const stageIcon = {
@@ -67,8 +68,8 @@ export default function HomeWorkspace({
         <p className="eyebrow">Next Action</p>
         <h2>{mission.nextActionLabel}</h2>
         <p>{mission.nextActionDetail}</p>
-        <button type="button" onClick={() => onNavigate(mission.nextWorkspace)}>
-          Continue →
+        <button type="button" onClick={() => onNavigate(mission.nextWorkspace, mission.nextSection)}>
+          {mission.nextActionLabel} →
         </button>
       </section>
 
@@ -108,7 +109,7 @@ export default function HomeWorkspace({
               key={alert.id}
               type="button"
               className="mission-alert"
-              onClick={() => onNavigate(alert.workspace)}
+              onClick={() => onNavigate(alert.workspace, alert.section)}
             >
               <span>⚠</span>
               <span>{alert.message}</span>

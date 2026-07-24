@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AppShell from './components/AppShell';
 import HomeWorkspace from './components/HomeWorkspace';
 import OperationsWorkspace from './components/OperationsWorkspace';
@@ -68,6 +68,7 @@ import type { TreasuryReconciliation } from './types/treasuryReconciliation';
 import { getFinalizeReadiness } from './engine/finalizeReadinessEngine';
 import { getMissionControl } from './engine/missionControlEngine';
 import { buildQuotaUpdates } from './engine/quotaUpdateEngine';
+import type { NavigationSection } from './types/navigation';
 
 type Workspace =
   | 'home'
@@ -111,6 +112,21 @@ function createTournamentEvent(
 export default function App() {
   const [currentWorkspace, setCurrentWorkspace] =
     useState<Workspace>('home');
+  const [navigationSection, setNavigationSection] =
+    useState<NavigationSection | undefined>(undefined);
+
+
+  const navigateToWorkspace = useCallback((
+    workspace: Workspace,
+    section?: NavigationSection
+  ) => {
+    setNavigationSection(section);
+    setCurrentWorkspace(workspace);
+  }, []);
+
+  const clearNavigationSection = useCallback(() => {
+    setNavigationSection(undefined);
+  }, []);
 
   const [savedCurrentRound] = useState(() =>
     loadCurrentRound()
@@ -2018,8 +2034,8 @@ function completeRound() {
         activeWorkspace={
           currentWorkspace
         }
-        onChangeWorkspace={
-          setCurrentWorkspace
+        onChangeWorkspace={(workspace) =>
+          navigateToWorkspace(workspace)
         }
       />
 
@@ -2028,7 +2044,9 @@ function completeRound() {
           roundDate={roundBundle.round.date}
           mission={missionControl}
           recentEvents={recentTournamentEvents}
-          onNavigate={setCurrentWorkspace}
+          onNavigate={(workspace, section) =>
+            navigateToWorkspace(workspace, section)
+          }
         />
       )}
 
@@ -2093,6 +2111,8 @@ function completeRound() {
           onAddTournamentNote={
             addTournamentNote
           }
+          navigationSection={navigationSection}
+          onNavigationHandled={clearNavigationSection}
         />
       )}
 
@@ -2123,6 +2143,8 @@ function completeRound() {
             verifyScorecard
           }
           onCompleteRound={completeRound}
+          navigationSection={navigationSection}
+          onNavigationHandled={clearNavigationSection}
         />
       )}
 

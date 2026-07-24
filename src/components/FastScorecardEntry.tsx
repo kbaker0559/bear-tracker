@@ -88,6 +88,7 @@ export default function FastScorecardEntry({
 
   const confirmationPanelRef =
     useRef<HTMLElement | null>(null);
+  const nextActionRef = useRef<HTMLButtonElement | null>(null);
 
   const previousCompletionRef = useRef<
     Record<string, boolean>
@@ -195,6 +196,19 @@ export default function FastScorecardEntry({
     activePlayerId
   ] = playerComplete;
 }, [activePlayerId, playerComplete]);
+
+
+  useEffect(() => {
+    if (!playerComplete) return;
+
+    window.setTimeout(() => {
+      confirmationPanelRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+      nextActionRef.current?.focus({ preventScroll: true });
+    }, 120);
+  }, [playerComplete, activePlayerId]);
 
   function getHoleScore(
     holeNumber: number
@@ -897,6 +911,7 @@ export default function FastScorecardEntry({
 
             {!isLastPlayer && (
               <button
+                ref={nextActionRef}
                 type="button"
                 onClick={goToNextPlayer}
               >
@@ -906,6 +921,7 @@ export default function FastScorecardEntry({
 
             {isLastPlayer && (
               <button
+                ref={nextActionRef}
                 type="button"
                 disabled={!cardComplete}
                 onClick={onReview}

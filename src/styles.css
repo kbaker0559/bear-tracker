@@ -66,3 +66,53 @@ code { background: #f7f2e8; padding: 0.1rem 0.3rem; border-radius: 0.3rem; }
   .mission-alert { grid-template-columns: auto minmax(0, 1fr); }
   .mission-alert span:last-child { grid-column: 2; }
 }
+
+.navigation-highlight {
+  outline: 3px solid rgba(185, 132, 24, 0.7);
+  outline-offset: 5px;
+  border-radius: 0.75rem;
+  animation: navigationHighlightFade 1.4s ease-out;
+}
+
+@keyframes navigationHighlightFade {
+  from { background: rgba(244, 210, 122, 0.35); }
+  to { background: transparent; }
+}
+
+.weekly-review-header,
+.weekly-review-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.weekly-review-filters {
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.weekly-review-checkbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding-bottom: 0.75rem;
+}
+
+.weekly-review-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.weekly-review-columns.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 1050px) {
+  .weekly-review-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
