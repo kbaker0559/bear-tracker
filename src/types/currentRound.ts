@@ -20,4 +20,7 @@ export type CurrentRound = {
   checkedInCount: number;
   paidCount: number;
   scorecardCount: number;
+
+  finalizedAt?: string;
+  finalizedVersion?: string;
 };

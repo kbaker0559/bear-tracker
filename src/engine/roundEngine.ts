@@ -1,5 +1,12 @@
 import type { ScoreCorrection } from '../types/scoreCorrection';
 import type { TournamentEvent } from '../types/tournamentEvent';
+import type { ResultsSettings } from '../types/resultsSettings';
+import type { AwardEntry } from '../types/awardEntry';
+import type { TreasuryTransaction } from '../types/treasuryTransaction';
+import type { TreasuryReconciliation } from '../types/treasuryReconciliation';
+import type { QuotaUpdate } from '../types/quotaUpdate';
+import { createEmptyTreasuryReconciliation } from '../types/treasuryReconciliation';
+import { createDefaultResultsSettings } from '../types/resultsSettings';
 import type { Player } from '../types';
 import type { CurrentRound } from '../types/currentRound';
 import type { RoundPlayer } from '../types/roundPlayer';
@@ -17,6 +24,11 @@ export type RoundBundle = {
   scorecardEntries: ScorecardEntry[];
   scoreCorrections: ScoreCorrection[];
   tournamentEvents: TournamentEvent[];
+  resultsSettings: ResultsSettings;
+  awardEntries: AwardEntry[];
+  treasuryTransactions: TreasuryTransaction[];
+  treasuryReconciliation: TreasuryReconciliation;
+  quotaUpdates: QuotaUpdate[];
 };
 
 export function createEmptyRound(
@@ -39,7 +51,12 @@ export function createEmptyRound(
     scorecardImports: [],
     scorecardEntries: [],
     scoreCorrections: [],
-    tournamentEvents: []
+    tournamentEvents: [],
+    resultsSettings: createDefaultResultsSettings(),
+    awardEntries: [],
+    treasuryTransactions: [],
+    treasuryReconciliation: createEmptyTreasuryReconciliation(),
+    quotaUpdates: []
   };
 }
 
@@ -121,7 +138,12 @@ export function createRoundFromScorecards(
     scorecardImports,
     scorecardEntries,
     scoreCorrections: [],
-    tournamentEvents: []
+    tournamentEvents: [],
+    resultsSettings: createDefaultResultsSettings(),
+    awardEntries: [],
+    treasuryTransactions: [],
+    treasuryReconciliation: createEmptyTreasuryReconciliation(),
+    quotaUpdates: []
   };
 }
 

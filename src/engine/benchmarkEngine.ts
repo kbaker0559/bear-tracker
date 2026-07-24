@@ -1,5 +1,7 @@
 import type { Benchmark } from '../types/benchmark';
 import type { RoundBundle } from './roundEngine';
+import { createDefaultResultsSettings } from '../types/resultsSettings';
+import { createEmptyTreasuryReconciliation } from '../types/treasuryReconciliation';
 
 export function createBenchmark(
   name: string,
@@ -55,6 +57,31 @@ export function loadBenchmark(
       loadedRound.scoreCorrections ?? [],
 
     tournamentEvents:
-      loadedRound.tournamentEvents ?? []
+      loadedRound.tournamentEvents ?? [],
+
+    resultsSettings: {
+      ...createDefaultResultsSettings(),
+      ...(loadedRound.resultsSettings ?? {}),
+      placeTieGroupOverrides:
+        loadedRound.resultsSettings?.placeTieGroupOverrides ?? {},
+      greenieSelections:
+        loadedRound.resultsSettings?.greenieSelections ?? {},
+      greenieAwardOverrides:
+        loadedRound.resultsSettings?.greenieAwardOverrides ?? {}
+    },
+
+    awardEntries:
+      loadedRound.awardEntries ?? [],
+
+    treasuryTransactions:
+      loadedRound.treasuryTransactions ?? [],
+
+    treasuryReconciliation: {
+      ...createEmptyTreasuryReconciliation(),
+      ...(loadedRound.treasuryReconciliation ?? {})
+    },
+
+    quotaUpdates:
+      loadedRound.quotaUpdates ?? []
   };
 }

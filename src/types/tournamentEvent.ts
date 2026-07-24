@@ -8,7 +8,9 @@ export type TournamentEventType =
   | 'players-swapped'
   | 'scorecard-reordered'
   | 'scorekeeper-changed'
-  | 'note';
+  | 'note'
+  | 'quota-updated'
+  | 'finalized';
 
 export type TournamentEvent = {
   id: string;

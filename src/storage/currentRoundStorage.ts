@@ -1,6 +1,8 @@
 import type { RoundBundle } from '../engine/roundEngine';
-import type { Group } from '../types';
+import type { Group, Player } from '../types';
 import type { PlayerAccount } from '../types/playerAccount';
+import { createDefaultResultsSettings } from '../types/resultsSettings';
+import { createEmptyTreasuryReconciliation } from '../types/treasuryReconciliation';
 
 const STORAGE_KEY = 'glos-current-round';
 
@@ -8,6 +10,7 @@ export type SavedCurrentRound = {
   roundBundle: RoundBundle;
   groups: Group[];
   playerAccounts: PlayerAccount[];
+  leaguePlayers?: Player[];
 };
 
 export function loadCurrentRound(): SavedCurrentRound | null {
@@ -49,13 +52,41 @@ export function loadCurrentRound(): SavedCurrentRound | null {
           parsed.roundBundle.scoreCorrections ?? [],
 
         tournamentEvents:
-          parsed.roundBundle.tournamentEvents ?? []
+          parsed.roundBundle.tournamentEvents ?? [],
+
+        resultsSettings: {
+          ...createDefaultResultsSettings(),
+          ...(parsed.roundBundle.resultsSettings ?? {}),
+          placeTieGroupOverrides:
+            parsed.roundBundle.resultsSettings?.placeTieGroupOverrides ?? {},
+          greenieSelections:
+            parsed.roundBundle.resultsSettings?.greenieSelections ?? {},
+          greenieAwardOverrides:
+            parsed.roundBundle.resultsSettings?.greenieAwardOverrides ?? {}
+        },
+
+        awardEntries:
+          parsed.roundBundle.awardEntries ?? [],
+
+        treasuryTransactions:
+          parsed.roundBundle.treasuryTransactions ?? [],
+
+        treasuryReconciliation: {
+          ...createEmptyTreasuryReconciliation(),
+          ...(parsed.roundBundle.treasuryReconciliation ?? {})
+        },
+
+        quotaUpdates:
+          parsed.roundBundle.quotaUpdates ?? []
       },
 
       groups: parsed.groups ?? [],
 
       playerAccounts:
-        parsed.playerAccounts ?? []
+        parsed.playerAccounts ?? [],
+
+      leaguePlayers:
+        parsed.leaguePlayers
     };
   } catch (error) {
     console.error(

@@ -1,99 +1,138 @@
-import type { RoundGuidance } from '../engine/roundDirector';
+import type { TournamentEvent } from '../types/tournamentEvent';
+import type {
+  MissionControl,
+  MissionWorkspace
+} from '../engine/missionControlEngine';
+import { formatQuotaResult } from '../engine/missionControlEngine';
 
 type Props = {
-  guidance: RoundGuidance;
-  expectedCount: number;
-  checkedInCount: number;
-  paidCount: number;
-  scorecardCount: number;
-  onContinue: () => void;
+  roundDate: string;
+  mission: MissionControl;
+  recentEvents: TournamentEvent[];
+  onNavigate: (workspace: MissionWorkspace) => void;
 };
 
+const stageIcon = {
+  complete: '✓',
+  'in-progress': '●',
+  'not-started': '○'
+} as const;
+
+function formatDate(date: string): string {
+  const parsed = new Date(`${date}T12:00:00`);
+  return parsed.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+function formatEventTime(value: string): string {
+  return new Date(value).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
 export default function HomeWorkspace({
-  guidance,
-  expectedCount,
-  checkedInCount,
-  paidCount,
-  scorecardCount,
-  onContinue
+  roundDate,
+  mission,
+  recentEvents,
+  onNavigate
 }: Props) {
   return (
-    <section className="card">
-      <p className="eyebrow">Current Phase</p>
-      <h2>{guidance.phaseLabel}</h2>
-
-      <p>{guidance.message}</p>
-
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            marginBottom: '0.5rem'
-          }}
-        >
-          <strong>Round Progress</strong>
-
-          <span>{guidance.progressPercent}%</span>
+    <div className="mission-control">
+      <section className="card mission-hero">
+        <div>
+          <p className="eyebrow">Black Bear Saturday</p>
+          <h2>{formatDate(roundDate)}</h2>
+          <p className={`mission-status ${mission.statusLabel === 'Finalized' ? 'complete' : ''}`}>
+            {mission.statusLabel === 'Finalized' ? '🔒' : '🟢'} {mission.statusLabel}
+          </p>
         </div>
 
-        <div
-          style={{
-            width: '100%',
-            height: '1.25rem',
-            background: '#e5e7eb',
-            borderRadius: '999px',
-            overflow: 'hidden'
-          }}
-        >
-          <div
-            style={{
-              width: `${guidance.progressPercent}%`,
-              height: '100%',
-              background: '#2f855a',
-              transition: 'width 200ms ease'
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="score-grid">
-        <div className="score-row">
-          <strong>Players Expected</strong>
-          <span>{expectedCount}</span>
+        <div className="mission-stage-summary">
+          <span>Current Stage</span>
+          <strong>{mission.stageLabel}</strong>
+          <span>{mission.progressPercent}% complete</span>
         </div>
 
-        <div className="score-row">
-          <strong>Arrived</strong>
-          <span>{checkedInCount}</span>
+        <div className="mission-progress" aria-label={`${mission.progressPercent}% complete`}>
+          <div style={{ width: `${mission.progressPercent}%` }} />
         </div>
+      </section>
 
-        <div className="score-row">
-          <strong>Still Waiting</strong>
-          <span>{guidance.waitingCount}</span>
-        </div>
-
-        <div className="score-row">
-          <strong>Entries Satisfied</strong>
-          <span>{paidCount}</span>
-        </div>
-
-        <div className="score-row">
-          <strong>Scorecards</strong>
-          <span>{scorecardCount}</span>
-        </div>
-      </div>
-
-      <div style={{ marginTop: '1.5rem' }}>
-        <p>
-          <strong>Next Recommended Action</strong>
-        </p>
-
-        <button type="button" onClick={onContinue}>
-          {guidance.actionLabel}
+      <section className="card mission-next-action">
+        <p className="eyebrow">Next Action</p>
+        <h2>{mission.nextActionLabel}</h2>
+        <p>{mission.nextActionDetail}</p>
+        <button type="button" onClick={() => onNavigate(mission.nextWorkspace)}>
+          Continue →
         </button>
-      </div>
-    </section>
+      </section>
+
+      <section className="card">
+        <h2>Tournament Progress</h2>
+        <div className="mission-stage-grid">
+          {mission.stages.map((stage) => (
+            <div key={stage.id} className={`mission-stage ${stage.status}`}>
+              <span className="mission-stage-icon">{stageIcon[stage.status]}</span>
+              <div>
+                <strong>{stage.label}</strong>
+                {stage.detail && <small>{stage.detail}</small>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="card">
+        <h2>Tournament Snapshot</h2>
+        <div className="mission-metrics">
+          <div><span>Players</span><strong>{mission.snapshot.checkedInPlayers} / {mission.snapshot.participatingPlayers}</strong></div>
+          <div><span>Scorecards</span><strong>{mission.snapshot.verifiedScorecards} / {mission.snapshot.totalScorecards}</strong></div>
+          <div><span>Leader</span><strong>{mission.snapshot.leaderName ?? '—'}{mission.snapshot.leaderResult !== undefined ? ` ${formatQuotaResult(mission.snapshot.leaderResult)}` : ''}</strong></div>
+          <div><span>Skins</span><strong>{mission.snapshot.skins}</strong></div>
+          <div><span>Greenies</span><strong>{mission.snapshot.greenies}</strong></div>
+          <div><span>Outstanding Awards</span><strong>{mission.snapshot.outstandingAwards}</strong></div>
+          <div><span>Treasury</span><strong>{mission.snapshot.treasuryLabel}</strong></div>
+        </div>
+      </section>
+
+      {mission.alerts.length > 0 && (
+        <section className="card mission-alerts">
+          <h2>Needs Attention</h2>
+          {mission.alerts.map((alert) => (
+            <button
+              key={alert.id}
+              type="button"
+              className="mission-alert"
+              onClick={() => onNavigate(alert.workspace)}
+            >
+              <span>⚠</span>
+              <span>{alert.message}</span>
+              <span>Go Fix →</span>
+            </button>
+          ))}
+        </section>
+      )}
+
+      <section className="card">
+        <h2>Recent Tournament Activity</h2>
+        {recentEvents.length === 0 ? (
+          <p>No tournament activity has been recorded yet.</p>
+        ) : (
+          <div className="mission-timeline">
+            {recentEvents.map((event) => (
+              <div key={event.id}>
+                <time>{formatEventTime(event.occurredAt)}</time>
+                <span>{event.summary}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

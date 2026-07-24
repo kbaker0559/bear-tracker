@@ -1,4 +1,4 @@
-type Workspace = 'home' | 'operations' | 'tournament' | 'finance' | 'league' | 'admin';
+type Workspace = 'home' | 'operations' | 'tournament' | 'results' | 'finance' | 'quotas' | 'finalize' | 'league' | 'admin';
 
 type Props = {
   activeWorkspace: Workspace;
@@ -9,7 +9,10 @@ const workspaces: { id: Workspace; label: string }[] = [
   { id: 'home', label: 'Home' },
   { id: 'operations', label: 'Operations' },
   { id: 'tournament', label: 'Tournament' },
-  { id: 'finance', label: 'Finance' },
+  { id: 'results', label: 'Results' },
+  { id: 'finance', label: 'Treasurer' },
+  { id: 'quotas', label: 'Quota Updates' },
+  { id: 'finalize', label: 'Finalize' },
   { id: 'league', label: 'League Manager' },
   { id: 'admin', label: 'Administration' }
 ];

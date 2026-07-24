@@ -26,3 +26,43 @@ label { display: grid; gap: 0.35rem; margin: 0.75rem 0; font-weight: 700; }
 input { border: 1px solid #d8d0c1; border-radius: 0.7rem; padding: 0.8rem; font-size: 1rem; }
 .status-box { margin-top: 1rem; padding: 1rem; border-radius: 0.9rem; background: #f7f2e8; border: 1px solid #e5d9c3; }
 code { background: #f7f2e8; padding: 0.1rem 0.3rem; border-radius: 0.3rem; }
+
+/* Mission Control */
+.mission-control { display: grid; gap: 1rem; }
+.mission-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.25rem; align-items: center; }
+.mission-status { display: inline-flex; align-items: center; gap: 0.35rem; margin: 0.25rem 0 0; font-weight: 800; color: #176c36; }
+.mission-status.complete { color: #1f3d2b; }
+.mission-stage-summary { display: grid; gap: 0.2rem; min-width: 220px; text-align: right; }
+.mission-stage-summary span { color: #665f52; }
+.mission-stage-summary strong { font-size: 1.35rem; }
+.mission-progress { grid-column: 1 / -1; height: 0.8rem; border-radius: 999px; overflow: hidden; background: #e5e0d5; }
+.mission-progress > div { height: 100%; background: #2f855a; transition: width 200ms ease; }
+.mission-next-action { border: 2px solid #2f855a; background: #f4fbf6; }
+.mission-next-action h2 { margin-bottom: 0.35rem; }
+.mission-next-action button { margin-top: 0.75rem; }
+.mission-stage-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+.mission-stage { display: flex; align-items: flex-start; gap: 0.7rem; border: 1px solid #e5e0d5; border-radius: 14px; padding: 0.9rem; }
+.mission-stage.complete { background: #f0f8f2; border-color: #b9d8c0; }
+.mission-stage.in-progress { background: #fff8e6; border-color: #e6cc8b; }
+.mission-stage.not-started { color: #756f64; }
+.mission-stage-icon { font-size: 1.2rem; font-weight: 900; }
+.mission-stage.complete .mission-stage-icon { color: #176c36; }
+.mission-stage.in-progress .mission-stage-icon { color: #a16207; }
+.mission-stage small { display: block; margin-top: 0.2rem; color: #665f52; }
+.mission-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+.mission-metrics > div { display: grid; gap: 0.25rem; border: 1px solid #e5e0d5; border-radius: 14px; padding: 0.9rem; }
+.mission-metrics span { color: #665f52; font-size: 0.9rem; }
+.mission-metrics strong { font-size: 1.1rem; }
+.mission-alerts { border-left: 5px solid #b7791f; }
+.mission-alert { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.75rem; align-items: center; text-align: left; margin-top: 0.6rem; border: 1px solid #ead4a3; border-radius: 12px; padding: 0.85rem; background: #fffaf0; cursor: pointer; }
+.mission-timeline { display: grid; gap: 0.65rem; }
+.mission-timeline > div { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 0.75rem; padding-bottom: 0.65rem; border-bottom: 1px solid #eee8dc; }
+.mission-timeline time { color: #665f52; font-weight: 700; }
+@media (max-width: 760px) {
+  .mission-hero { grid-template-columns: 1fr; }
+  .mission-stage-summary { text-align: left; min-width: 0; }
+  .mission-stage-grid { grid-template-columns: 1fr; }
+  .mission-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mission-alert { grid-template-columns: auto minmax(0, 1fr); }
+  .mission-alert span:last-child { grid-column: 2; }
+}

@@ -3,6 +3,10 @@ import AppShell from './components/AppShell';
 import HomeWorkspace from './components/HomeWorkspace';
 import OperationsWorkspace from './components/OperationsWorkspace';
 import TournamentWorkspace from './components/TournamentWorkspace';
+import ResultsWorkspace from './components/ResultsWorkspace';
+import TreasurerWorkspace from './components/TreasurerWorkspace';
+import FinalizeWorkspace from './components/FinalizeWorkspace';
+import QuotaWorkspace from './components/QuotaWorkspace';
 import DeveloperTools from './components/DeveloperTools';
 import { bearTrackerScoringSettings } from './config/bearTrackerScoring';
 import { initialPlayers } from './data/players';
@@ -54,16 +58,25 @@ import type { RoundPlayerStatus } from './types/roundPlayer';
 import type { BenchmarkSummary } from './types/benchmark';
 import type { PaperPlayerTotals } from './types/paperScorecardTotals';
 import type { TournamentEvent, TournamentEventType } from './types/tournamentEvent';
+import type { ResultsSettings } from './types/resultsSettings';
+import { buildAwardEntries } from './engine/awardEntryEngine';
 import {
   bearTrackerTournamentVisibility
 } from './types/tournamentVisibility';
 import './styles.css';
+import type { TreasuryReconciliation } from './types/treasuryReconciliation';
+import { getFinalizeReadiness } from './engine/finalizeReadinessEngine';
+import { getMissionControl } from './engine/missionControlEngine';
+import { buildQuotaUpdates } from './engine/quotaUpdateEngine';
 
 type Workspace =
   | 'home'
   | 'operations'
   | 'tournament'
+  | 'results'
   | 'finance'
+  | 'quotas'
+  | 'finalize'
   | 'league'
   | 'admin';
 
@@ -99,8 +112,14 @@ export default function App() {
   const [currentWorkspace, setCurrentWorkspace] =
     useState<Workspace>('home');
 
-  const [players] =
-    useState<Player[]>(initialPlayers);
+  const [savedCurrentRound] = useState(() =>
+    loadCurrentRound()
+  );
+
+  const [players, setPlayers] =
+    useState<Player[]>(() =>
+      savedCurrentRound?.leaguePlayers ?? initialPlayers
+    );
 
   const [
   benchmarkSummaries,
@@ -108,10 +127,6 @@ export default function App() {
 ] = useState<BenchmarkSummary[]>(
   () => listBenchmarks()
 );  
-
-  const [savedCurrentRound] = useState(() =>
-    loadCurrentRound()
-  );
 
   const [roundBundle, setRoundBundle] =
     useState<RoundBundle>(() =>
@@ -137,15 +152,53 @@ export default function App() {
     saveCurrentRound({
       roundBundle,
       groups,
-      playerAccounts
+      playerAccounts,
+      leaguePlayers: players
     });
   }, [
     roundBundle,
     groups,
-    playerAccounts
+    playerAccounts,
+    players
   ]);
 
   useEffect(() => {
+    if (roundBundle.round.finalizedAt) {
+      return;
+    }
+
+    setRoundBundle((current) => {
+      const nextQuotaUpdates = buildQuotaUpdates(
+        current.round.id,
+        current.roundPlayers,
+        current.scorecardEntries,
+        current.quotaUpdates ?? []
+      );
+
+      if (
+        JSON.stringify(nextQuotaUpdates) ===
+        JSON.stringify(current.quotaUpdates ?? [])
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        quotaUpdates: nextQuotaUpdates
+      };
+    });
+  }, [
+    roundBundle.roundPlayers,
+    roundBundle.scorecardEntries,
+    roundBundle.resultsSettings,
+    roundBundle.round.finalizedAt
+  ]);
+
+  useEffect(() => {
+    if (roundBundle.round.finalizedAt) {
+      return;
+    }
+
     const recommendedState =
       recommendRoundState(roundBundle);
 
@@ -167,6 +220,14 @@ export default function App() {
 
   const roundGuidance =
     getRoundGuidance(roundBundle);
+
+  const missionControl = getMissionControl(roundBundle, players);
+  const recentTournamentEvents = [...(roundBundle.tournamentEvents ?? [])]
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+    .slice(0, 6);
+
+  const finalizeReadiness = getFinalizeReadiness(roundBundle);
+  const roundIsFinalized = Boolean(roundBundle.round.finalizedAt);
 
   const expectedCount =
     roundBundle.round.expectedPlayerCount;
@@ -452,6 +513,43 @@ function removeSavedBenchmark(
       return;
     }
 
+    const creditToHoleInOne =
+      payment.creditApplied > 0 ? 1 : 0;
+    const creditToPrizePot =
+      payment.creditApplied - creditToHoleInOne;
+    const cashToHoleInOne =
+      payment.creditApplied > 0 ? 0 : 1;
+    const cashToPrizePot =
+      payment.cashPaid - cashToHoleInOne;
+
+    if (payment.creditApplied > 0) {
+      const playerName =
+        players.find((player) => player.id === playerId)?.name ??
+        playerId;
+
+      if (creditToPrizePot > 0) {
+        const prizeMoved = window.confirm(
+          `Move $${creditToPrizePot} from ${playerName}'s Owe envelope to the Tournament Prize Pot. Click OK only after the cash has been moved.`
+        );
+
+        if (!prizeMoved) {
+          return;
+        }
+      }
+
+      if (creditToHoleInOne > 0) {
+        const holeInOneMoved = window.confirm(
+          `Move $${creditToHoleInOne} from ${playerName}'s Owe envelope to the Hole-in-One Pot. Click OK only after the cash has been moved.`
+        );
+
+        if (!holeInOneMoved) {
+          return;
+        }
+      }
+    }
+
+    const createdAt = new Date().toISOString();
+
     setRoundBundle((current) => {
       const roundPlayers =
         current.roundPlayers.map(
@@ -476,9 +574,87 @@ function removeSavedBenchmark(
               : player
         );
 
+      const entryTransactions = [];
+
+      if (cashToPrizePot > 0) {
+        entryTransactions.push({
+          id: crypto.randomUUID(),
+          type: 'entry-cash-received' as const,
+          roundId: current.round.id,
+          playerId,
+          amount: cashToPrizePot,
+          source: 'outside' as const,
+          destination: 'current-round-pot' as const,
+          reason: 'Tournament prize portion of entry fee',
+          createdAt,
+          createdBy: 'Kevin Baker'
+        });
+      }
+
+      if (cashToHoleInOne > 0) {
+        entryTransactions.push({
+          id: crypto.randomUUID(),
+          type: 'entry-cash-received' as const,
+          roundId: current.round.id,
+          playerId,
+          amount: cashToHoleInOne,
+          source: 'outside' as const,
+          destination: 'hole-in-one-pot' as const,
+          reason: 'Hole-in-One portion of entry fee',
+          createdAt,
+          createdBy: 'Kevin Baker'
+        });
+      }
+
+      if (creditToPrizePot > 0) {
+        entryTransactions.push({
+          id: crypto.randomUUID(),
+          type: 'owe-envelope-to-round-pot' as const,
+          roundId: current.round.id,
+          playerId,
+          amount: creditToPrizePot,
+          source: 'owe-envelope' as const,
+          destination: 'current-round-pot' as const,
+          reason: 'League credit applied to tournament prize portion',
+          createdAt,
+          createdBy: 'Kevin Baker'
+        });
+      }
+
+      if (creditToHoleInOne > 0) {
+        entryTransactions.push({
+          id: crypto.randomUUID(),
+          type: 'owe-envelope-to-hole-in-one-pot' as const,
+          roundId: current.round.id,
+          playerId,
+          amount: creditToHoleInOne,
+          source: 'owe-envelope' as const,
+          destination: 'hole-in-one-pot' as const,
+          reason: 'League credit applied to Hole-in-One portion',
+          createdAt,
+          createdBy: 'Kevin Baker'
+        });
+      }
+
       return {
         ...current,
         roundPlayers,
+        treasuryTransactions: [
+          ...(current.treasuryTransactions ?? []),
+          ...entryTransactions
+        ],
+        tournamentEvents:
+          payment.creditApplied > 0
+            ? [
+                ...(current.tournamentEvents ?? []),
+                createTournamentEvent(
+                  current.round.id,
+                  'note',
+                  `$${payment.creditApplied} credit applied: $${creditToPrizePot} moved to Tournament Prize Pot and $${creditToHoleInOne} moved to Hole-in-One Pot`,
+                  { playerIds: [playerId] }
+                )
+              ]
+            : current.tournamentEvents ?? [],
         round: {
           ...current.round,
           state:
@@ -513,7 +689,7 @@ function removeSavedBenchmark(
                       type:
                         'credit-applied',
                       description:
-                        'League credit applied to round entry fee',
+                        `League credit applied to entry fee ($${creditToPrizePot} prize pot / $${creditToHoleInOne} Hole-in-One)`,
                       amount:
                         -payment.creditApplied,
                       roundId:
@@ -1389,6 +1565,204 @@ function removeSavedBenchmark(
     }
   }
 
+
+function updateResultsSettings(
+  updater: (current: ResultsSettings) => ResultsSettings
+) {
+  setRoundBundle((current) => ({
+    ...current,
+    resultsSettings: updater(current.resultsSettings)
+  }));
+}
+
+
+function syncAwardEntries() {
+  setRoundBundle((current) => ({
+    ...current,
+    awardEntries: buildAwardEntries(
+      current.round.id,
+      current.roundPlayers,
+      current.scorecardEntries,
+      current.resultsSettings,
+      current.awardEntries ?? []
+    )
+  }));
+}
+
+function updateTreasuryReconciliation(
+  value: TreasuryReconciliation
+) {
+  setRoundBundle((current) => ({
+    ...current,
+    treasuryReconciliation: value
+  }));
+}
+
+function settleAward(
+  awardEntryId: string,
+  destination: 'paid-cash' | 'moved-to-owe-envelope'
+) {
+  const award = buildAwardEntries(
+    roundBundle.round.id,
+    roundBundle.roundPlayers,
+    roundBundle.scorecardEntries,
+    roundBundle.resultsSettings,
+    roundBundle.awardEntries ?? []
+  ).find((entry) => entry.id === awardEntryId);
+
+  if (!award || award.settlementStatus !== 'unsettled') return;
+
+  const name = players.find((player) => player.id === award.playerId)?.name ?? award.playerId;
+  if (destination === 'moved-to-owe-envelope') {
+    const confirmed = window.confirm(
+      `Place $${award.officialAmount} in the Owe envelope for ${name}. Confirm after the cash is physically in the envelope.`
+    );
+    if (!confirmed) return;
+  } else {
+    const confirmed = window.confirm(`Confirm $${award.officialAmount} cash paid to ${name}.`);
+    if (!confirmed) return;
+  }
+
+  const transactionId = crypto.randomUUID();
+  const settledAt = new Date().toISOString();
+
+  setRoundBundle((current) => {
+    const currentAwards = buildAwardEntries(
+      current.round.id,
+      current.roundPlayers,
+      current.scorecardEntries,
+      current.resultsSettings,
+      current.awardEntries ?? []
+    );
+    return {
+      ...current,
+      awardEntries: currentAwards.map((entry) =>
+        entry.id === awardEntryId
+          ? { ...entry, settlementStatus: destination, settledAt, treasuryTransactionId: transactionId }
+          : entry
+      ),
+      treasuryReconciliation: {
+        ...current.treasuryReconciliation,
+        reconciledAt: undefined
+      },
+      treasuryTransactions: [
+        ...(current.treasuryTransactions ?? []),
+        {
+          id: transactionId,
+          type: destination === 'paid-cash' ? 'award-paid-cash' : 'award-moved-to-owe-envelope',
+          roundId: current.round.id,
+          playerId: award.playerId,
+          awardEntryId: award.id,
+          amount: award.officialAmount,
+          source: 'current-round-pot',
+          destination: destination === 'paid-cash' ? 'paid-out' : 'owe-envelope',
+          reason: award.label,
+          createdAt: settledAt,
+          createdBy: 'Kevin Baker'
+        }
+      ],
+      tournamentEvents: [
+        ...(current.tournamentEvents ?? []),
+        createTournamentEvent(
+          current.round.id,
+          'note',
+          destination === 'paid-cash'
+            ? `${name} paid $${award.officialAmount} for ${award.label}`
+            : `$${award.officialAmount} placed in ${name}'s Owe envelope for ${award.label}`,
+          { playerIds: [award.playerId] }
+        )
+      ]
+    };
+  });
+
+  if (destination === 'moved-to-owe-envelope') {
+    setPlayerAccounts((current) => current.map((account) =>
+      account.playerId === award.playerId
+        ? addLedgerEntry(account, {
+            playerId: award.playerId,
+            date: roundBundle.round.date,
+            type: 'winnings',
+            description: `${award.label} moved to Owe envelope`,
+            amount: award.officialAmount,
+            roundId: roundBundle.round.id
+          })
+        : account
+    ));
+
+    window.alert(
+      `$${award.officialAmount} moved to ${name}'s Owe envelope and added to league credit.`
+    );
+  } else {
+    window.alert(
+      `${name} was marked paid $${award.officialAmount} in cash.`
+    );
+  }
+}
+
+function settleCategoryCash(category: 'greenie' | 'places-ha' | 'skin') {
+  syncAwardEntries();
+  const awards = buildAwardEntries(
+    roundBundle.round.id,
+    roundBundle.roundPlayers,
+    roundBundle.scorecardEntries,
+    roundBundle.resultsSettings,
+    roundBundle.awardEntries ?? []
+  ).filter((entry) =>
+    entry.settlementStatus === 'unsettled' &&
+    (category === 'places-ha'
+      ? entry.category === 'place' || entry.category === 'horse-ass'
+      : entry.category === category)
+  );
+  if (awards.length === 0) return;
+  const total = awards.reduce((sum, entry) => sum + entry.officialAmount, 0);
+  if (!window.confirm(`Mark ${awards.length} remaining awards totaling $${total} as paid in cash?`)) return;
+  const settledAt = new Date().toISOString();
+  const ids = new Set(awards.map((entry) => entry.id));
+  setRoundBundle((current) => {
+    const currentAwards = buildAwardEntries(current.round.id, current.roundPlayers, current.scorecardEntries, current.resultsSettings, current.awardEntries ?? []);
+    const transactions = awards.map((award) => ({
+      id: crypto.randomUUID(),
+      type: 'award-paid-cash' as const,
+      roundId: current.round.id,
+      playerId: award.playerId,
+      awardEntryId: award.id,
+      amount: award.officialAmount,
+      source: 'current-round-pot' as const,
+      destination: 'paid-out' as const,
+      reason: award.label,
+      createdAt: settledAt,
+      createdBy: 'Kevin Baker'
+    }));
+    const txByAward = new Map(transactions.map((tx) => [tx.awardEntryId, tx.id]));
+    return {
+      ...current,
+      awardEntries: currentAwards.map((entry) => ids.has(entry.id)
+        ? { ...entry, settlementStatus: 'paid-cash', settledAt, treasuryTransactionId: txByAward.get(entry.id) }
+        : entry),
+      treasuryReconciliation: {
+        ...current.treasuryReconciliation,
+        reconciledAt: undefined
+      },
+      treasuryTransactions: [...(current.treasuryTransactions ?? []), ...transactions],
+      tournamentEvents: [
+        ...(current.tournamentEvents ?? []),
+        createTournamentEvent(current.round.id, 'note', `${category === 'places-ha' ? "Places / Horse's Ass" : category === 'greenie' ? 'Greenies' : 'Skins'} batch paid: $${total}`)
+      ]
+    };
+  });
+
+  const label =
+    category === 'places-ha'
+      ? "Places / Horse's Ass"
+      : category === 'greenie'
+        ? 'Greenies'
+        : 'Skins';
+
+  window.alert(
+    `${label} complete. ${awards.length} awards totaling $${total} were marked paid in cash.`
+  );
+}
+
 function completeRound() {
   setRoundBundle((current) => ({
     ...current,
@@ -1496,6 +1870,133 @@ function completeRound() {
     );
   }
 
+  function setQuotaReviewed(
+    playerId: string,
+    reviewed: boolean
+  ) {
+    setRoundBundle((current) => ({
+      ...current,
+      quotaUpdates: (current.quotaUpdates ?? []).map((update) =>
+        update.playerId === playerId
+          ? { ...update, reviewed }
+          : update
+      )
+    }));
+  }
+
+  function markAllQuotasReviewed() {
+    setRoundBundle((current) => ({
+      ...current,
+      quotaUpdates: (current.quotaUpdates ?? []).map((update) => ({
+        ...update,
+        reviewed: true
+      }))
+    }));
+  }
+
+  function overrideQuota(
+    playerId: string,
+    newQuota: number,
+    reason?: string
+  ) {
+    setRoundBundle((current) => ({
+      ...current,
+      quotaUpdates: (current.quotaUpdates ?? []).map((update) =>
+        update.playerId === playerId
+          ? {
+              ...update,
+              officialAdjustment: newQuota - update.oldQuota,
+              newQuota,
+              overrideReason:
+                newQuota === update.oldQuota + update.calculatedAdjustment
+                  ? undefined
+                  : reason,
+              reviewed: true
+            }
+          : update
+      )
+    }));
+  }
+
+  function finalizeTournament() {
+    if (roundIsFinalized) return;
+
+    const readiness = getFinalizeReadiness(roundBundle);
+    if (!readiness.ready) {
+      window.alert('The tournament cannot be finalized until every readiness item is complete.');
+      return;
+    }
+
+    if (!window.confirm(`Finalize the ${roundBundle.round.date} tournament? This will lock Saturday operations and scoring.`)) {
+      return;
+    }
+
+    const finalizedAt = new Date().toISOString();
+    const finalizedVersion = '1.0.0-rc1';
+    const officialQuotaUpdates = roundBundle.quotaUpdates ?? [];
+
+    setPlayers((currentPlayers) =>
+      currentPlayers.map((player) => {
+        const update = officialQuotaUpdates.find(
+          (candidate) => candidate.playerId === player.id
+        );
+        return update
+          ? { ...player, quota: update.newQuota }
+          : player;
+      })
+    );
+
+    setRoundBundle((current) => {
+      const quotaEvents = (current.quotaUpdates ?? [])
+        .filter(
+          (update) =>
+            update.officialAdjustment !== 0 ||
+            Boolean(update.overrideReason)
+        )
+        .map((update) => {
+          const playerName =
+            players.find((player) => player.id === update.playerId)?.name ??
+            update.playerId;
+          return createTournamentEvent(
+            current.round.id,
+            'quota-updated',
+            `${playerName} quota updated from ${update.oldQuota} to ${update.newQuota}`,
+            {
+              playerIds: [update.playerId],
+              note: update.overrideReason
+                ? `Manual override: ${update.overrideReason}`
+                : `Official change ${update.officialAdjustment > 0 ? '+' : ''}${update.officialAdjustment}`
+            }
+          );
+        });
+
+      return {
+        ...current,
+        round: {
+          ...current.round,
+          state: 'completed',
+          finalizedAt,
+          finalizedVersion
+        },
+        quotaUpdates: (current.quotaUpdates ?? []).map((update) => ({
+          ...update,
+          appliedAt: finalizedAt
+        })),
+        tournamentEvents: [
+          ...(current.tournamentEvents ?? []),
+          ...quotaEvents,
+          createTournamentEvent(
+            current.round.id,
+            'finalized',
+            `Tournament finalized with Bear Tracker ${finalizedVersion}`
+          )
+        ]
+      };
+    });
+
+    setCurrentWorkspace('finalize');
+  }
+
   return (
     <main className="app">
       <header className="hero">
@@ -1524,25 +2025,19 @@ function completeRound() {
 
       {currentWorkspace === 'home' && (
         <HomeWorkspace
-          guidance={roundGuidance}
-          expectedCount={
-            expectedCount
-          }
-          checkedInCount={
-            checkedInCount
-          }
-          paidCount={paidCount}
-          scorecardCount={
-            scorecardCount
-          }
-          onContinue={
-            continueCurrentRound
-          }
+          roundDate={roundBundle.round.date}
+          mission={missionControl}
+          recentEvents={recentTournamentEvents}
+          onNavigate={setCurrentWorkspace}
         />
       )}
 
+      {currentWorkspace === 'operations' && roundIsFinalized && (
+        <section className="card"><h2>🔒 Tournament Finalized</h2><p>Saturday operations are locked. Use Results, Treasurer history, or Finalize to review the completed round.</p></section>
+      )}
+
       {currentWorkspace ===
-        'operations' && (
+        'operations' && !roundIsFinalized && (
         <OperationsWorkspace
           players={players}
           groups={groups}
@@ -1601,8 +2096,12 @@ function completeRound() {
         />
       )}
 
+      {currentWorkspace === 'tournament' && roundIsFinalized && (
+        <section className="card"><h2>🔒 Tournament Finalized</h2><p>Score entry is locked for this completed round.</p></section>
+      )}
+
       {currentWorkspace ===
-        'tournament' && (
+        'tournament' && !roundIsFinalized && (
         <TournamentWorkspace
           scorecards={
             roundBundle.scorecards
@@ -1628,19 +2127,58 @@ function completeRound() {
       )}
 
       {currentWorkspace ===
-        'finance' && (
-        <section className="card">
-          <h2>
-            Finance Workspace
-          </h2>
+        'results' && (
+        <ResultsWorkspace
+          roundDate={roundBundle.round.date}
+          players={players}
+          roundPlayers={roundBundle.roundPlayers}
+          scorecardEntries={roundBundle.scorecardEntries}
+          resultsSettings={roundBundle.resultsSettings}
+          onUpdateResultsSettings={roundIsFinalized ? () => window.alert('This tournament is finalized and results are locked.') : updateResultsSettings}
+        />
+      )}
 
-          <p>
-            Payouts, owed players, the
-            hole-in-one fund, the extra
-            fund, and financial checks
-            will live here.
-          </p>
-        </section>
+      {currentWorkspace ===
+        'finance' && (
+        <TreasurerWorkspace
+          players={players}
+          roundPlayers={roundBundle.roundPlayers}
+          awardEntries={buildAwardEntries(
+            roundBundle.round.id,
+            roundBundle.roundPlayers,
+            roundBundle.scorecardEntries,
+            roundBundle.resultsSettings,
+            roundBundle.awardEntries ?? []
+          )}
+          treasuryTransactions={roundBundle.treasuryTransactions ?? []}
+          playerAccounts={playerAccounts}
+          treasuryReconciliation={roundBundle.treasuryReconciliation}
+          onUpdateTreasuryReconciliation={roundIsFinalized ? () => window.alert('This tournament is finalized and treasury is locked.') : updateTreasuryReconciliation}
+          onSettleAward={roundIsFinalized ? () => window.alert('This tournament is finalized and treasury is locked.') : settleAward}
+          onSettleCategoryCash={roundIsFinalized ? () => window.alert('This tournament is finalized and treasury is locked.') : settleCategoryCash}
+        />
+      )}
+
+
+      {currentWorkspace === 'quotas' && (
+        <QuotaWorkspace
+          players={players}
+          quotaUpdates={roundBundle.quotaUpdates ?? []}
+          finalized={roundIsFinalized}
+          onSetReviewed={setQuotaReviewed}
+          onMarkAllReviewed={markAllQuotasReviewed}
+          onOverride={overrideQuota}
+        />
+      )}
+
+
+      {currentWorkspace === 'finalize' && (
+        <FinalizeWorkspace
+          bundle={roundBundle}
+          readiness={finalizeReadiness}
+          onGoToWorkspace={setCurrentWorkspace}
+          onFinalize={finalizeTournament}
+        />
       )}
 
       {currentWorkspace ===
