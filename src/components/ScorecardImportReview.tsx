@@ -42,8 +42,7 @@ export default function ScorecardImportReview({
         <div>
           <h4>Review Card {scorecard.cardNumber}</h4>
           <p>
-            The image-reading service is not connected yet. This review grid is the working shell it will populate.
-            Enter or correct every score before importing.
+            AI results are loaded below. High-confidence scores are confirmed automatically; colored cells must be checked before importing.
           </p>
         </div>
         <button type="button" onClick={onClose}>Close Review</button>
@@ -86,7 +85,7 @@ export default function ScorecardImportReview({
                           min={1}
                           max={15}
                           inputMode="numeric"
-                          value={cell?.confirmedScore ?? ''}
+                          value={cell?.confirmedScore ?? cell?.extractedScore ?? ''}
                           onChange={(event) => {
                             const value = event.target.value === '' ? null : Number(event.target.value);
                             onChangeCell(

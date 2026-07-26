@@ -12,6 +12,7 @@ type Props = {
   onAttachPhoto: (file: File) => Promise<void>;
   onRemovePhoto: () => void;
   onBeginReview: () => void;
+  onReadScorecard: () => Promise<void>;
   onChangeImportCell: (playerId: string, holeNumber: number, score: number | null, confidence: ScoreConfidence) => void;
   onImportConfirmedScores: () => void;
 };
@@ -23,6 +24,7 @@ export default function ScorecardPhotoPanel({
   onAttachPhoto,
   onRemovePhoto,
   onBeginReview,
+  onReadScorecard,
   onChangeImportCell,
   onImportConfirmedScores
 }: Props) {
@@ -30,6 +32,7 @@ export default function ScorecardPhotoPanel({
   const [error, setError] = useState('');
   const [viewerOpen, setViewerOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [reading, setReading] = useState(false);
   const cardNumber = scorecard.cardNumber;
 
   async function handleFile(file: File | undefined) {
@@ -71,7 +74,25 @@ export default function ScorecardPhotoPanel({
           </button>
 
           <div className="scorecard-photo-actions">
-            <button type="button" onClick={() => { onBeginReview(); setReviewOpen(true); }}>Read Scorecard</button>
+            <button
+              type="button"
+              disabled={reading}
+              onClick={async () => {
+                setReading(true);
+                setError('');
+                try {
+                  await onReadScorecard();
+                  setReviewOpen(true);
+                } catch (caught) {
+                  setError(caught instanceof Error ? caught.message : 'The scorecard could not be read.');
+                } finally {
+                  setReading(false);
+                }
+              }}
+            >
+              {reading ? 'Reading Scorecard…' : 'Read Scorecard with AI'}
+            </button>
+            <button type="button" onClick={() => { onBeginReview(); setReviewOpen(true); }}>Open Manual Review</button>
             <label className="button-like">
               {busy ? 'Preparing Photo…' : 'Replace Photo'}
               <input

@@ -46,6 +46,7 @@ type Props = {
   onAttachScorecardPhoto: (scorecardId: string, file: File) => Promise<void>;
   onRemoveScorecardPhoto: (scorecardId: string) => void;
   onBeginScorecardReview: (scorecardId: string) => void;
+  onReadScorecard: (scorecardId: string) => Promise<void>;
   onChangeScorecardImportCell: (scorecardId: string, playerId: string, holeNumber: number, score: number | null, confidence: ScoreConfidence) => void;
   onImportConfirmedScores: (scorecardId: string) => void;
   navigationSection?: NavigationSection;
@@ -78,6 +79,7 @@ onCompleteRound,
 onAttachScorecardPhoto,
 onRemoveScorecardPhoto,
 onBeginScorecardReview,
+onReadScorecard,
 onChangeScorecardImportCell,
 onImportConfirmedScores,
 navigationSection,
@@ -659,6 +661,7 @@ onNavigationHandled
                     onRemoveScorecardPhoto(scorecard.id)
                   }
                   onBeginReview={() => onBeginScorecardReview(scorecard.id)}
+                  onReadScorecard={() => onReadScorecard(scorecard.id)}
                   onChangeImportCell={(playerId, holeNumber, score, confidence) =>
                     onChangeScorecardImportCell(scorecard.id, playerId, holeNumber, score, confidence)
                   }

@@ -8,6 +8,7 @@ import TreasurerWorkspace from './components/TreasurerWorkspace';
 import FinalizeWorkspace from './components/FinalizeWorkspace';
 import QuotaWorkspace from './components/QuotaWorkspace';
 import DeveloperTools from './components/DeveloperTools';
+import AIRecognitionSettings from './components/AIRecognitionSettings';
 import { bearTrackerScoringSettings } from './config/bearTrackerScoring';
 import { initialPlayers } from './data/players';
 import { blackBearCourse } from './data/blackBearCourse';
@@ -69,7 +70,8 @@ import { getFinalizeReadiness } from './engine/finalizeReadinessEngine';
 import { getMissionControl } from './engine/missionControlEngine';
 import { buildQuotaUpdates } from './engine/quotaUpdateEngine';
 import type { NavigationSection } from './types/navigation';
-import type { ScoreConfidence } from './types/scorecardImport';
+import type { ScoreConfidence, ScorecardImportIssue } from './types/scorecardImport';
+import { recognizeScorecard } from './services/aiScorecardService';
 
 type Workspace =
   | 'home'
@@ -2114,6 +2116,100 @@ function completeRound() {
   }
 
 
+  async function readScorecardWithAI(scorecardId: string): Promise<void> {
+    const scorecard = roundBundle.scorecards.find((card) => card.id === scorecardId);
+    const scorecardImport = roundBundle.scorecardImports.find((item) => item.scorecardId === scorecardId);
+    if (!scorecard || !scorecardImport?.imageUrl) {
+      throw new Error('Attach a paper scorecard photo before reading it.');
+    }
+
+    const assignedPlayers = scorecard.players.map((scorecardPlayer) => ({
+      playerId: scorecardPlayer.playerId,
+      name: players.find((player) => player.id === scorecardPlayer.playerId)?.name ?? scorecardPlayer.playerId
+    }));
+
+    setRoundBundle((current) => ({
+      ...current,
+      scorecardImports: current.scorecardImports.map((item) =>
+        item.scorecardId === scorecardId ? { ...item, status: 'processing', issues: [] } : item
+      )
+    }));
+
+    try {
+      const result = await recognizeScorecard(
+        scorecardImport.imageUrl,
+        assignedPlayers.map((player) => player.name)
+      );
+
+      setRoundBundle((current) => ({
+        ...current,
+        scorecardImports: current.scorecardImports.map((item) => {
+          if (item.scorecardId !== scorecardId) return item;
+
+          const issues: ScorecardImportIssue[] = result.warnings.map((warning) => ({
+            id: crypto.randomUUID(),
+            type: 'other' as const,
+            message: warning,
+            resolved: false
+          }));
+
+          const cells = item.cells.map((cell) => {
+            const playerIndex = assignedPlayers.findIndex((player) => player.playerId === cell.playerId);
+            const recognizedPlayer = result.players[playerIndex];
+            const recognizedScore = recognizedPlayer?.scores.find((score) => score.holeNumber === cell.holeNumber);
+            const score = recognizedScore?.score ?? null;
+            const numericConfidence = recognizedScore?.confidence ?? 0;
+            const confidence: ScoreConfidence = score === null
+              ? 'missing'
+              : numericConfidence >= 0.9
+                ? 'high'
+                : numericConfidence >= 0.7
+                  ? 'medium'
+                  : 'low';
+            const requiresReview = score === null || confidence !== 'high';
+
+            if (requiresReview) {
+              issues.push({
+                id: crypto.randomUUID(),
+                type: score === null ? 'unreadable-score' as const : 'other' as const,
+                message: recognizedScore?.reviewReason || `${assignedPlayers[playerIndex]?.name ?? cell.playerId}, hole ${cell.holeNumber} needs review.`,
+                playerId: cell.playerId,
+                holeNumber: cell.holeNumber,
+                resolved: false
+              });
+            }
+
+            return {
+              ...cell,
+              extractedScore: score,
+              confirmedScore: confidence === 'high' ? score : null,
+              confidence,
+              requiresReview,
+              reviewReason: requiresReview ? (recognizedScore?.reviewReason || 'AI confidence is below the automatic-confirmation threshold.') : undefined
+            };
+          });
+
+          return {
+            ...item,
+            status: 'needs-review' as const,
+            extractedAt: new Date().toISOString(),
+            cells,
+            issues,
+            notes: `Read by ${result.provider} using ${result.model}.`
+          };
+        })
+      }));
+    } catch (error) {
+      setRoundBundle((current) => ({
+        ...current,
+        scorecardImports: current.scorecardImports.map((item) =>
+          item.scorecardId === scorecardId ? { ...item, status: 'import-failed' } : item
+        )
+      }));
+      throw error;
+    }
+  }
+
   function beginScorecardReview(scorecardId: string) {
     setRoundBundle((current) => ({
       ...current,
@@ -2377,6 +2473,7 @@ function completeRound() {
           onAttachScorecardPhoto={attachScorecardPhoto}
           onRemoveScorecardPhoto={removeScorecardPhoto}
           onBeginScorecardReview={beginScorecardReview}
+          onReadScorecard={readScorecardWithAI}
           onChangeScorecardImportCell={changeScorecardImportCell}
           onImportConfirmedScores={importConfirmedScorecardScores}
           navigationSection={navigationSection}
@@ -2479,6 +2576,7 @@ function completeRound() {
           >
             Start New Round
           </button>
+          <AIRecognitionSettings />
          <DeveloperTools
   benchmarks={benchmarkSummaries}
   onCreateBenchmark={
