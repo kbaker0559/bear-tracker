@@ -69,6 +69,7 @@ import { getFinalizeReadiness } from './engine/finalizeReadinessEngine';
 import { getMissionControl } from './engine/missionControlEngine';
 import { buildQuotaUpdates } from './engine/quotaUpdateEngine';
 import type { NavigationSection } from './types/navigation';
+import type { ScoreConfidence } from './types/scorecardImport';
 
 type Workspace =
   | 'home'
@@ -90,40 +91,6 @@ type ArrivalPayment = {
 
 const ENTRY_FEE = 25;
 
-async function compressScorecardPhoto(file: File): Promise<string> {
-  const source = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    const url = URL.createObjectURL(file);
-
-    image.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve(image);
-    };
-
-    image.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('The selected image could not be read.'));
-    };
-
-    image.src = url;
-  });
-
-  const maxDimension = 2000;
-  const scale = Math.min(
-    1,
-    maxDimension / Math.max(source.naturalWidth, source.naturalHeight)
-  );
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(source.naturalWidth * scale));
-  canvas.height = Math.max(1, Math.round(source.naturalHeight * scale));
-
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('The photo could not be prepared.');
-
-  context.drawImage(source, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/jpeg', 0.86);
-}
-
 function createTournamentEvent(
   roundId: string,
   type: TournamentEventType,
@@ -141,6 +108,48 @@ function createTournamentEvent(
     summary,
     ...details
   };
+}
+
+const SCORECARD_PHOTO_MAX_DIMENSION = 2200;
+const SCORECARD_PHOTO_QUALITY = 0.86;
+
+async function prepareScorecardPhoto(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please choose an image file.');
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const candidate = new Image();
+      candidate.onload = () => resolve(candidate);
+      candidate.onerror = () =>
+        reject(new Error('The selected image could not be opened.'));
+      candidate.src = objectUrl;
+    });
+
+    const scale = Math.min(
+      1,
+      SCORECARD_PHOTO_MAX_DIMENSION /
+        Math.max(image.naturalWidth, image.naturalHeight)
+    );
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('The browser could not prepare the scorecard photo.');
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', SCORECARD_PHOTO_QUALITY);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 export default function App() {
@@ -1512,45 +1521,6 @@ function removeSavedBenchmark(
     }
   }
 
-  async function attachScorecardPhoto(scorecardId: string, file: File) {
-    if (!file.type.startsWith('image/')) {
-      throw new Error('Please select a scorecard image.');
-    }
-
-    const imageUrl = await compressScorecardPhoto(file);
-    setRoundBundle((current) => ({
-      ...current,
-      scorecardImports: current.scorecardImports.map((item) =>
-        item.scorecardId === scorecardId
-          ? {
-              ...item,
-              imageName: file.name,
-              imageUrl,
-              status: 'needs-review',
-              extractedAt: new Date().toISOString()
-            }
-          : item
-      )
-    }));
-  }
-
-  function removeScorecardPhoto(scorecardId: string) {
-    setRoundBundle((current) => ({
-      ...current,
-      scorecardImports: current.scorecardImports.map((item) =>
-        item.scorecardId === scorecardId
-          ? {
-              ...item,
-              imageName: undefined,
-              imageUrl: undefined,
-              status: 'waiting',
-              extractedAt: undefined
-            }
-          : item
-      )
-    }));
-  }
-
   function updateScorecardScore(
     scorecardId: string,
     playerId: string,
@@ -2123,6 +2093,148 @@ function completeRound() {
     setCurrentWorkspace('finalize');
   }
 
+  async function attachScorecardPhoto(
+    scorecardId: string,
+    file: File
+  ): Promise<void> {
+    const imageUrl = await prepareScorecardPhoto(file);
+
+    setRoundBundle((current) => ({
+      ...current,
+      scorecardImports: current.scorecardImports.map((scorecardImport) =>
+        scorecardImport.scorecardId === scorecardId
+          ? {
+              ...scorecardImport,
+              imageName: file.name,
+              imageUrl
+            }
+          : scorecardImport
+      )
+    }));
+  }
+
+
+  function beginScorecardReview(scorecardId: string) {
+    setRoundBundle((current) => ({
+      ...current,
+      scorecardImports: current.scorecardImports.map((scorecardImport) =>
+        scorecardImport.scorecardId === scorecardId
+          ? {
+              ...scorecardImport,
+              status: 'needs-review',
+              extractedAt: scorecardImport.extractedAt ?? new Date().toISOString()
+            }
+          : scorecardImport
+      )
+    }));
+  }
+
+  function changeScorecardImportCell(
+    scorecardId: string,
+    playerId: string,
+    holeNumber: number,
+    score: number | null,
+    confidence: ScoreConfidence
+  ) {
+    setRoundBundle((current) => ({
+      ...current,
+      scorecardImports: current.scorecardImports.map((scorecardImport) => {
+        if (scorecardImport.scorecardId !== scorecardId) return scorecardImport;
+
+        const cells = scorecardImport.cells.map((cell) =>
+          cell.playerId === playerId && cell.holeNumber === holeNumber
+            ? {
+                ...cell,
+                extractedScore: score,
+                confirmedScore: score,
+                confidence,
+                requiresReview: score === null,
+                reviewReason: score === null ? 'No score has been confirmed.' : undefined
+              }
+            : cell
+        );
+
+        return {
+          ...scorecardImport,
+          status: 'needs-review',
+          cells,
+          issues: scorecardImport.issues.map((issue) =>
+            issue.playerId === playerId && issue.holeNumber === holeNumber
+              ? { ...issue, resolved: score !== null }
+              : issue
+          )
+        };
+      })
+    }));
+  }
+
+  function importConfirmedScorecardScores(scorecardId: string) {
+    setRoundBundle((current) => {
+      const scorecardImport = current.scorecardImports.find(
+        (item) => item.scorecardId === scorecardId
+      );
+      const scorecardEntry = current.scorecardEntries.find(
+        (entry) => entry.scorecardId === scorecardId
+      );
+
+      if (!scorecardImport || !scorecardEntry) return current;
+      if (scorecardImport.cells.some((cell) => cell.confirmedScore === null)) {
+        window.alert('Every hole score must be confirmed before importing.');
+        return current;
+      }
+
+      try {
+        const updatedEntry = scorecardImport.cells.reduce(
+          (entry, cell) => updateGrossScore(
+            entry,
+            cell.playerId,
+            cell.holeNumber,
+            cell.confirmedScore,
+            blackBearCourse,
+            bearTrackerScoringSettings
+          ),
+          scorecardEntry
+        );
+
+        const completedAt = new Date().toISOString();
+        return {
+          ...current,
+          scorecardEntries: current.scorecardEntries.map((entry) =>
+            entry.scorecardId === scorecardId ? updatedEntry : entry
+          ),
+          scorecardImports: current.scorecardImports.map((item) =>
+            item.scorecardId === scorecardId
+              ? {
+                  ...item,
+                  status: 'complete',
+                  verifiedAt: completedAt,
+                  completedAt,
+                  issues: item.issues.map((issue) => ({ ...issue, resolved: true }))
+                }
+              : item
+          )
+        };
+      } catch (error) {
+        window.alert(error instanceof Error ? error.message : 'The confirmed scores could not be imported.');
+        return current;
+      }
+    });
+  }
+  function removeScorecardPhoto(scorecardId: string) {
+    setRoundBundle((current) => ({
+      ...current,
+      scorecardImports: current.scorecardImports.map((scorecardImport) =>
+        scorecardImport.scorecardId === scorecardId
+          ? {
+              ...scorecardImport,
+              imageName: undefined,
+              imageUrl: undefined
+            }
+          : scorecardImport
+      )
+    }));
+  }
+
   return (
     <main className="app">
       <header className="hero">
@@ -2245,7 +2357,9 @@ function completeRound() {
           scorecardEntries={
             roundBundle.scorecardEntries
           }
-          scorecardImports={roundBundle.scorecardImports}
+          scorecardImports={
+            roundBundle.scorecardImports
+          }
           players={players}
           visibility={
             bearTrackerTournamentVisibility
@@ -2262,6 +2376,9 @@ function completeRound() {
           onCompleteRound={completeRound}
           onAttachScorecardPhoto={attachScorecardPhoto}
           onRemoveScorecardPhoto={removeScorecardPhoto}
+          onBeginScorecardReview={beginScorecardReview}
+          onChangeScorecardImportCell={changeScorecardImportCell}
+          onImportConfirmedScores={importConfirmedScorecardScores}
           navigationSection={navigationSection}
           onNavigationHandled={clearNavigationSection}
         />

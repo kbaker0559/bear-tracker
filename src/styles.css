@@ -133,7 +133,8 @@ code { background: #f7f2e8; padding: 0.1rem 0.3rem; border-radius: 0.3rem; }
   scroll-margin-top: 88px;
 }
 
-/* Paper scorecard photo and viewer */
+
+/* Scorecard photo attachment and viewer */
 .scorecard-photo-panel {
   margin-top: 1rem;
   padding-top: 1rem;
@@ -328,4 +329,128 @@ code { background: #f7f2e8; padding: 0.1rem 0.3rem; border-radius: 0.3rem; }
   .scorecard-viewer-shell { width: 100%; height: 100%; border-radius: 0; }
   .scorecard-viewer-toolbar { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; }
   .scorecard-viewer-help { display: none; }
+}
+
+/* Scorecard import review */
+.scorecard-import-review {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color, #d8dde3);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.scorecard-import-review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.scorecard-import-review-header h4 {
+  margin: 0 0 0.25rem;
+}
+
+.scorecard-import-review-header p {
+  margin: 0;
+  max-width: 780px;
+}
+
+.scorecard-import-progress {
+  margin: 0.9rem 0;
+}
+
+.scorecard-import-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #d8dde3;
+  border-radius: 8px;
+}
+
+.scorecard-import-table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 0.82rem;
+}
+
+.scorecard-import-table th,
+.scorecard-import-table td {
+  border-right: 1px solid #e2e6ea;
+  border-bottom: 1px solid #e2e6ea;
+  padding: 0.3rem;
+  text-align: center;
+}
+
+.scorecard-import-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 145px;
+  text-align: left;
+  background: #fff;
+}
+
+.scorecard-import-table thead th {
+  background: #f3f5f7;
+}
+
+.scorecard-import-table input {
+  width: 2.5rem;
+  min-width: 2.5rem;
+  padding: 0.35rem 0.15rem;
+  text-align: center;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+}
+
+.score-confidence-high { background: #e9f7ec; }
+.score-confidence-medium { background: #fff4cf; }
+.score-confidence-low { background: #fde5d7; }
+.score-confidence-missing { background: #f2f3f5; }
+
+.scorecard-import-table input:focus {
+  background: #fff;
+  border-color: #4361a8;
+  outline: 2px solid rgba(67, 97, 168, 0.18);
+}
+
+.scorecard-import-total {
+  min-width: 3rem;
+  font-weight: 700;
+}
+
+.scorecard-import-legend,
+.scorecard-import-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-top: 0.85rem;
+}
+
+.confidence-swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: 0.25rem;
+  border: 1px solid #c8ccd0;
+  border-radius: 2px;
+  vertical-align: -0.05rem;
+}
+
+.confidence-swatch.high { background: #e9f7ec; }
+.confidence-swatch.medium { background: #fff4cf; }
+.confidence-swatch.low { background: #fde5d7; }
+.confidence-swatch.missing { background: #f2f3f5; }
+
+@media (max-width: 700px) {
+  .scorecard-import-review {
+    padding: 0.75rem;
+  }
+
+  .scorecard-import-table {
+    font-size: 0.75rem;
+  }
 }

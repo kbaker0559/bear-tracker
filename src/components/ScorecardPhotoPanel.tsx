@@ -1,23 +1,36 @@
 import { useState } from 'react';
-import type { ScorecardImport } from '../types/scorecardImport';
+import type { Player } from '../types';
+import type { Scorecard } from '../types/scorecard';
+import type { ScorecardImport, ScoreConfidence } from '../types/scorecardImport';
 import ScorecardViewer from './ScorecardViewer';
+import ScorecardImportReview from './ScorecardImportReview';
 
 type Props = {
-  cardNumber: number;
+  scorecard: Scorecard;
+  players: Player[];
   scorecardImport: ScorecardImport | null;
   onAttachPhoto: (file: File) => Promise<void>;
   onRemovePhoto: () => void;
+  onBeginReview: () => void;
+  onChangeImportCell: (playerId: string, holeNumber: number, score: number | null, confidence: ScoreConfidence) => void;
+  onImportConfirmedScores: () => void;
 };
 
 export default function ScorecardPhotoPanel({
-  cardNumber,
+  scorecard,
+  players,
   scorecardImport,
   onAttachPhoto,
-  onRemovePhoto
+  onRemovePhoto,
+  onBeginReview,
+  onChangeImportCell,
+  onImportConfirmedScores
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const cardNumber = scorecard.cardNumber;
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -58,6 +71,7 @@ export default function ScorecardPhotoPanel({
           </button>
 
           <div className="scorecard-photo-actions">
+            <button type="button" onClick={() => { onBeginReview(); setReviewOpen(true); }}>Read Scorecard</button>
             <label className="button-like">
               {busy ? 'Preparing Photo…' : 'Replace Photo'}
               <input
@@ -96,6 +110,17 @@ export default function ScorecardPhotoPanel({
         The photo stays with this round and can be opened beside score entry for verification.
       </small>
       {error && <div className="status-box">{error}</div>}
+
+      {reviewOpen && scorecardImport && (
+        <ScorecardImportReview
+          scorecard={scorecard}
+          players={players}
+          scorecardImport={scorecardImport}
+          onChangeCell={onChangeImportCell}
+          onImportConfirmedScores={onImportConfirmedScores}
+          onClose={() => setReviewOpen(false)}
+        />
+      )}
 
       {viewerOpen && imageUrl && (
         <ScorecardViewer

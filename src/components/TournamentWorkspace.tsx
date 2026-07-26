@@ -5,7 +5,7 @@ import type { ScorecardEntry } from '../types/scoreEntry';
 import type { TournamentVisibilitySettings } from '../types/tournamentVisibility';
 import type { PaperPlayerTotals } from '../types/paperScorecardTotals';
 import type { NavigationSection } from '../types/navigation';
-import type { ScorecardImport } from '../types/scorecardImport';
+import type { ScorecardImport, ScoreConfidence } from '../types/scorecardImport';
 import ScorecardPhotoPanel from './ScorecardPhotoPanel';
 import {
   buildLeaderboard
@@ -45,6 +45,9 @@ type Props = {
   onCompleteRound: () => void;
   onAttachScorecardPhoto: (scorecardId: string, file: File) => Promise<void>;
   onRemoveScorecardPhoto: (scorecardId: string) => void;
+  onBeginScorecardReview: (scorecardId: string) => void;
+  onChangeScorecardImportCell: (scorecardId: string, playerId: string, holeNumber: number, score: number | null, confidence: ScoreConfidence) => void;
+  onImportConfirmedScores: (scorecardId: string) => void;
   navigationSection?: NavigationSection;
   onNavigationHandled: () => void;
 };
@@ -74,6 +77,9 @@ onVerifyScorecard,
 onCompleteRound,
 onAttachScorecardPhoto,
 onRemoveScorecardPhoto,
+onBeginScorecardReview,
+onChangeScorecardImportCell,
+onImportConfirmedScores,
 navigationSection,
 onNavigationHandled
 }: Props) {
@@ -639,7 +645,8 @@ onNavigationHandled
                 </ul>
 
                 <ScorecardPhotoPanel
-                  cardNumber={scorecard.cardNumber}
+                  scorecard={scorecard}
+                  players={players}
                   scorecardImport={
                     scorecardImports.find(
                       (item) => item.scorecardId === scorecard.id
@@ -651,6 +658,11 @@ onNavigationHandled
                   onRemovePhoto={() =>
                     onRemoveScorecardPhoto(scorecard.id)
                   }
+                  onBeginReview={() => onBeginScorecardReview(scorecard.id)}
+                  onChangeImportCell={(playerId, holeNumber, score, confidence) =>
+                    onChangeScorecardImportCell(scorecard.id, playerId, holeNumber, score, confidence)
+                  }
+                  onImportConfirmedScores={() => onImportConfirmedScores(scorecard.id)}
                 />
               </section>
             );
