@@ -1,6 +1,7 @@
 import type {
   AIConnectionStatus,
-  ScorecardRecognitionResult
+  ScorecardRecognitionResult,
+  ScorecardIdentityRecognitionResult
 } from '../types/aiScorecard';
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -34,4 +35,18 @@ export async function recognizeScorecard(
     body: JSON.stringify({ imageUrl, expectedPlayerNames })
   });
   return readJson<ScorecardRecognitionResult>(response);
+}
+
+export async function recognizeScorecardIdentity(
+  imageUrl: string,
+  expectedPlayerNames: string[],
+  expectedCardNumber: number,
+  expectedTeeTime: string
+): Promise<ScorecardIdentityRecognitionResult> {
+  const response = await fetch('/api/ai/read-scorecard-identity', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageUrl, expectedPlayerNames, expectedCardNumber, expectedTeeTime })
+  });
+  return readJson<ScorecardIdentityRecognitionResult>(response);
 }

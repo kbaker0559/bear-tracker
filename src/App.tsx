@@ -71,7 +71,9 @@ import { getMissionControl } from './engine/missionControlEngine';
 import { buildQuotaUpdates } from './engine/quotaUpdateEngine';
 import type { NavigationSection } from './types/navigation';
 import type { ScoreConfidence, ScorecardImportIssue } from './types/scorecardImport';
-import { recognizeScorecard } from './services/aiScorecardService';
+import { recognizeScorecard, recognizeScorecardIdentity } from './services/aiScorecardService';
+import { matchRecognizedPlayerName } from './services/playerNameMatching';
+import type { ScorecardIdentityReview } from './types/aiScorecard';
 
 type Workspace =
   | 'home'
@@ -2116,6 +2118,50 @@ function completeRound() {
   }
 
 
+  async function recognizeScorecardIdentityWithAI(scorecardId: string): Promise<ScorecardIdentityReview> {
+    const scorecard = roundBundle.scorecards.find((card) => card.id === scorecardId);
+    const scorecardImport = roundBundle.scorecardImports.find((item) => item.scorecardId === scorecardId);
+    if (!scorecard || !scorecardImport?.imageUrl) {
+      throw new Error('Attach a paper scorecard photo before identifying it.');
+    }
+
+    const assignedPlayers = scorecard.players.map((scorecardPlayer) => ({
+      playerId: scorecardPlayer.playerId,
+      name: players.find((player) => player.id === scorecardPlayer.playerId)?.name ?? scorecardPlayer.playerId
+    }));
+
+    const result = await recognizeScorecardIdentity(
+      scorecardImport.imageUrl,
+      assignedPlayers.map((player) => player.name),
+      scorecard.cardNumber,
+      scorecard.teeTime
+    );
+
+    const normalizeTime = (value: string | null): string =>
+      (value ?? '').toLowerCase().replace(/[^0-9apm]/g, '');
+
+    return {
+      ...result,
+      expectedCardNumber: scorecard.cardNumber,
+      expectedTeeTime: scorecard.teeTime,
+      cardNumberMatches: result.cardNumber === null ? null : result.cardNumber === scorecard.cardNumber,
+      teeTimeMatches: result.teeTime === null || !scorecard.teeTime
+        ? null
+        : normalizeTime(result.teeTime) === normalizeTime(scorecard.teeTime),
+      matchedPlayers: result.playerNames.map((recognized) => {
+        const match = matchRecognizedPlayerName(recognized.rawName, assignedPlayers);
+        return {
+          ...recognized,
+          matchedPlayerId: match.matchedPlayerId,
+          matchedPlayerName: match.matchedPlayerName,
+          matchConfidence: match.confidence,
+          matchMethod: match.method,
+          alternatives: match.alternatives
+        };
+      })
+    };
+  }
+
   async function readScorecardWithAI(scorecardId: string): Promise<void> {
     const scorecard = roundBundle.scorecards.find((card) => card.id === scorecardId);
     const scorecardImport = roundBundle.scorecardImports.find((item) => item.scorecardId === scorecardId);
@@ -2473,6 +2519,7 @@ function completeRound() {
           onAttachScorecardPhoto={attachScorecardPhoto}
           onRemoveScorecardPhoto={removeScorecardPhoto}
           onBeginScorecardReview={beginScorecardReview}
+          onRecognizeScorecardIdentity={recognizeScorecardIdentityWithAI}
           onReadScorecard={readScorecardWithAI}
           onChangeScorecardImportCell={changeScorecardImportCell}
           onImportConfirmedScores={importConfirmedScorecardScores}

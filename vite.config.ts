@@ -75,6 +75,94 @@ function aiApiPlugin(apiKey: string, model: string): Plugin {
         }
       });
 
+      server.middlewares.use('/api/ai/read-scorecard-identity', async (request, response) => {
+        if (request.method !== 'POST') return sendJson(response, 405, { error: 'Method not allowed.' });
+        if (!configured) return sendJson(response, 503, { error: statusBody.message });
+        try {
+          const body = await readJsonBody(request);
+          const imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl : '';
+          const expectedPlayerNames = Array.isArray(body.expectedPlayerNames)
+            ? body.expectedPlayerNames.filter((name): name is string => typeof name === 'string')
+            : [];
+          const expectedCardNumber = typeof body.expectedCardNumber === 'number' ? body.expectedCardNumber : null;
+          const expectedTeeTime = typeof body.expectedTeeTime === 'string' ? body.expectedTeeTime : '';
+          if (!imageUrl.startsWith('data:image/')) throw new Error('A valid attached scorecard image is required.');
+
+          const prompt = [
+            'Inspect the upper-left area and player-name rows of this Black Bear Saturday Game golf scorecard.',
+            'The card number is handwritten and usually circled in the upper-left corner. A handwritten tee time is normally nearby.',
+            `This photo was attached to expected Card ${expectedCardNumber ?? 'unknown'} with expected tee time ${expectedTeeTime || 'unknown'}.`,
+            `The only players assigned to this card are: ${expectedPlayerNames.join(', ')}.`,
+            'Read only: (1) the circled card number, (2) the handwritten tee time, and (3) the handwritten player names in top-to-bottom row order.',
+            'Preserve the name text as written, including nicknames such as Knute, Paul, Paul Jr., Tony, Anthony, or Mike O.',
+            'Do not read hole scores yet. Use null when card number or tee time cannot be read. Confidence values range from 0 to 1.'
+          ].join('\n');
+
+          const schema = {
+            type: 'object',
+            additionalProperties: false,
+            required: ['cardNumber', 'cardNumberConfidence', 'teeTime', 'teeTimeConfidence', 'playerNames', 'warnings'],
+            properties: {
+              cardNumber: { type: ['integer', 'null'], minimum: 1, maximum: 99 },
+              cardNumberConfidence: { type: 'number', minimum: 0, maximum: 1 },
+              teeTime: { type: ['string', 'null'] },
+              teeTimeConfidence: { type: 'number', minimum: 0, maximum: 1 },
+              playerNames: {
+                type: 'array',
+                minItems: 1,
+                maxItems: 4,
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['rawName', 'confidence'],
+                  properties: {
+                    rawName: { type: 'string' },
+                    confidence: { type: 'number', minimum: 0, maximum: 1 }
+                  }
+                }
+              },
+              warnings: { type: 'array', items: { type: 'string' } }
+            }
+          };
+
+          const openAIResponse = await fetch('https://api.openai.com/v1/responses', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model,
+              input: [{
+                role: 'user',
+                content: [
+                  { type: 'input_text', text: prompt },
+                  { type: 'input_image', image_url: imageUrl, detail: 'high' }
+                ]
+              }],
+              text: {
+                format: {
+                  type: 'json_schema',
+                  name: 'black_bear_scorecard_identity',
+                  strict: true,
+                  schema
+                }
+              }
+            })
+          });
+
+          const payload = await openAIResponse.json() as JsonRecord;
+          if (!openAIResponse.ok) {
+            const errorObject = payload.error as JsonRecord | undefined;
+            throw new Error(typeof errorObject?.message === 'string' ? errorObject.message : `OpenAI request failed (${openAIResponse.status}).`);
+          }
+          const result = JSON.parse(responseText(payload)) as JsonRecord;
+          sendJson(response, 200, { provider: 'openai', model, ...result });
+        } catch (error) {
+          sendJson(response, 502, { error: error instanceof Error ? error.message : 'The scorecard identity could not be read.' });
+        }
+      });
+
       server.middlewares.use('/api/ai/read-scorecard', async (request, response) => {
         if (request.method !== 'POST') return sendJson(response, 405, { error: 'Method not allowed.' });
         if (!configured) return sendJson(response, 503, { error: statusBody.message });

@@ -6,6 +6,7 @@ import type { TournamentVisibilitySettings } from '../types/tournamentVisibility
 import type { PaperPlayerTotals } from '../types/paperScorecardTotals';
 import type { NavigationSection } from '../types/navigation';
 import type { ScorecardImport, ScoreConfidence } from '../types/scorecardImport';
+import type { ScorecardIdentityReview } from '../types/aiScorecard';
 import ScorecardPhotoPanel from './ScorecardPhotoPanel';
 import {
   buildLeaderboard
@@ -46,6 +47,7 @@ type Props = {
   onAttachScorecardPhoto: (scorecardId: string, file: File) => Promise<void>;
   onRemoveScorecardPhoto: (scorecardId: string) => void;
   onBeginScorecardReview: (scorecardId: string) => void;
+  onRecognizeScorecardIdentity: (scorecardId: string) => Promise<ScorecardIdentityReview>;
   onReadScorecard: (scorecardId: string) => Promise<void>;
   onChangeScorecardImportCell: (scorecardId: string, playerId: string, holeNumber: number, score: number | null, confidence: ScoreConfidence) => void;
   onImportConfirmedScores: (scorecardId: string) => void;
@@ -79,6 +81,7 @@ onCompleteRound,
 onAttachScorecardPhoto,
 onRemoveScorecardPhoto,
 onBeginScorecardReview,
+onRecognizeScorecardIdentity,
 onReadScorecard,
 onChangeScorecardImportCell,
 onImportConfirmedScores,
@@ -661,6 +664,7 @@ onNavigationHandled
                     onRemoveScorecardPhoto(scorecard.id)
                   }
                   onBeginReview={() => onBeginScorecardReview(scorecard.id)}
+                  onRecognizeIdentity={() => onRecognizeScorecardIdentity(scorecard.id)}
                   onReadScorecard={() => onReadScorecard(scorecard.id)}
                   onChangeImportCell={(playerId, holeNumber, score, confidence) =>
                     onChangeScorecardImportCell(scorecard.id, playerId, holeNumber, score, confidence)

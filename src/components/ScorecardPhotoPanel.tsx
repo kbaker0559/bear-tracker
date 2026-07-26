@@ -2,8 +2,10 @@ import { useState } from 'react';
 import type { Player } from '../types';
 import type { Scorecard } from '../types/scorecard';
 import type { ScorecardImport, ScoreConfidence } from '../types/scorecardImport';
+import type { ScorecardIdentityReview } from '../types/aiScorecard';
 import ScorecardViewer from './ScorecardViewer';
 import ScorecardImportReview from './ScorecardImportReview';
+import PlayerRecognitionPanel from './PlayerRecognitionPanel';
 
 type Props = {
   scorecard: Scorecard;
@@ -12,6 +14,7 @@ type Props = {
   onAttachPhoto: (file: File) => Promise<void>;
   onRemovePhoto: () => void;
   onBeginReview: () => void;
+  onRecognizeIdentity: () => Promise<ScorecardIdentityReview>;
   onReadScorecard: () => Promise<void>;
   onChangeImportCell: (playerId: string, holeNumber: number, score: number | null, confidence: ScoreConfidence) => void;
   onImportConfirmedScores: () => void;
@@ -24,6 +27,7 @@ export default function ScorecardPhotoPanel({
   onAttachPhoto,
   onRemovePhoto,
   onBeginReview,
+  onRecognizeIdentity,
   onReadScorecard,
   onChangeImportCell,
   onImportConfirmedScores
@@ -33,6 +37,8 @@ export default function ScorecardPhotoPanel({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reading, setReading] = useState(false);
+  const [identityReading, setIdentityReading] = useState(false);
+  const [identityReview, setIdentityReview] = useState<ScorecardIdentityReview | null>(null);
   const cardNumber = scorecard.cardNumber;
 
   async function handleFile(file: File | undefined) {
@@ -76,7 +82,25 @@ export default function ScorecardPhotoPanel({
           <div className="scorecard-photo-actions">
             <button
               type="button"
-              disabled={reading}
+              disabled={identityReading || reading}
+              onClick={async () => {
+                setIdentityReading(true);
+                setError('');
+                try {
+                  const result = await onRecognizeIdentity();
+                  setIdentityReview(result);
+                } catch (caught) {
+                  setError(caught instanceof Error ? caught.message : 'The card identity could not be read.');
+                } finally {
+                  setIdentityReading(false);
+                }
+              }}
+            >
+              {identityReading ? 'Identifying Card…' : 'Identify Card & Players'}
+            </button>
+            <button
+              type="button"
+              disabled={reading || identityReading}
               onClick={async () => {
                 setReading(true);
                 setError('');
@@ -131,6 +155,14 @@ export default function ScorecardPhotoPanel({
         The photo stays with this round and can be opened beside score entry for verification.
       </small>
       {error && <div className="status-box">{error}</div>}
+
+
+      {identityReview && (
+        <PlayerRecognitionPanel
+          review={identityReview}
+          onClose={() => setIdentityReview(null)}
+        />
+      )}
 
       {reviewOpen && scorecardImport && (
         <ScorecardImportReview

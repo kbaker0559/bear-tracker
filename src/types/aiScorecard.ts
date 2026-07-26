@@ -26,3 +26,35 @@ export type ScorecardRecognitionResult = {
   players: RecognizedPlayer[];
   warnings: string[];
 };
+
+export type RecognizedIdentityName = {
+  rawName: string;
+  confidence: number;
+};
+
+export type ScorecardIdentityRecognitionResult = {
+  provider: AIProvider;
+  model: string;
+  cardNumber: number | null;
+  cardNumberConfidence: number;
+  teeTime: string | null;
+  teeTimeConfidence: number;
+  playerNames: RecognizedIdentityName[];
+  warnings: string[];
+};
+
+export type MatchedRecognizedPlayer = RecognizedIdentityName & {
+  matchedPlayerId: string | null;
+  matchedPlayerName: string | null;
+  matchConfidence: number;
+  matchMethod: 'exact' | 'alias' | 'fuzzy' | 'ambiguous' | 'unmatched';
+  alternatives: string[];
+};
+
+export type ScorecardIdentityReview = ScorecardIdentityRecognitionResult & {
+  expectedCardNumber: number;
+  expectedTeeTime: string;
+  cardNumberMatches: boolean | null;
+  teeTimeMatches: boolean | null;
+  matchedPlayers: MatchedRecognizedPlayer[];
+};
