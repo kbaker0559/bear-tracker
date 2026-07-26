@@ -5,6 +5,8 @@ import type { ScorecardEntry } from '../types/scoreEntry';
 import type { TournamentVisibilitySettings } from '../types/tournamentVisibility';
 import type { PaperPlayerTotals } from '../types/paperScorecardTotals';
 import type { NavigationSection } from '../types/navigation';
+import type { ScorecardImport } from '../types/scorecardImport';
+import ScorecardPhotoPanel from './ScorecardPhotoPanel';
 import {
   buildLeaderboard
 } from '../engine/leaderboardEngine';
@@ -21,6 +23,7 @@ import {
 type Props = {
   scorecards: Scorecard[];
   scorecardEntries: ScorecardEntry[];
+  scorecardImports: ScorecardImport[];
   players: Player[];
   visibility: TournamentVisibilitySettings;
 
@@ -40,6 +43,8 @@ type Props = {
     scorecardId: string
   ) => void;
   onCompleteRound: () => void;
+  onAttachScorecardPhoto: (scorecardId: string, file: File) => Promise<void>;
+  onRemoveScorecardPhoto: (scorecardId: string) => void;
   navigationSection?: NavigationSection;
   onNavigationHandled: () => void;
 };
@@ -60,12 +65,15 @@ type ActiveView =
 export default function TournamentWorkspace({
   scorecards,
   scorecardEntries,
+  scorecardImports,
   players,
   visibility,
   onUpdateScore,
 onSavePaperTotals,
 onVerifyScorecard,
 onCompleteRound,
+onAttachScorecardPhoto,
+onRemoveScorecardPhoto,
 navigationSection,
 onNavigationHandled
 }: Props) {
@@ -629,6 +637,21 @@ onNavigationHandled
                     }
                   )}
                 </ul>
+
+                <ScorecardPhotoPanel
+                  cardNumber={scorecard.cardNumber}
+                  scorecardImport={
+                    scorecardImports.find(
+                      (item) => item.scorecardId === scorecard.id
+                    ) ?? null
+                  }
+                  onAttachPhoto={(file) =>
+                    onAttachScorecardPhoto(scorecard.id, file)
+                  }
+                  onRemovePhoto={() =>
+                    onRemoveScorecardPhoto(scorecard.id)
+                  }
+                />
               </section>
             );
           }

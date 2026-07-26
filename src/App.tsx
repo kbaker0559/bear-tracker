@@ -90,6 +90,40 @@ type ArrivalPayment = {
 
 const ENTRY_FEE = 25;
 
+async function compressScorecardPhoto(file: File): Promise<string> {
+  const source = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('The selected image could not be read.'));
+    };
+
+    image.src = url;
+  });
+
+  const maxDimension = 2000;
+  const scale = Math.min(
+    1,
+    maxDimension / Math.max(source.naturalWidth, source.naturalHeight)
+  );
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(source.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(source.naturalHeight * scale));
+
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('The photo could not be prepared.');
+
+  context.drawImage(source, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.86);
+}
+
 function createTournamentEvent(
   roundId: string,
   type: TournamentEventType,
@@ -1478,6 +1512,45 @@ function removeSavedBenchmark(
     }
   }
 
+  async function attachScorecardPhoto(scorecardId: string, file: File) {
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Please select a scorecard image.');
+    }
+
+    const imageUrl = await compressScorecardPhoto(file);
+    setRoundBundle((current) => ({
+      ...current,
+      scorecardImports: current.scorecardImports.map((item) =>
+        item.scorecardId === scorecardId
+          ? {
+              ...item,
+              imageName: file.name,
+              imageUrl,
+              status: 'needs-review',
+              extractedAt: new Date().toISOString()
+            }
+          : item
+      )
+    }));
+  }
+
+  function removeScorecardPhoto(scorecardId: string) {
+    setRoundBundle((current) => ({
+      ...current,
+      scorecardImports: current.scorecardImports.map((item) =>
+        item.scorecardId === scorecardId
+          ? {
+              ...item,
+              imageName: undefined,
+              imageUrl: undefined,
+              status: 'waiting',
+              extractedAt: undefined
+            }
+          : item
+      )
+    }));
+  }
+
   function updateScorecardScore(
     scorecardId: string,
     playerId: string,
@@ -2172,6 +2245,7 @@ function completeRound() {
           scorecardEntries={
             roundBundle.scorecardEntries
           }
+          scorecardImports={roundBundle.scorecardImports}
           players={players}
           visibility={
             bearTrackerTournamentVisibility
@@ -2186,6 +2260,8 @@ function completeRound() {
             verifyScorecard
           }
           onCompleteRound={completeRound}
+          onAttachScorecardPhoto={attachScorecardPhoto}
+          onRemoveScorecardPhoto={removeScorecardPhoto}
           navigationSection={navigationSection}
           onNavigationHandled={clearNavigationSection}
         />
