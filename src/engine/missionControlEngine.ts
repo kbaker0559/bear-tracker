@@ -96,8 +96,10 @@ export function getMissionControl(
   const accountedPlayers = activePlayers.filter(
     (player) => player.checkedIn && player.paid
   );
-  const reviewedPlayers = activePlayers.filter(
-    (player) => player.weeklyReviewed
+  const activeLeaguePlayers = players.filter((player) => player.active);
+  const reviewedLeagueIds = new Set(bundle.round.weeklyReviewedPlayerIds ?? []);
+  const reviewedPlayers = activeLeaguePlayers.filter((player) =>
+    reviewedLeagueIds.has(player.id)
   );
   const verifiedScorecards = bundle.scorecardEntries.filter(
     (entry) => entry.status === 'verified'
@@ -136,7 +138,9 @@ export function getMissionControl(
   const setupComplete =
     bundle.scorecards.length > 0 &&
     activePlayers.length > 0 &&
-    reviewedPlayers.length === activePlayers.length;
+    reviewedPlayers.length === activeLeaguePlayers.length;
+  const playerStatusReviewed = Boolean(bundle.round.playerStatusReviewedAt);
+  const cardOrderReviewed = Boolean(bundle.round.cardOrderReviewedAt);
   const arrivalsComplete =
     activePlayers.length > 0 &&
     accountedPlayers.length === activePlayers.length;
@@ -154,18 +158,26 @@ export function getMissionControl(
     {
       id: 'setup',
       label: 'Setup',
-      status: setupComplete ? 'complete' : 'in-progress',
+      status: setupComplete && playerStatusReviewed && cardOrderReviewed
+        ? 'complete'
+        : 'in-progress',
       detail:
         bundle.scorecards.length === 0
           ? 'Pairings not imported'
-          : `${reviewedPlayers.length} of ${activePlayers.length} players reviewed`
+          : reviewedPlayers.length < activePlayers.length
+            ? `${reviewedPlayers.length} of ${activePlayers.length} players reviewed`
+            : !playerStatusReviewed
+              ? 'Saturday player status review pending'
+              : !cardOrderReviewed
+                ? 'Final scorecard order pending'
+                : 'Saturday preparation complete'
     },
     {
       id: 'arrivals',
       label: 'Arrivals',
       status: arrivalsComplete
         ? 'complete'
-        : setupComplete
+        : setupComplete && playerStatusReviewed && cardOrderReviewed
           ? 'in-progress'
           : 'not-started',
       detail: `${accountedPlayers.length} of ${activePlayers.length} complete`
@@ -247,6 +259,16 @@ export function getMissionControl(
     nextActionLabel = 'Review Handicaps & Quotas';
     nextActionDetail = `${activePlayers.length - reviewedPlayers.length} player${activePlayers.length - reviewedPlayers.length === 1 ? '' : 's'} still need review.`;
     nextSection = 'weekly-review';
+  } else if (!playerStatusReviewed) {
+    stageLabel = 'Saturday Morning Preparation';
+    nextActionLabel = 'Review Player Status';
+    nextActionDetail = 'Add or remove players and make any final card-assignment changes.';
+    nextSection = 'player-status';
+  } else if (!cardOrderReviewed) {
+    stageLabel = 'Saturday Morning Preparation';
+    nextActionLabel = 'Reorganize Scorecard Order';
+    nextActionDetail = 'Arrange each card to match the names as they will appear on the paper scorecard.';
+    nextSection = 'card-order';
   } else if (!arrivalsComplete) {
     stageLabel = 'Player Arrivals';
     nextActionLabel = 'Continue Player Arrivals';
@@ -272,7 +294,7 @@ export function getMissionControl(
       ? 'Review places, skins, Greenies, and Horse\'s Ass.'
       : 'Select a winner or No Winner for every Greenie hole.';
     nextWorkspace = 'results';
-    nextSection = 'results';
+    nextSection = greeniesDecided ? 'results' : 'results-greenies';
   } else if (!settlementComplete) {
     stageLabel = 'Treasurer Settlement';
     const priority: AwardCategory[] = ['greenie', 'place', 'horse-ass', 'skin'];
@@ -287,7 +309,7 @@ export function getMissionControl(
       : 'Settle Awards';
     nextActionDetail = `${categoryEntries.length} payment${categoryEntries.length === 1 ? '' : 's'} remaining in this group.`;
     nextWorkspace = 'finance';
-    nextSection = 'settlement';
+    nextSection = nextCategory === 'greenie' ? 'finance-greenies' : 'settlement';
   } else if (!treasuryBalanced) {
     stageLabel = 'Count Cash';
     nextActionLabel = 'Reconcile Treasury';

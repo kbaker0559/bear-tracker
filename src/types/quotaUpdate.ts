@@ -9,6 +9,7 @@ export type QuotaUpdate = {
   isHorseAssWinner: boolean;
 
   calculatedAdjustment: number;
+  minimumQuotaApplied?: boolean;
   officialAdjustment: number;
   newQuota: number;
 

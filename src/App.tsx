@@ -281,48 +281,30 @@ export default function App() {
       .filter((player) => player.paid)
       .map((player) => player.playerId);
 
-  const weeklyPlayers =
-    roundBundle.roundPlayers.map((roundPlayer) => {
-      const scorecard =
-        roundBundle.scorecards.find(
-          (card) => card.id === roundPlayer.scorecardId
-        );
-
-      const scorecardPlayer =
-        scorecard?.players.find(
-          (player) =>
-            player.playerId === roundPlayer.playerId
-        );
-
-      const scoreEntry =
-        roundBundle.scorecardEntries
-          .find(
-            (entry) =>
-              entry.scorecardId === roundPlayer.scorecardId
-          )
-          ?.players.find(
-            (entry) =>
-              entry.playerId === roundPlayer.playerId
-          );
-
-      const profile = players.find(
-        (player) => player.id === roundPlayer.playerId
+  const weeklyPlayers = players
+    .filter((player) => player.active)
+    .map((profile) => {
+      const roundPlayer = roundBundle.roundPlayers.find(
+        (entry) => entry.playerId === profile.id
       );
+      const scorecard = roundBundle.scorecards.find(
+        (card) => card.id === roundPlayer?.scorecardId
+      );
+      const scorecardPlayer = scorecard?.players.find(
+        (entry) => entry.playerId === profile.id
+      );
+      const scoreEntry = roundBundle.scorecardEntries
+        .find((entry) => entry.scorecardId === roundPlayer?.scorecardId)
+        ?.players.find((entry) => entry.playerId === profile.id);
+      const reviewedIds = roundBundle.round.weeklyReviewedPlayerIds ?? [];
 
       return {
-        playerId: roundPlayer.playerId,
-        handicap:
-          scorecardPlayer?.handicapAtPairing ??
-          scoreEntry?.courseHandicap ??
-          profile?.handicap ??
-          0,
-        quota:
-          scorecardPlayer?.quotaAtPairing ??
-          scoreEntry?.quota ??
-          profile?.quota ??
-          0,
-        status: roundPlayer.status,
-        reviewed: roundPlayer.weeklyReviewed ?? false
+        playerId: profile.id,
+        handicap: scorecardPlayer?.handicapAtPairing ?? scoreEntry?.courseHandicap ?? profile.handicap,
+        quota: scorecardPlayer?.quotaAtPairing ?? scoreEntry?.quota ?? profile.quota,
+        status: roundPlayer?.status ?? 'not-playing',
+        playingThisWeek: Boolean(roundPlayer),
+        reviewed: reviewedIds.includes(profile.id) || Boolean(roundPlayer?.weeklyReviewed)
       };
     });
 
@@ -368,7 +350,35 @@ export default function App() {
       );
 
     setGroups(importedGroups);
-    setRoundBundle(createdRound);
+    setRoundBundle({
+      ...createdRound,
+      round: {
+        ...createdRound.round,
+        playerStatusReviewedAt: undefined,
+        cardOrderReviewedAt: undefined
+      }
+    });
+  }
+
+  function completePlayerStatusReview() {
+    setRoundBundle((current) => ({
+      ...current,
+      round: {
+        ...current.round,
+        playerStatusReviewedAt: new Date().toISOString(),
+        cardOrderReviewedAt: undefined
+      }
+    }));
+  }
+
+  function completeCardOrderReview() {
+    setRoundBundle((current) => ({
+      ...current,
+      round: {
+        ...current.round,
+        cardOrderReviewedAt: new Date().toISOString()
+      }
+    }));
   }
 
   function getAvailableCredit(
@@ -867,6 +877,7 @@ function removeSavedBenchmark(
         ],
         round: {
           ...current.round,
+          cardOrderReviewedAt: undefined,
           expectedPlayerCount: activePlayers.length,
           checkedInCount: activePlayers.filter(
             (player) => player.checkedIn
@@ -1152,6 +1163,7 @@ function removeSavedBenchmark(
         ],
         round: {
           ...current.round,
+          cardOrderReviewedAt: undefined,
           expectedPlayerCount:
             current.round.expectedPlayerCount + 1
         }
@@ -1181,8 +1193,23 @@ function removeSavedBenchmark(
       return;
     }
 
+    setPlayers((current) =>
+      current.map((player) =>
+        player.id === playerId
+          ? { ...player, handicap, quota }
+          : player
+      )
+    );
+
     setRoundBundle((current) => ({
       ...current,
+      round: {
+        ...current.round,
+        weeklyReviewedPlayerIds: Array.from(new Set([
+          ...(current.round.weeklyReviewedPlayerIds ?? []),
+          playerId
+        ]))
+      },
       roundPlayers: current.roundPlayers.map((player) =>
         player.playerId === playerId
           ? {
@@ -1243,6 +1270,10 @@ function removeSavedBenchmark(
       setGroups(updatedState.groups);
       setRoundBundle({
         ...updatedState.roundBundle,
+        round: {
+          ...updatedState.roundBundle.round,
+          cardOrderReviewedAt: undefined
+        },
         tournamentEvents: [
           ...(updatedState.roundBundle.tournamentEvents ?? []),
           createTournamentEvent(
@@ -1285,6 +1316,10 @@ function removeSavedBenchmark(
       setGroups(updatedState.groups);
       setRoundBundle({
         ...updatedState.roundBundle,
+        round: {
+          ...updatedState.roundBundle.round,
+          cardOrderReviewedAt: undefined
+        },
         tournamentEvents: [
           ...(updatedState.roundBundle.tournamentEvents ?? []),
           createTournamentEvent(
@@ -1349,6 +1384,10 @@ function removeSavedBenchmark(
 
     setRoundBundle((current) => ({
       ...current,
+      round: {
+        ...current.round,
+        cardOrderReviewedAt: undefined
+      },
       tournamentEvents: [
         ...(current.tournamentEvents ?? []),
         createTournamentEvent(
@@ -1634,9 +1673,6 @@ function settleAward(
       `Place $${award.officialAmount} in the Owe envelope for ${name}. Confirm after the cash is physically in the envelope.`
     );
     if (!confirmed) return;
-  } else {
-    const confirmed = window.confirm(`Confirm $${award.officialAmount} cash paid to ${name}.`);
-    if (!confirmed) return;
   }
 
   const transactionId = crypto.randomUUID();
@@ -1915,16 +1951,17 @@ function completeRound() {
     newQuota: number,
     reason?: string
   ) {
+    const officialQuota = Math.max(12, newQuota);
     setRoundBundle((current) => ({
       ...current,
       quotaUpdates: (current.quotaUpdates ?? []).map((update) =>
         update.playerId === playerId
           ? {
               ...update,
-              officialAdjustment: newQuota - update.oldQuota,
-              newQuota,
+              officialAdjustment: officialQuota - update.oldQuota,
+              newQuota: officialQuota,
               overrideReason:
-                newQuota === update.oldQuota + update.calculatedAdjustment
+                officialQuota === update.oldQuota + update.calculatedAdjustment
                   ? undefined
                   : reason,
               reviewed: true
@@ -2102,6 +2139,12 @@ function completeRound() {
             reorderScorecardPlayers
           }
           onStartRound={startRound}
+          onCompletePlayerStatusReview={
+            completePlayerStatusReview
+          }
+          onCompleteCardOrderReview={
+            completeCardOrderReview
+          }
           getAvailableCredit={
             getAvailableCredit
           }
@@ -2154,9 +2197,12 @@ function completeRound() {
           roundDate={roundBundle.round.date}
           players={players}
           roundPlayers={roundBundle.roundPlayers}
+          scorecards={roundBundle.scorecards}
           scorecardEntries={roundBundle.scorecardEntries}
           resultsSettings={roundBundle.resultsSettings}
           onUpdateResultsSettings={roundIsFinalized ? () => window.alert('This tournament is finalized and results are locked.') : updateResultsSettings}
+          navigationSection={navigationSection}
+          onNavigationHandled={clearNavigationSection}
         />
       )}
 
@@ -2178,6 +2224,8 @@ function completeRound() {
           onUpdateTreasuryReconciliation={roundIsFinalized ? () => window.alert('This tournament is finalized and treasury is locked.') : updateTreasuryReconciliation}
           onSettleAward={roundIsFinalized ? () => window.alert('This tournament is finalized and treasury is locked.') : settleAward}
           onSettleCategoryCash={roundIsFinalized ? () => window.alert('This tournament is finalized and treasury is locked.') : settleCategoryCash}
+          navigationSection={navigationSection}
+          onNavigationHandled={clearNavigationSection}
         />
       )}
 

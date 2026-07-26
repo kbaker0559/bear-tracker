@@ -34,9 +34,10 @@ export function validateJuly4Greenies(
     const hole = result.holes.find(
       (candidate) => candidate.holeNumber === holeNumber
     );
-    const actualName = hole?.winnerId
-      ? players.find((player) => player.id === hole.winnerId)?.name ?? hole.winnerId
-      : 'No Winner';
+    const actualNames = hole?.winnerIds?.length
+      ? hole.winnerIds.map((id) => players.find((player) => player.id === id)?.name ?? id)
+      : [];
+    const actualName = actualNames.length === 1 ? actualNames[0] : actualNames.join(' / ') || 'No Winner';
 
     if (actualName !== expectedName) {
       messages.push(
@@ -44,7 +45,7 @@ export function validateJuly4Greenies(
       );
     }
 
-    if (hole?.calculatedAward !== 23) {
+    if (Math.abs((hole?.calculatedAward ?? 0) - 23) > 0.001) {
       messages.push(
         `Hole ${holeNumber}: expected a calculated payout of $23, found $${hole?.calculatedAward ?? 0}.`
       );

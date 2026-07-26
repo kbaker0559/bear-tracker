@@ -192,7 +192,7 @@ export default function ScorecardReview({
                         rowSpan={2}
                         style={playerCellStyle}
                       >
-                        <div>
+                        <div className="score-review-player">
                           {playerName(
                             playerEntry.playerId,
                             players
@@ -250,9 +250,11 @@ export default function ScorecardReview({
                           fontWeight: 700
                         }}
                       >
-                        {formatQuotaResult(
-                          playerEntry.quotaResult
-                        )}
+                        <span className="score-review-delta">
+                          {formatQuotaResult(
+                            playerEntry.quotaResult
+                          )}
+                        </span>
                       </td>
 
                       <td

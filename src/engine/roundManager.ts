@@ -1,5 +1,6 @@
 import type { Group } from '../types';
 import type { RoundBundle } from './roundEngine';
+import { deriveScoreEntryStatus } from './scoreEntryEngine';
 
 export type RoundManagementState = {
   groups: Group[];
@@ -13,6 +14,63 @@ function findGroupForPlayer(
   return groups.find((group) =>
     group.playerIds.includes(playerId)
   );
+}
+
+export function getCardAlignmentIssues(
+  state: RoundManagementState
+): string[] {
+  const issues: string[] = [];
+
+  for (const group of state.groups) {
+    const scorecard = state.roundBundle.scorecards.find(
+      (card) => card.id === group.id
+    );
+    const entry = state.roundBundle.scorecardEntries.find(
+      (candidate) => candidate.scorecardId === group.id
+    );
+
+    if (!scorecard) {
+      issues.push(`${group.name}: official scorecard missing`);
+      continue;
+    }
+
+    if (!entry) {
+      issues.push(`${group.name}: score-entry record missing`);
+      continue;
+    }
+
+    const groupIds = group.playerIds.join('|');
+    const scorecardIds = scorecard.players
+      .map((player) => player.playerId)
+      .join('|');
+    const entryIds = entry.players
+      .map((player) => player.playerId)
+      .join('|');
+
+    if (groupIds !== scorecardIds) {
+      issues.push(`${group.name}: group and scorecard players differ`);
+    }
+
+    if (groupIds !== entryIds) {
+      issues.push(`${group.name}: group and score-entry players differ`);
+    }
+  }
+
+  return issues;
+}
+
+function verifyCardAlignment(
+  state: RoundManagementState
+): RoundManagementState {
+  const issues = getCardAlignmentIssues(state);
+
+  if (issues.length > 0) {
+    throw new Error(
+      `Card assignments did not stay synchronized: ${issues.join('; ')}`
+    );
+  }
+
+  return state;
 }
 
 export function movePlayerBetweenCards(
@@ -75,6 +133,32 @@ export function movePlayerBetweenCards(
   if (!movedScorecardPlayer) {
     throw new Error(
       'The player could not be found on the official source scorecard.'
+    );
+  }
+
+  const sourceEntry =
+    state.roundBundle.scorecardEntries.find(
+      (entry) => entry.scorecardId === fromGroupId
+    );
+
+  const destinationEntry =
+    state.roundBundle.scorecardEntries.find(
+      (entry) => entry.scorecardId === toGroupId
+    );
+
+  if (!sourceEntry || !destinationEntry) {
+    throw new Error(
+      'The score-entry record for the source or destination card could not be found.'
+    );
+  }
+
+  const movedPlayerEntry = sourceEntry.players.find(
+    (player) => player.playerId === playerId
+  );
+
+  if (!movedPlayerEntry) {
+    throw new Error(
+      'The player could not be found in the source score-entry record.'
     );
   }
 
@@ -198,15 +282,60 @@ export function movePlayerBetweenCards(
       }
     );
 
-  return {
+  const scorecardEntries =
+    state.roundBundle.scorecardEntries.map((entry) => {
+      if (entry.scorecardId === fromGroupId) {
+        const nextPlayers = entry.players.filter(
+          (player) => player.playerId !== playerId
+        );
+
+        return {
+          ...entry,
+          players: nextPlayers,
+          paperTotals: (entry.paperTotals ?? []).filter(
+            (paper) => paper.playerId !== playerId
+          ),
+          status: deriveScoreEntryStatus(nextPlayers)
+        };
+      }
+
+      if (entry.scorecardId === toGroupId) {
+        const nextPlayers = [
+          ...entry.players.filter(
+            (player) => player.playerId !== playerId
+          ),
+          movedPlayerEntry
+        ];
+        const movedPaperTotal = (sourceEntry.paperTotals ?? []).find(
+          (paper) => paper.playerId === playerId
+        );
+
+        return {
+          ...entry,
+          players: nextPlayers,
+          paperTotals: [
+            ...(entry.paperTotals ?? []).filter(
+              (paper) => paper.playerId !== playerId
+            ),
+            ...(movedPaperTotal ? [movedPaperTotal] : [])
+          ],
+          status: deriveScoreEntryStatus(nextPlayers)
+        };
+      }
+
+      return entry;
+    });
+
+  return verifyCardAlignment({
     groups,
     roundBundle: {
       ...state.roundBundle,
       roundPlayers,
       scorecards,
-      scorecardImports
+      scorecardImports,
+      scorecardEntries
     }
-  };
+  });
 }
 
 export function swapPlayersBetweenCards(
@@ -271,6 +400,35 @@ export function swapPlayersBetweenCards(
   if (!firstScorecardPlayer || !secondScorecardPlayer) {
     throw new Error(
       'One or both players could not be found on their official scorecards.'
+    );
+  }
+
+  const firstEntry =
+    state.roundBundle.scorecardEntries.find(
+      (entry) => entry.scorecardId === firstGroup.id
+    );
+
+  const secondEntry =
+    state.roundBundle.scorecardEntries.find(
+      (entry) => entry.scorecardId === secondGroup.id
+    );
+
+  const firstPlayerEntry = firstEntry?.players.find(
+    (player) => player.playerId === firstPlayerId
+  );
+
+  const secondPlayerEntry = secondEntry?.players.find(
+    (player) => player.playerId === secondPlayerId
+  );
+
+  if (
+    !firstEntry ||
+    !secondEntry ||
+    !firstPlayerEntry ||
+    !secondPlayerEntry
+  ) {
+    throw new Error(
+      'One or both players could not be found in the official score-entry records.'
     );
   }
 
@@ -451,15 +609,70 @@ export function swapPlayersBetweenCards(
       }
     );
 
-  return {
+  const firstPaperTotal = (firstEntry.paperTotals ?? []).find(
+    (paper) => paper.playerId === firstPlayerId
+  );
+  const secondPaperTotal = (secondEntry.paperTotals ?? []).find(
+    (paper) => paper.playerId === secondPlayerId
+  );
+
+  const scorecardEntries =
+    state.roundBundle.scorecardEntries.map((entry) => {
+      if (entry.scorecardId === firstGroup.id) {
+        const nextPlayers = entry.players.map((player) =>
+          player.playerId === firstPlayerId
+            ? secondPlayerEntry
+            : player
+        );
+        const nextPaperTotals = [
+          ...(entry.paperTotals ?? []).filter(
+            (paper) => paper.playerId !== firstPlayerId
+          ),
+          ...(secondPaperTotal ? [secondPaperTotal] : [])
+        ];
+
+        return {
+          ...entry,
+          players: nextPlayers,
+          paperTotals: nextPaperTotals,
+          status: deriveScoreEntryStatus(nextPlayers)
+        };
+      }
+
+      if (entry.scorecardId === secondGroup.id) {
+        const nextPlayers = entry.players.map((player) =>
+          player.playerId === secondPlayerId
+            ? firstPlayerEntry
+            : player
+        );
+        const nextPaperTotals = [
+          ...(entry.paperTotals ?? []).filter(
+            (paper) => paper.playerId !== secondPlayerId
+          ),
+          ...(firstPaperTotal ? [firstPaperTotal] : [])
+        ];
+
+        return {
+          ...entry,
+          players: nextPlayers,
+          paperTotals: nextPaperTotals,
+          status: deriveScoreEntryStatus(nextPlayers)
+        };
+      }
+
+      return entry;
+    });
+
+  return verifyCardAlignment({
     groups,
     roundBundle: {
       ...state.roundBundle,
       roundPlayers,
       scorecards,
-      scorecardImports
+      scorecardImports,
+      scorecardEntries
     }
-  };
+  });
 }
 
 export function changeCardScorekeeper(

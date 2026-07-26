@@ -80,6 +80,45 @@ export function createScorecardEntry(
   };
 }
 
+
+export function isPlayerScoreEntryComplete(
+  playerEntry: PlayerScoreEntry
+): boolean {
+  return playerEntry.scores.length === 18 &&
+    playerEntry.scores.every(
+      (score) => score.grossScore !== null
+    );
+}
+
+export function isScorecardEntryComplete(
+  scorecardEntry: ScorecardEntry
+): boolean {
+  return scorecardEntry.players.length > 0 &&
+    scorecardEntry.players.every(
+      isPlayerScoreEntryComplete
+    );
+}
+
+export function deriveScoreEntryStatus(
+  players: PlayerScoreEntry[]
+): ScorecardEntry['status'] {
+  const anyScoreEntered = players.some(
+    (playerEntry) =>
+      playerEntry.scores.some(
+        (score) => score.grossScore !== null
+      )
+  );
+
+  const everyScoreEntered = players.length > 0 &&
+    players.every(isPlayerScoreEntryComplete);
+
+  return everyScoreEntered
+    ? 'complete'
+    : anyScoreEntered
+      ? 'in-progress'
+      : 'not-started';
+}
+
 function totalCompletedValues(
   values: Array<number | null>
 ): number | null {
@@ -271,55 +310,28 @@ export function updateGrossScore(
     }
   );
 
-  const anyScoreEntered = players.some(
-    (playerEntry) =>
-      playerEntry.scores.some(
-        (score) => score.grossScore !== null
-      )
-  );
-
-  const everyScoreEntered = players.every(
-    (playerEntry) =>
-      playerEntry.scores.every(
-        (score) => score.grossScore !== null
-      )
-  );
+  const status = deriveScoreEntryStatus(players);
+  const anyScoreEntered = status !== 'not-started';
 
   return {
     ...scorecardEntry,
     players,
-
-    status: everyScoreEntered
-      ? 'complete'
-      : anyScoreEntered
-        ? 'in-progress'
-        : 'not-started',
+    status,
 
     startedAt: anyScoreEntered
       ? scorecardEntry.startedAt ??
         new Date().toISOString()
       : undefined,
 
-    completedAt: everyScoreEntered
+    completedAt: status === 'complete'
       ? scorecardEntry.completedAt ??
         new Date().toISOString()
       : undefined,
 
-    verifiedAt: everyScoreEntered
+    verifiedAt: status === 'complete'
       ? scorecardEntry.verifiedAt
       : undefined
   };
-}
-
-export function isScorecardEntryComplete(
-  scorecardEntry: ScorecardEntry
-): boolean {
-  return scorecardEntry.players.every(
-    (playerEntry) =>
-      playerEntry.scores.every(
-        (score) => score.grossScore !== null
-      )
-  );
 }
 
 export function markScorecardEntryVerified(

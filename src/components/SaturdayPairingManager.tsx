@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Group, Player } from '../types';
 
 type Props = {
@@ -25,6 +25,9 @@ type Props = {
     groupId: string,
     orderedPlayerIds: string[]
   ) => void;
+  initialStage?: 'changes' | 'order';
+  onFinishChanges: () => void;
+  onFinishOrder: () => void;
 };
 
 type PlayerAction = 'move' | 'swap' | null;
@@ -35,8 +38,13 @@ export default function SaturdayPairingManager({
   onMovePlayer,
   onSwapPlayers,
   onChangeScorekeeper,
-  onReorderScorecard
+  onReorderScorecard,
+  initialStage = 'changes',
+  onFinishChanges,
+  onFinishOrder
 }: Props) {
+  const [stage, setStage] =
+    useState<'changes' | 'order'>(initialStage);
   const [activePlayerId, setActivePlayerId] =
     useState<string | null>(null);
 
@@ -48,6 +56,14 @@ export default function SaturdayPairingManager({
 
   const [swapPlayerId, setSwapPlayerId] =
     useState('');
+
+  useEffect(() => {
+    setStage(initialStage);
+    setActivePlayerId(null);
+    setActiveAction(null);
+    setDestinationGroupId('');
+    setSwapPlayerId('');
+  }, [initialStage]);
 
   const activePlayer =
     players.find(
@@ -230,13 +246,20 @@ export default function SaturdayPairingManager({
 
   return (
     <section className="card">
-      <h2>Saturday Card Manager</h2>
+      <p className="eyebrow">
+        {stage === 'changes' ? 'Step 1 of 2' : 'Step 2 of 2'}
+      </p>
+
+      <h2>
+        {stage === 'changes'
+          ? 'Review Pairing Changes'
+          : 'Reorganize Scorecard Order'}
+      </h2>
 
       <p>
-        Make final card changes before play begins. All
-        changes become part of the official scorecards
-        used for score entry. Use the arrow buttons to
-        match the name order written on the paper card.
+        {stage === 'changes'
+          ? 'Make Saturday-morning changes first: move or swap players and select the scorekeeper. These changes update the official scorecards used for score entry.'
+          : 'Arrange each card so the names match the order written on the paper scorecard.'}
       </p>
 
       <div className="score-grid">
@@ -338,51 +361,58 @@ export default function SaturdayPairingManager({
                             flexWrap: 'wrap'
                           }}
                         >
-                          <button
-                            type="button"
-                            disabled={playerIndex === 0}
-                            onClick={() =>
-                              movePlayerInOrder(
-                                group.id,
-                                playerId,
-                                'up'
-                              )
-                            }
-                          >
-                            Move Up
-                          </button>
+                          {stage === 'order' && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={playerIndex === 0}
+                                onClick={() =>
+                                  movePlayerInOrder(
+                                    group.id,
+                                    playerId,
+                                    'up'
+                                  )
+                                }
+                              >
+                                Move Up
+                              </button>
 
-                          <button
-                            type="button"
-                            disabled={
-                              playerIndex ===
-                              group.playerIds.length - 1
-                            }
-                            onClick={() =>
-                              movePlayerInOrder(
-                                group.id,
-                                playerId,
-                                'down'
-                              )
-                            }
-                          >
-                            Move Down
-                          </button>
+                              <button
+                                type="button"
+                                disabled={
+                                  playerIndex ===
+                                  group.playerIds.length - 1
+                                }
+                                onClick={() =>
+                                  movePlayerInOrder(
+                                    group.id,
+                                    playerId,
+                                    'down'
+                                  )
+                                }
+                              >
+                                Move Down
+                              </button>
+                            </>
+                          )}
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openPlayerActions(playerId)
-                            }
-                          >
-                            {actionsOpen
-                              ? 'Close Actions'
-                              : 'Actions'}
-                          </button>
+                          {stage === 'changes' && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openPlayerActions(playerId)
+                              }
+                            >
+                              {actionsOpen
+                                ? 'Close Actions'
+                                : 'Change Player'}
+                            </button>
+                          )}
                         </div>
                       </div>
 
-                      {actionsOpen &&
+                      {stage === 'changes' &&
+                        actionsOpen &&
                         activePlayer &&
                         activeGroup && (
                           <div
@@ -580,6 +610,28 @@ export default function SaturdayPairingManager({
             </section>
           );
         })}
+      </div>
+
+      <div
+        style={{
+          marginTop: '1.5rem',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '0.75rem',
+          flexWrap: 'wrap'
+        }}
+      >
+        {stage === 'changes' && (
+          <button type="button" onClick={onFinishChanges}>
+            Player Status Complete — Reorganize Scorecards
+          </button>
+        )}
+
+        {stage === 'order' && (
+          <button type="button" onClick={onFinishOrder}>
+            Scorecard Order Complete — Begin Player Arrivals
+          </button>
+        )}
       </div>
     </section>
   );

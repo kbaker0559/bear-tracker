@@ -35,10 +35,7 @@ function officialAmount(
   calculated: number,
   overrides: Record<string, ContestPayoutOverride>
 ): number {
-  return Math.max(
-    0,
-    Math.floor(overrides[String(holeNumber)]?.amount ?? calculated)
-  );
+  return Math.max(0, overrides[String(holeNumber)]?.amount ?? calculated);
 }
 
 export default function GreeniesPanel({
@@ -74,7 +71,7 @@ export default function GreeniesPanel({
       return total;
     }
 
-    return total + officialAmount(hole.holeNumber, hole.calculatedAward, overrides);
+    return total + officialAmount(hole.holeNumber, hole.calculatedAward, overrides) * hole.winnerIds.length;
   }, 0);
 
   function updateSelection(
@@ -103,16 +100,37 @@ export default function GreeniesPanel({
 
   function selectWinner(holeNumber: number, value: string) {
     if (value === '') {
-      updateSelection(holeNumber, {
-        decided: false,
-        winnerId: null
-      });
+      updateSelection(holeNumber, { decided: false, winnerId: null, winnerIds: [] });
       return;
     }
+    if (value === NO_WINNER) {
+      updateSelection(holeNumber, { decided: true, winnerId: null, winnerIds: [] });
+      return;
+    }
+    updateSelection(holeNumber, { decided: true, winnerId: value, winnerIds: [value] });
+  }
 
+  function addTieWinner(holeNumber: number, playerId: string) {
+    if (!playerId) return;
+    const current = selections[String(holeNumber)];
+    const winnerIds = Array.from(new Set([
+      ...(current?.winnerIds?.length ? current.winnerIds : current?.winnerId ? [current.winnerId] : []),
+      playerId
+    ]));
     updateSelection(holeNumber, {
       decided: true,
-      winnerId: value === NO_WINNER ? null : value
+      winnerId: winnerIds[0] ?? null,
+      winnerIds
+    });
+  }
+
+  function removeTieWinner(holeNumber: number, playerId: string) {
+    const current = selections[String(holeNumber)];
+    const winnerIds = (current?.winnerIds ?? []).filter((id) => id !== playerId);
+    updateSelection(holeNumber, {
+      decided: winnerIds.length > 0,
+      winnerId: winnerIds[0] ?? null,
+      winnerIds
     });
   }
 
@@ -131,12 +149,12 @@ export default function GreeniesPanel({
       if (
         !Number.isFinite(parsed) ||
         parsed < 0 ||
-        Math.floor(parsed) === calculatedAmount
+        Math.abs(parsed - calculatedAmount) < 0.001
       ) {
         delete updated[key];
       } else {
         updated[key] = {
-          amount: Math.floor(parsed),
+          amount: parsed,
           reason: updated[key]?.reason
         };
       }
@@ -166,7 +184,7 @@ export default function GreeniesPanel({
   }
 
   return (
-    <section className="card" style={{ marginTop: '1.5rem' }}>
+    <section id="results-greenies" className="card" style={{ marginTop: '1.5rem' }}>
       <h3>Greenies</h3>
 
       <div className="score-grid">
@@ -229,7 +247,7 @@ export default function GreeniesPanel({
                   {hole.status === 'no-winner' && <strong>No Winner</strong>}
                   {hole.status === 'winner' && (
                     <strong>
-                      {playerName(hole.winnerId ?? '', players)} — Calculated ${hole.calculatedAward}
+                      {hole.winnerIds.map((id) => playerName(id, players)).join(' / ')} — ${hole.calculatedAward.toFixed(2)} each
                     </strong>
                   )}
                 </div>
@@ -241,9 +259,9 @@ export default function GreeniesPanel({
                   value={
                     !selection?.decided
                       ? ''
-                      : selection.winnerId === null
+                      : (selection.winnerIds?.[0] ?? selection.winnerId) === null
                         ? NO_WINNER
-                        : selection.winnerId
+                        : ((selection.winnerIds?.[0] ?? selection.winnerId) || '')
                   }
                   onChange={(event) =>
                     selectWinner(hole.holeNumber, event.target.value)
@@ -259,6 +277,37 @@ export default function GreeniesPanel({
                   ))}
                 </select>
               </label>
+
+              {selection?.decided && (selection.winnerIds?.length ?? (selection.winnerId ? 1 : 0)) > 0 && (
+                <div className="status-box" style={{ marginTop: '0.75rem' }}>
+                  <strong>Winner(s)</strong>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                    {(selection.winnerIds?.length ? selection.winnerIds : selection.winnerId ? [selection.winnerId] : []).map((id) => (
+                      <button key={id} type="button" onClick={() => removeTieWinner(hole.holeNumber, id)}>
+                        {playerName(id, players)} ×
+                      </button>
+                    ))}
+                  </div>
+                  <label style={{ marginTop: '0.75rem' }}>
+                    Add tied winner
+                    <select
+                      defaultValue=""
+                      onChange={(event) => {
+                        addTieWinner(hole.holeNumber, event.target.value);
+                        event.currentTarget.value = '';
+                      }}
+                      style={selectStyle}
+                    >
+                      <option value="">Select another player...</option>
+                      {eligiblePlayers
+                        .filter((player) => !(selection.winnerIds ?? [selection.winnerId]).includes(player.id))
+                        .map((player) => (
+                          <option key={player.id} value={player.id}>{player.name}</option>
+                        ))}
+                    </select>
+                  </label>
+                </div>
+              )}
 
               <div
                 style={{
@@ -307,7 +356,7 @@ export default function GreeniesPanel({
                 <div style={{ marginTop: '0.75rem' }}>
                   {hole.carryIn > 0 && (
                     <p>
-                      {playerName(hole.winnerId ?? '', players)} receives the ${hole.baseValue}
+                      {hole.winnerIds.map((id) => playerName(id, players)).join(' / ')} split the ${hole.baseValue}
                       base value plus ${hole.carryIn} carried from earlier unwon Greenies.
                     </p>
                   )}
@@ -328,7 +377,7 @@ export default function GreeniesPanel({
                     }}
                   >
                     <label>
-                      Calculated payout
+                      Calculated payout per winner
                       <input
                         type="number"
                         value={hole.calculatedAward}
@@ -337,11 +386,11 @@ export default function GreeniesPanel({
                       />
                     </label>
                     <label>
-                      Official payout
+                      Official payout per winner
                       <input
                         type="number"
                         min="0"
-                        step="1"
+                        step="0.5"
                         value={official}
                         onChange={(event) =>
                           updateOfficialAmount(

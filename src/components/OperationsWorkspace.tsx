@@ -84,6 +84,8 @@ type Props = {
   ) => void;
 
   onStartRound: () => void;
+  onCompletePlayerStatusReview: () => void;
+  onCompleteCardOrderReview: () => void;
 
   getAvailableCredit: (playerId: string) => number;
 
@@ -119,6 +121,8 @@ export default function OperationsWorkspace({
   onChangeScorekeeper,
   onReorderScorecard,
   onStartRound,
+  onCompletePlayerStatusReview,
+  onCompleteCardOrderReview,
   getAvailableCredit,
   onCompleteArrival,
   onAddTournamentNote,
@@ -129,6 +133,8 @@ export default function OperationsWorkspace({
   const [showRemovePlayer, setShowRemovePlayer] = useState(false);
   const [showPairingManager, setShowPairingManager] =
     useState(false);
+  const [pairingManagerStage, setPairingManagerStage] =
+    useState<'changes' | 'order'>('changes');
 
   const pairingsRef = useRef<HTMLDivElement | null>(null);
   const weeklyReviewRef = useRef<HTMLDivElement | null>(null);
@@ -149,7 +155,13 @@ export default function OperationsWorkspace({
     } else if (navigationSection === 'weekly-review') {
       target = weeklyReviewRef.current;
       focusSelector = 'input[type="number"]';
+    } else if (navigationSection === 'player-status') {
+      setShowRemovePlayer(true);
+      setPairingManagerStage('changes');
+      setShowPairingManager(true);
+      target = removePlayerRef.current;
     } else if (navigationSection === 'card-order') {
+      setPairingManagerStage('order');
       setShowPairingManager(true);
       target = pairingManagerRef.current;
     } else if (navigationSection === 'arrivals') {
@@ -159,9 +171,11 @@ export default function OperationsWorkspace({
 
     window.setTimeout(() => {
       const resolvedTarget =
-        navigationSection === 'card-order'
-          ? pairingManagerRef.current
-          : navigationSection === 'arrivals'
+        navigationSection === 'player-status'
+          ? removePlayerRef.current
+          : navigationSection === 'card-order'
+            ? pairingManagerRef.current
+            : navigationSection === 'arrivals'
             ? checkInRef.current
             : target;
 
@@ -226,36 +240,50 @@ export default function OperationsWorkspace({
     setShowRemovePlayer(true);
   }
 
-  function openPairingManager() {
+  function openPairingManager(
+    stage: 'changes' | 'order' = 'changes'
+  ) {
     closeAllPanels();
+    setPairingManagerStage(stage);
     setShowPairingManager(true);
   }
 
-
-  function handleApplyPairings(importedGroups: Group[]) {
-    onApplyPairings(importedGroups);
-
+  function continueToWeeklyReview() {
+    setShowPairingManager(false);
     window.setTimeout(() => {
-      const reorganize = window.confirm(
-        'Pairings applied. Do you want to reorganize the player order on the scorecards now?'
-      );
-
-      if (reorganize) {
-        setShowPairingManager(true);
-        window.setTimeout(() => {
-          pairingManagerRef.current?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          });
-        }, 100);
-        return;
-      }
-
       weeklyReviewRef.current?.scrollIntoView({
         behavior: 'smooth',
         block: 'start'
       });
+      weeklyReviewRef.current?.classList.add('navigation-highlight');
+      window.setTimeout(() => {
+        weeklyReviewRef.current?.classList.remove('navigation-highlight');
+      }, 1400);
+    }, 100);
+  }
+
+  function handleApplyPairings(importedGroups: Group[]) {
+    onApplyPairings(importedGroups);
+    window.setTimeout(() => {
+      continueToWeeklyReview();
     }, 150);
+  }
+
+  function completePlayerStatusReview() {
+    onCompletePlayerStatusReview();
+    setShowRemovePlayer(false);
+    openPairingManager('order');
+  }
+
+  function completeCardOrderReview() {
+    onCompleteCardOrderReview();
+    setShowPairingManager(false);
+    window.setTimeout(() => {
+      checkInRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 100);
   }
 
 
@@ -265,9 +293,9 @@ export default function OperationsWorkspace({
       <h2>Weekly Round Operations</h2>
 
       <p>
-        Complete Friday preparation first, then use the
-        Saturday Morning section for arrivals and final
-        changes.
+        Import pairings on Thursday, review handicaps and
+        quotas on Friday, then complete Player Status and
+        scorecard order first thing Saturday morning.
       </p>
 
       <div className="score-grid">
@@ -312,8 +340,8 @@ export default function OperationsWorkspace({
         <h2>Pairings and Weekly Player Values</h2>
 
         <p>
-          Import the weekly pairings, then work down the
-          handicap and Points Needed list before Saturday.
+          Import the weekly pairings, then review handicap
+          and Points Needed values on Friday.
         </p>
 
         <div ref={pairingsRef} id="pairings-import">
@@ -353,9 +381,9 @@ export default function OperationsWorkspace({
           >
             <button
               type="button"
-              onClick={openPairingManager}
+              onClick={() => openPairingManager('changes')}
             >
-              Manage Pairings
+              Review Player Status
             </button>
           </div>
 
@@ -368,6 +396,9 @@ export default function OperationsWorkspace({
                 onSwapPlayers={onSwapPlayers}
                 onChangeScorekeeper={onChangeScorekeeper}
                 onReorderScorecard={onReorderScorecard}
+                initialStage={pairingManagerStage}
+                onFinishChanges={completePlayerStatusReview}
+                onFinishOrder={completeCardOrderReview}
               />
             </div>
           )}
@@ -409,6 +440,11 @@ export default function OperationsWorkspace({
                 onAddPlayerBack={onAddPlayerBack}
                 onClose={() => setShowRemovePlayer(false)}
               />
+              <div style={{ marginTop: '1rem' }}>
+                <button type="button" onClick={completePlayerStatusReview}>
+                  Player Status Complete — Reorganize Scorecards
+                </button>
+              </div>
             </div>
           )}
 

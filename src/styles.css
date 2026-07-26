@@ -6,6 +6,7 @@ button, select { font: inherit; }
 h1 { margin: 0; font-size: clamp(32px, 5vw, 54px); }
 .eyebrow { text-transform: uppercase; letter-spacing: .14em; font-size: 12px; opacity: .8; margin: 0 0 4px; }
 .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0; }
+.sticky-tabs { position: sticky; top: 0; z-index: 1000; padding: 10px 12px; margin-left: -12px; margin-right: -12px; background: rgba(244, 241, 232, 0.96); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(31,61,43,.15); box-shadow: 0 5px 14px rgba(0,0,0,.08); }
 .tabs button, .hero button, .footer-actions button { border: 0; border-radius: 999px; padding: 10px 16px; background: white; cursor: pointer; }
 .tabs .active { background: #1f3d2b; color: white; }
 .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,.08); }
@@ -102,7 +103,7 @@ code { background: #f7f2e8; padding: 0.1rem 0.3rem; border-radius: 0.3rem; }
 
 .weekly-review-columns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
   gap: 1rem;
   align-items: start;
 }
@@ -115,4 +116,19 @@ code { background: #f7f2e8; padding: 0.1rem 0.3rem; border-radius: 0.3rem; }
   .weekly-review-columns {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.score-review-player { font-size: 1.2rem; font-weight: 900; }
+.score-review-delta { display: inline-flex; min-width: 4rem; justify-content: center; padding: .45rem .7rem; border: 2px solid #1f3d2b; border-radius: .75rem; background: #f0f8f2; font-size: 1.5rem; font-weight: 900; }
+
+#pairings-import,
+#weekly-review,
+#player-status,
+#card-order,
+#arrivals,
+#results-greenies,
+#finance-greenies,
+#award-settlement,
+[id^="scorecard-"] {
+  scroll-margin-top: 88px;
 }

@@ -11,6 +11,7 @@ export type WeeklyPlayerSnapshot = {
   handicap: number;
   quota: number;
   status: string;
+  playingThisWeek?: boolean;
   reviewed: boolean;
 };
 
@@ -87,18 +88,9 @@ export default function WeeklyPlayerReview({
 
         if (!weekly) return false;
 
-        const active =
-          weekly.status !== 'dns' &&
-          weekly.status !== 'no-show' &&
-          weekly.status !== 'withdrawn' &&
-          weekly.status !== 'removed';
-
-        return (
-          active &&
-          player.name
-            .toLowerCase()
-            .includes(normalizedSearch)
-        );
+        return player.active && player.name
+          .toLowerCase()
+          .includes(normalizedSearch);
       })
     );
   }, [players, weeklyPlayers, searchText]);
@@ -191,7 +183,7 @@ export default function WeeklyPlayerReview({
               return (
                 <tr key={player.id}>
                   <th style={playerCellStyle}>
-                    {reviewed ? '✓ ' : ''}{player.name}
+                    {reviewed ? '✓ ' : ''}{player.name}{weekly.playingThisWeek ? ' • This week' : ''}
                   </th>
                   <td style={numberCellStyle}>
                     <input

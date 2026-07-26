@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { Player } from '../types';
 import type { RoundPlayer } from '../types/roundPlayer';
 import type { ScorecardEntry } from '../types/scoreEntry';
+import type { Scorecard } from '../types/scorecard';
 import type { ResultsSettings } from '../types/resultsSettings';
 import { calculatePlaces } from '../engine/placesEngine';
 import { calculateSkins } from '../engine/skinsEngine';
@@ -9,16 +10,21 @@ import { validateJuly4Places } from '../engine/july4PlacesBenchmark';
 import { validateJuly4Skins } from '../engine/july4SkinsBenchmark';
 import GreeniesPanel from './GreeniesPanel';
 import HorseAssPanel from './HorseAssPanel';
+import type { NavigationSection } from '../types/navigation';
+import ExcelScoreExportPanel from './ExcelScoreExportPanel';
 
 type Props = {
   roundDate: string;
   players: Player[];
   roundPlayers: RoundPlayer[];
+  scorecards: Scorecard[];
   scorecardEntries: ScorecardEntry[];
   resultsSettings: ResultsSettings;
   onUpdateResultsSettings: (
     updater: (current: ResultsSettings) => ResultsSettings
   ) => void;
+  navigationSection?: NavigationSection;
+  onNavigationHandled: () => void;
 };
 
 function playerName(playerId: string, players: Player[]): string {
@@ -39,10 +45,24 @@ export default function ResultsWorkspace({
   roundDate,
   players,
   roundPlayers,
+  scorecards,
   scorecardEntries,
   resultsSettings,
-  onUpdateResultsSettings
+  onUpdateResultsSettings,
+  navigationSection,
+  onNavigationHandled
 }: Props) {
+  const greeniesRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (navigationSection !== 'results-greenies') return;
+    window.setTimeout(() => {
+      greeniesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      greeniesRef.current?.classList.add('navigation-highlight');
+      window.setTimeout(() => greeniesRef.current?.classList.remove('navigation-highlight'), 1400);
+      onNavigationHandled();
+    }, 100);
+  }, [navigationSection, onNavigationHandled]);
   const places = useMemo(
     () => calculatePlaces(roundPlayers, scorecardEntries),
     [roundPlayers, scorecardEntries]
@@ -548,6 +568,7 @@ export default function ResultsWorkspace({
         )}
       </section>
 
+      <div ref={greeniesRef}>
       <GreeniesPanel
         roundDate={roundDate}
         players={players}
@@ -555,6 +576,7 @@ export default function ResultsWorkspace({
         resultsSettings={resultsSettings}
         onUpdateResultsSettings={onUpdateResultsSettings}
       />
+      </div>
 
       <HorseAssPanel
         roundDate={roundDate}
@@ -563,6 +585,13 @@ export default function ResultsWorkspace({
         scorecardEntries={scorecardEntries}
         resultsSettings={resultsSettings}
         onUpdateResultsSettings={onUpdateResultsSettings}
+      />
+
+      <ExcelScoreExportPanel
+        players={players}
+        roundPlayers={roundPlayers}
+        scorecards={scorecards}
+        scorecardEntries={scorecardEntries}
       />
 
       <section className="card" style={{ marginTop: '1.5rem' }}>

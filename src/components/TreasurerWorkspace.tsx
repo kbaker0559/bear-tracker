@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Player } from '../types';
 import type { AwardEntry } from '../types/awardEntry';
 import type { RoundPlayer } from '../types/roundPlayer';
 import type { TreasuryTransaction } from '../types/treasuryTransaction';
 import type { PlayerAccount } from '../types/playerAccount';
 import type { TreasuryReconciliation } from '../types/treasuryReconciliation';
+import type { NavigationSection } from '../types/navigation';
 
 type Props = {
   players: Player[];
@@ -16,6 +17,8 @@ type Props = {
   onUpdateTreasuryReconciliation: (value: TreasuryReconciliation) => void;
   onSettleAward: (awardEntryId: string, destination: 'paid-cash' | 'moved-to-owe-envelope') => void;
   onSettleCategoryCash: (category: 'greenie' | 'places-ha' | 'skin') => void;
+  navigationSection?: NavigationSection;
+  onNavigationHandled: () => void;
 };
 
 type ViewMode = 'award' | 'player';
@@ -40,8 +43,25 @@ export default function TreasurerWorkspace({
   treasuryReconciliation,
   onUpdateTreasuryReconciliation,
   onSettleAward,
-  onSettleCategoryCash
+  onSettleCategoryCash,
+  navigationSection,
+  onNavigationHandled
 }: Props) {
+  const greeniesRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (navigationSection !== 'finance-greenies' && navigationSection !== 'settlement') return;
+    setViewMode('award');
+    window.setTimeout(() => {
+      const target = navigationSection === 'finance-greenies'
+        ? greeniesRef.current
+        : document.getElementById('award-settlement');
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target?.classList.add('navigation-highlight');
+      window.setTimeout(() => target?.classList.remove('navigation-highlight'), 1400);
+      onNavigationHandled();
+    }, 100);
+  }, [navigationSection, onNavigationHandled]);
   const [viewMode, setViewMode] = useState<ViewMode>('award');
 
   const officialTotal = awardEntries.reduce((sum, entry) => sum + entry.officialAmount, 0);
@@ -484,7 +504,7 @@ export default function TreasurerWorkspace({
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+      <div id="award-settlement" style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
         <button type="button" className={viewMode === 'award' ? 'active' : ''} onClick={() => setViewMode('award')}>
           By Award Category
         </button>
@@ -497,7 +517,13 @@ export default function TreasurerWorkspace({
         const remaining = group.entries.filter((entry) => entry.settlementStatus === 'unsettled');
         const total = group.entries.reduce((sum, entry) => sum + entry.officialAmount, 0);
         return (
-          <section key={group.id} className="card" style={{ marginTop: '1.25rem' }}>
+          <section
+            key={group.id}
+            ref={group.id === 'greenie' ? greeniesRef : undefined}
+            id={group.id === 'greenie' ? 'finance-greenies' : undefined}
+            className="card"
+            style={{ marginTop: '1.25rem' }}
+          >
             <h3>
               {group.title}{' '}
               {group.entries.length > 0 && remaining.length === 0 ? '✓ Complete' : ''}

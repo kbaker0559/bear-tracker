@@ -6,6 +6,7 @@ export type ContestPayoutOverride = {
 export type GreenieSelection = {
   decided: boolean;
   winnerId: string | null;
+  winnerIds?: string[];
   distance?: string;
   notes?: string;
 };

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Player } from '../types';
 import type { QuotaUpdate } from '../types/quotaUpdate';
-import { quotaRuleExplanation } from '../engine/quotaUpdateEngine';
+import { MINIMUM_QUOTA, quotaRuleExplanation } from '../engine/quotaUpdateEngine';
 
 type Props = {
   players: Player[];
@@ -86,6 +86,9 @@ export default function QuotaWorkspace({
                       <div><strong>Rule:</strong> {quotaRuleExplanation(update.quotaResult, update.inMoney, update.isHorseAssWinner)}</div>
                       <div><strong>Calculated change:</strong> {signed(update.calculatedAdjustment)}</div>
                       <div><strong>Official change:</strong> {signed(update.officialAdjustment)}</div>
+                      {update.minimumQuotaApplied && (
+                        <div><strong>Minimum quota applied:</strong> The league minimum is {MINIMUM_QUOTA}, so the effective change is {signed(update.calculatedAdjustment)} and the calculated quota is {MINIMUM_QUOTA}.</div>
+                      )}
                       {update.overrideReason && <div><strong>Override reason:</strong> {update.overrideReason}</div>}
                       {update.appliedAt && <div><strong>Applied:</strong> {new Date(update.appliedAt).toLocaleString()}</div>}
                     </div>
@@ -110,8 +113,8 @@ export default function QuotaWorkspace({
                           );
                           if (entered === null) return;
                           const newQuota = Number(entered);
-                          if (!Number.isInteger(newQuota) || newQuota < 0) {
-                            window.alert('Enter a whole-number quota of zero or greater.');
+                          if (!Number.isInteger(newQuota) || newQuota < MINIMUM_QUOTA) {
+                            window.alert(`Enter a whole-number quota of ${MINIMUM_QUOTA} or greater.`);
                             return;
                           }
                           const differs = newQuota !== update.oldQuota + update.calculatedAdjustment;

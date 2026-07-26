@@ -6,7 +6,7 @@ type Props = {
 };
 
 const workspaces: { id: Workspace; label: string }[] = [
-  { id: 'home', label: 'Home' },
+  { id: 'home', label: 'Mission Control' },
   { id: 'operations', label: 'Operations' },
   { id: 'tournament', label: 'Tournament' },
   { id: 'results', label: 'Results' },
@@ -19,7 +19,7 @@ const workspaces: { id: Workspace; label: string }[] = [
 
 export default function AppShell({ activeWorkspace, onChangeWorkspace }: Props) {
   return (
-    <nav className="tabs">
+    <nav className="tabs sticky-tabs" aria-label="Bear Tracker workspaces">
       {workspaces.map((workspace) => (
         <button
           key={workspace.id}

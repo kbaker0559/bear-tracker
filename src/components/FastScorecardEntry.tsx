@@ -10,6 +10,10 @@ import type {
   HoleScore,
   ScorecardEntry
 } from '../types/scoreEntry';
+import {
+  isPlayerScoreEntryComplete,
+  isScorecardEntryComplete
+} from '../engine/scoreEntryEngine';
 
 type Props = {
   scorecard: Scorecard;
@@ -133,19 +137,13 @@ export default function FastScorecardEntry({
     activePlayerIndex ===
     orderedPlayers.length - 1;
 
-  const playerComplete =
-    activePlayerEntry?.scores.every(
-      (score) => score.grossScore !== null
-    ) ?? false;
+  const playerComplete = activePlayerEntry
+    ? isPlayerScoreEntryComplete(activePlayerEntry)
+    : false;
 
-  const cardComplete =
-    scorecardEntry.players.every(
-      (playerEntry) =>
-        playerEntry.scores.every(
-          (score) =>
-            score.grossScore !== null
-        )
-    );
+  const cardComplete = isScorecardEntryComplete(
+    scorecardEntry
+  );
 
   useEffect(() => {
     setActivePlayerIndex(initialPlayerIndex);
@@ -668,10 +666,9 @@ export default function FastScorecardEntry({
 }}
       >
         {orderedPlayers.map((record, playerIndex) => {
-          const complete =
-            record.entry?.scores.every(
-              (score) => score.grossScore !== null
-            ) ?? false;
+          const complete = record.entry
+            ? isPlayerScoreEntryComplete(record.entry)
+            : false;
 
           const started =
             record.entry?.scores.some(

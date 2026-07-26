@@ -21,6 +21,10 @@ export type CurrentRound = {
   paidCount: number;
   scorecardCount: number;
 
+  playerStatusReviewedAt?: string;
+  cardOrderReviewedAt?: string;
+  weeklyReviewedPlayerIds?: string[];
+
   finalizedAt?: string;
   finalizedVersion?: string;
 };

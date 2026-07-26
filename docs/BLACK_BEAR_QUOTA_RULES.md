@@ -33,3 +33,7 @@ Horse's Ass winners, including ties, use the standard negative chart with a maxi
 - Even or positive: no change
 
 The Horse's Ass rule never forces a larger decrease than the standard chart.
+
+## Minimum quota
+
+A player's official quota can never be lower than 12. The minimum is applied after the normal or Horse's Ass adjustment.

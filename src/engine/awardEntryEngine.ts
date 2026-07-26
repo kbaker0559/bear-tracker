@@ -79,19 +79,24 @@ export function buildAwardEntries(
 
   const greenies = calculateGreenies(roundPlayers, settings.greenieSelections ?? {});
   for (const hole of greenies.holes) {
-    if (hole.status !== 'winner' || !hole.winnerId) continue;
+    if (hole.status !== 'winner' || hole.winnerIds.length === 0) continue;
     const override = settings.greenieAwardOverrides?.[String(hole.holeNumber)];
-    entries.push({
-      id: `award:${roundId}:greenie:${hole.holeNumber}:${hole.winnerId}`,
-      roundId,
-      playerId: hole.winnerId,
-      category: 'greenie',
-      label: `Greenie — Hole ${hole.holeNumber}`,
-      calculatedAmount: hole.calculatedAward,
-      officialAmount: Math.max(0, Math.floor(override?.amount ?? hole.calculatedAward)),
-      adjustmentReason: override?.reason,
-      settlementStatus: 'unsettled'
-    });
+    const officialEach = Math.max(0, override?.amount ?? hole.calculatedAward);
+    for (const winnerId of hole.winnerIds) {
+      entries.push({
+        id: `award:${roundId}:greenie:${hole.holeNumber}:${winnerId}`,
+        roundId,
+        playerId: winnerId,
+        category: 'greenie',
+        label: hole.winnerIds.length > 1
+          ? `Greenie — Hole ${hole.holeNumber} (tie)`
+          : `Greenie — Hole ${hole.holeNumber}`,
+        calculatedAmount: hole.calculatedAward,
+        officialAmount: officialEach,
+        adjustmentReason: override?.reason,
+        settlementStatus: 'unsettled'
+      });
+    }
   }
 
   const horseAss = calculateHorseAss(

@@ -6,17 +6,18 @@ import type {
 import { getPayoutLookup } from '../data/payoutLookup';
 
 export const GREENIE_HOLES = [3, 5, 11, 15] as const;
-
 export type GreenieHoleNumber = (typeof GREENIE_HOLES)[number];
 
 export type GreenieHoleResult = {
   holeNumber: GreenieHoleNumber;
   status: 'pending' | 'no-winner' | 'winner';
   winnerId: string | null;
+  winnerIds: string[];
   baseValue: number;
   carryIn: number;
   availableValue: number;
   calculatedAward: number;
+  calculatedHoleTotal: number;
   finalHoleRedistribution: number;
   distance?: string;
   notes?: string;
@@ -36,12 +37,7 @@ export type GreeniesResult = {
 };
 
 function isInactiveStatus(status: RoundPlayer['status']): boolean {
-  return (
-    status === 'dns' ||
-    status === 'no-show' ||
-    status === 'withdrawn' ||
-    status === 'removed'
-  );
+  return status === 'dns' || status === 'no-show' || status === 'withdrawn' || status === 'removed';
 }
 
 function selectionFor(
@@ -51,16 +47,20 @@ function selectionFor(
   return selections[String(holeNumber)];
 }
 
-export function getGreenieEligiblePlayerIds(
-  roundPlayers: RoundPlayer[]
-): Set<string> {
+function selectedWinnerIds(selection: GreenieSelection | undefined): string[] {
+  if (!selection) return [];
+  const ids = selection.winnerIds?.length
+    ? selection.winnerIds
+    : selection.winnerId
+      ? [selection.winnerId]
+      : [];
+  return Array.from(new Set(ids.filter(Boolean)));
+}
+
+export function getGreenieEligiblePlayerIds(roundPlayers: RoundPlayer[]): Set<string> {
   return new Set(
     roundPlayers
-      .filter(
-        (player) =>
-          player.isEligibleForGreenies &&
-          !isInactiveStatus(player.status)
-      )
+      .filter((player) => player.isEligibleForGreenies && !isInactiveStatus(player.status))
       .map((player) => player.playerId)
   );
 }
@@ -71,15 +71,9 @@ export function calculateGreenies(
 ): GreeniesResult {
   const eligibleIds = getGreenieEligiblePlayerIds(roundPlayers);
   const playerCount = eligibleIds.size;
-  const payoutRow =
-    playerCount >= 4 && playerCount <= 40
-      ? getPayoutLookup(playerCount)
-      : null;
+  const payoutRow = playerCount >= 4 && playerCount <= 40 ? getPayoutLookup(playerCount) : null;
   const greeniesPot = payoutRow
-    ? Object.values(payoutRow.greenies).reduce(
-        (total, amount) => total + amount,
-        0
-      )
+    ? Object.values(payoutRow.greenies).reduce((total, amount) => total + amount, 0)
     : 0;
 
   const holes: GreenieHoleResult[] = [];
@@ -89,56 +83,35 @@ export function calculateGreenies(
     const baseValue = payoutRow?.greenies[holeNumber] ?? 0;
     const availableValue = baseValue + carry;
     const selection = selectionFor(selections, holeNumber);
-    const validWinner =
-      selection?.winnerId !== null &&
-      selection?.winnerId !== undefined &&
-      eligibleIds.has(selection.winnerId);
+    const winnerIds = selectedWinnerIds(selection);
+    const validWinners = winnerIds.length > 0 && winnerIds.every((id) => eligibleIds.has(id));
 
-    if (!selection?.decided || (selection.winnerId && !validWinner)) {
+    if (!selection?.decided || (winnerIds.length > 0 && !validWinners)) {
       holes.push({
-        holeNumber,
-        status: 'pending',
-        winnerId: null,
-        baseValue,
-        carryIn: carry,
-        availableValue,
-        calculatedAward: 0,
-        finalHoleRedistribution: 0,
-        distance: selection?.distance,
-        notes: selection?.notes
+        holeNumber, status: 'pending', winnerId: null, winnerIds: [], baseValue,
+        carryIn: carry, availableValue, calculatedAward: 0, calculatedHoleTotal: 0,
+        finalHoleRedistribution: 0, distance: selection?.distance, notes: selection?.notes
       });
       carry = availableValue;
       continue;
     }
 
-    if (validWinner) {
+    if (validWinners) {
+      const each = availableValue / winnerIds.length;
       holes.push({
-        holeNumber,
-        status: 'winner',
-        winnerId: selection.winnerId,
-        baseValue,
-        carryIn: carry,
-        availableValue,
-        calculatedAward: availableValue,
-        finalHoleRedistribution: 0,
-        distance: selection.distance,
-        notes: selection.notes
+        holeNumber, status: 'winner', winnerId: winnerIds[0], winnerIds, baseValue,
+        carryIn: carry, availableValue, calculatedAward: each,
+        calculatedHoleTotal: availableValue, finalHoleRedistribution: 0,
+        distance: selection?.distance, notes: selection?.notes
       });
       carry = 0;
       continue;
     }
 
     holes.push({
-      holeNumber,
-      status: 'no-winner',
-      winnerId: null,
-      baseValue,
-      carryIn: carry,
-      availableValue,
-      calculatedAward: 0,
-      finalHoleRedistribution: 0,
-      distance: selection.distance,
-      notes: selection.notes
+      holeNumber, status: 'no-winner', winnerId: null, winnerIds: [], baseValue,
+      carryIn: carry, availableValue, calculatedAward: 0, calculatedHoleTotal: 0,
+      finalHoleRedistribution: 0, distance: selection?.distance, notes: selection?.notes
     });
     carry = availableValue;
   }
@@ -146,49 +119,32 @@ export function calculateGreenies(
   let finalHoleRedistributionPool = 0;
   let finalHoleRedistributionEach = 0;
   const finalHole = holes[holes.length - 1];
-
   if (finalHole?.status === 'no-winner' && finalHole.availableValue > 0) {
-    const earlierWinners = holes.filter(
-      (hole) =>
-        hole.holeNumber !== finalHole.holeNumber &&
-        hole.status === 'winner'
+    const earlierWinningHoles = holes.filter(
+      (hole) => hole.holeNumber !== finalHole.holeNumber && hole.status === 'winner'
     );
-
     finalHoleRedistributionPool = finalHole.availableValue;
-
-    if (earlierWinners.length > 0) {
-      finalHoleRedistributionEach = Math.floor(
-        finalHoleRedistributionPool / earlierWinners.length
-      );
-
-      for (const winner of earlierWinners) {
-        winner.finalHoleRedistribution = finalHoleRedistributionEach;
-        winner.calculatedAward += finalHoleRedistributionEach;
+    if (earlierWinningHoles.length > 0) {
+      finalHoleRedistributionEach = finalHoleRedistributionPool / earlierWinningHoles.length;
+      for (const winnerHole of earlierWinningHoles) {
+        winnerHole.finalHoleRedistribution = finalHoleRedistributionEach;
+        winnerHole.calculatedHoleTotal += finalHoleRedistributionEach;
+        winnerHole.calculatedAward = winnerHole.calculatedHoleTotal / winnerHole.winnerIds.length;
       }
     }
   }
 
   const calculatedDistributed = holes.reduce(
-    (total, hole) => total + hole.calculatedAward,
+    (total, hole) => total + hole.calculatedAward * hole.winnerIds.length,
     0
   );
-  const completedHoleCount = holes.filter(
-    (hole) => hole.status !== 'pending'
-  ).length;
-  const winningHoleCount = holes.filter(
-    (hole) => hole.status === 'winner'
-  ).length;
+  const completedHoleCount = holes.filter((hole) => hole.status !== 'pending').length;
+  const winningHoleCount = holes.filter((hole) => hole.status === 'winner').length;
 
   return {
-    playerCount,
-    greeniesPot,
-    holes,
-    completedHoleCount,
-    winningHoleCount,
-    calculatedDistributed,
-    calculatedRemainder: greeniesPot - calculatedDistributed,
-    finalHoleRedistributionPool,
-    finalHoleRedistributionEach,
+    playerCount, greeniesPot, holes, completedHoleCount, winningHoleCount,
+    calculatedDistributed, calculatedRemainder: greeniesPot - calculatedDistributed,
+    finalHoleRedistributionPool, finalHoleRedistributionEach,
     ready: completedHoleCount === GREENIE_HOLES.length
   };
 }

@@ -8,6 +8,8 @@ import {
   quotaIncreaseForCashingResult
 } from './quota';
 
+export const MINIMUM_QUOTA = 12;
+
 const NON_PARTICIPATING = new Set([
   'dns',
   'withdrawn',
@@ -119,19 +121,26 @@ export function buildQuotaUpdates(
       const previous = previousByPlayerId.get(entry.playerId);
       const inMoney = inMoneyByPlayerId.get(entry.playerId) ?? false;
       const isHorseAssWinner = horseAssWinnerIds.has(entry.playerId);
-      const adjustment = calculatedQuotaAdjustment(
+      const ruleAdjustment = calculatedQuotaAdjustment(
         entry.quotaResult as number,
         inMoney,
         isHorseAssWinner
       );
       const oldQuota = entry.quota;
+      const calculatedNewQuota = Math.max(
+        MINIMUM_QUOTA,
+        oldQuota + ruleAdjustment
+      );
+      const adjustment = calculatedNewQuota - oldQuota;
+      const minimumQuotaApplied = oldQuota + ruleAdjustment < MINIMUM_QUOTA;
       const calculationUnchanged = Boolean(
         previous &&
         previous.oldQuota === oldQuota &&
         previous.quotaResult === entry.quotaResult &&
         previous.inMoney === inMoney &&
         previous.isHorseAssWinner === isHorseAssWinner &&
-        previous.calculatedAdjustment === adjustment
+        previous.calculatedAdjustment === adjustment &&
+        Boolean(previous.minimumQuotaApplied) === minimumQuotaApplied
       );
       const officialAdjustment =
         calculationUnchanged && previous?.overrideReason
@@ -147,8 +156,9 @@ export function buildQuotaUpdates(
         inMoney,
         isHorseAssWinner,
         calculatedAdjustment: adjustment,
+        minimumQuotaApplied,
         officialAdjustment,
-        newQuota: Math.max(0, oldQuota + officialAdjustment),
+        newQuota: Math.max(MINIMUM_QUOTA, oldQuota + officialAdjustment),
         overrideReason:
           calculationUnchanged ? previous?.overrideReason : undefined,
         reviewed:
