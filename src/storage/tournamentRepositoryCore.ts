@@ -14,6 +14,7 @@ export type TournamentRecord<TData> = {
   tournamentDate: string;
   createdAt: string;
   updatedAt: string;
+  sourceTournamentId?: string;
   data: TData;
 };
 
@@ -28,6 +29,13 @@ export type CreateTournamentInput<TData> = {
   name: string;
   tournamentDate: string;
   data: TData;
+  id?: string;
+  sourceTournamentId?: string;
+};
+
+export type DuplicateTournamentInput<TData> = {
+  name: string;
+  data?: TData;
   id?: string;
 };
 
@@ -72,6 +80,7 @@ export class TournamentRepositoryCore<TData> {
       tournamentDate: this.requireText(input.tournamentDate, 'Tournament date'),
       createdAt: timestamp,
       updatedAt: timestamp,
+      sourceTournamentId: input.sourceTournamentId,
       data: clone(input.data)
     };
 
@@ -163,6 +172,19 @@ export class TournamentRepositoryCore<TData> {
     return this.save(id, {
       name: this.requireText(name, 'Tournament name'),
       data: existing.data
+    });
+  }
+
+  duplicate(id: string, input: DuplicateTournamentInput<TData>): TournamentRecord<TData> {
+    const existing = this.load(id);
+    if (!existing) throw new Error(`Tournament ${id} does not exist.`);
+
+    return this.create({
+      id: input.id,
+      name: this.requireText(input.name, 'Tournament name'),
+      tournamentDate: existing.tournamentDate,
+      sourceTournamentId: existing.id,
+      data: clone(input.data ?? existing.data)
     });
   }
 

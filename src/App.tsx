@@ -52,23 +52,23 @@ import type { SavedCurrentRound } from './storage/currentRoundStorage';
 import {
   createTournamentDocument,
   deleteTournament,
-  duplicateTournament,
   getTournament,
   initializeTournamentRepository,
-  renameTournament,
   saveTournament,
   setCurrentTournamentId,
   setTournamentArchived,
   type TournamentSummary
 } from './storage/tournamentRepository';
 import {
+  duplicateRepositoryTournament,
   getRepositoryCurrentTournamentDocument,
   getRepositoryCurrentTournamentId,
   getRepositoryTournamentDocument,
   initializeTournamentRepositoryReadBridge,
   listRepositoryTournamentSummaries,
   renameRepositoryTournament,
-  setRepositoryCurrentTournament
+  setRepositoryCurrentTournament,
+  suggestedRepositoryDuplicateName
 } from './storage/tournamentRepositoryReadBridge';
 import type { Group, Player } from './types';
 import type { PlayerAccount } from './types/playerAccount';
@@ -2071,12 +2071,21 @@ function completeRound() {
   }
 
   function duplicateSavedTournament(id: string) {
-    const source = getTournament(id);
+    const source = listRepositoryTournamentSummaries().find((item) => item.id === id);
     if (!source) return;
-    const requestedName = window.prompt('Name for the duplicate:', `${source.name} OCR Test`);
-    if (!requestedName?.trim()) return;
-    const duplicate = duplicateTournament(id, requestedName.trim());
-    applyTournamentDocument(duplicate.id);
+
+    try {
+      const suggestedName = suggestedRepositoryDuplicateName(id);
+      const requestedName = window.prompt('Name for the duplicate:', suggestedName);
+      if (!requestedName?.trim()) return;
+
+      const duplicate = duplicateRepositoryTournament(id, requestedName.trim());
+      setTournamentSummaries(listRepositoryTournamentSummaries());
+      applyTournamentDocument(duplicate.id);
+    } catch (error) {
+      console.error('Tournament duplicate failed.', error);
+      window.alert('The tournament could not be duplicated.');
+    }
   }
 
   function renameSavedTournament(id: string) {
@@ -2910,6 +2919,7 @@ function completeRound() {
             onDelete={deleteSavedTournament}
             readOnly
             allowRename
+            allowDuplicate
           />
           <AIRecognitionSettings />
          <DeveloperTools

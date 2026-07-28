@@ -1,6 +1,7 @@
 import type { TournamentDocument, TournamentSummary } from './tournamentRepository';
 import {
   getCurrentTournamentId as getLegacyCurrentTournamentId,
+  duplicateTournament as duplicateLegacyTournament,
   getTournament as getLegacyTournament,
   listTournaments as listLegacyTournaments
 } from './tournamentRepository';
@@ -159,5 +160,59 @@ export function renameRepositoryTournament(id: string, name: string): Tournament
     archived: false,
     createdAt: renamed.createdAt,
     updatedAt: renamed.updatedAt
+  };
+}
+
+
+export function suggestedRepositoryDuplicateName(id: string): string {
+  const source = repository().load(id);
+  if (!source) throw new Error('Tournament not found.');
+
+  const names = new Set(repository().list().map((item) => item.name.toLowerCase()));
+  const numbered = source.name.match(/^(.*?)(?:\s+(\d+))$/);
+  const baseName = numbered ? numbered[1].trim() : source.name.trim();
+  let number = numbered ? Number(numbered[2]) + 1 : 2;
+  let candidate = `${baseName} ${number}`;
+
+  while (names.has(candidate.toLowerCase())) {
+    number += 1;
+    candidate = `${baseName} ${number}`;
+  }
+
+  return candidate;
+}
+
+export function duplicateRepositoryTournament(id: string, name?: string): TournamentSummary {
+  const repo = repository();
+  const source = repo.load(id);
+  if (!source) throw new Error('Tournament not found.');
+
+  const sourceLegacy = getLegacyTournament(source.data.legacyTournamentId);
+  if (!sourceLegacy) {
+    throw new Error('The tournament data linked to this repository entry could not be found.');
+  }
+
+  const duplicateName = name?.trim() || suggestedRepositoryDuplicateName(id);
+  const legacyDuplicate = duplicateLegacyTournament(
+    source.data.legacyTournamentId,
+    duplicateName
+  );
+
+  const duplicate = repo.duplicate(id, {
+    id: legacyDuplicate.id,
+    name: duplicateName,
+    data: { legacyTournamentId: legacyDuplicate.id }
+  });
+  repo.setCurrent(duplicate.id);
+
+  return {
+    ...legacyDuplicate,
+    id: duplicate.id,
+    name: duplicate.name,
+    roundDate: duplicate.tournamentDate,
+    kind: 'development',
+    archived: false,
+    createdAt: duplicate.createdAt,
+    updatedAt: duplicate.updatedAt
   };
 }

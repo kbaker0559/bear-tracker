@@ -31,6 +31,7 @@ export class TournamentRepositoryCore {
             tournamentDate: this.requireText(input.tournamentDate, 'Tournament date'),
             createdAt: timestamp,
             updatedAt: timestamp,
+            sourceTournamentId: input.sourceTournamentId,
             data: clone(input.data)
         };
         this.writeRecord(record);
@@ -110,6 +111,18 @@ export class TournamentRepositoryCore {
         return this.save(id, {
             name: this.requireText(name, 'Tournament name'),
             data: existing.data
+        });
+    }
+    duplicate(id, input) {
+        const existing = this.load(id);
+        if (!existing)
+            throw new Error(`Tournament ${id} does not exist.`);
+        return this.create({
+            id: input.id,
+            name: this.requireText(input.name, 'Tournament name'),
+            tournamentDate: existing.tournamentDate,
+            sourceTournamentId: existing.id,
+            data: clone(input.data ?? existing.data)
         });
     }
     requireText(value, label) {

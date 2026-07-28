@@ -1,7 +1,16 @@
-# Bear Tracker Foundation F1 — Tournament Library
+# Bear Tracker AT-34.2 — Duplicate Tournament
 
-Copy the contents of this folder into the current Bear Tracker project and choose Merge/Replace when Windows asks.
+This focused update enables repository-backed tournament duplication.
 
-After restarting, open **Administration → Tournament Library**. The previous single saved round is migrated into the library. Create a new tournament for July 18, or duplicate an existing tournament for OCR testing. Bear Tracker autosaves changes into the explicitly selected tournament rather than whichever legacy state happens to exist.
+Changed files:
+- `src/storage/tournamentRepositoryCore.ts`
+- `src/storage/tournamentRepositoryReadBridge.ts`
+- `src/components/TournamentLibrary.tsx`
+- `src/App.tsx`
+- `scripts/test-tournament-repository.mjs`
 
-Scorecard photo bytes remain excluded from browser storage to avoid localStorage quota failures.
+The repository test verifies:
+- a duplicate receives a new permanent ID;
+- the duplicate records its source tournament ID;
+- original and duplicate survive restart independently;
+- editing the duplicate does not change the original.
