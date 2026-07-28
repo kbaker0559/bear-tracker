@@ -8,6 +8,7 @@ type Props = {
   onRename: (id: string) => void;
   onArchive: (id: string, archived: boolean) => void;
   onDelete: (id: string) => void;
+  readOnly?: boolean;
 };
 
 export default function TournamentLibrary({
@@ -17,7 +18,8 @@ export default function TournamentLibrary({
   onDuplicate,
   onRename,
   onArchive,
-  onDelete
+  onDelete,
+  readOnly = false
 }: Props) {
   const active = tournaments.filter((item) => !item.archived);
   const archived = tournaments.filter((item) => item.archived);
@@ -41,12 +43,16 @@ export default function TournamentLibrary({
         </div>
         <div className="tournament-library-actions">
           {!current && <button type="button" onClick={() => onOpen(item.id)}>Open</button>}
-          <button type="button" onClick={() => onDuplicate(item.id)}>Duplicate</button>
-          <button type="button" onClick={() => onRename(item.id)}>Rename</button>
-          <button type="button" onClick={() => onArchive(item.id, !item.archived)}>
-            {item.archived ? 'Unarchive' : 'Archive'}
-          </button>
-          <button type="button" onClick={() => onDelete(item.id)}>Delete</button>
+          {!readOnly && (
+            <>
+              <button type="button" onClick={() => onDuplicate(item.id)}>Duplicate</button>
+              <button type="button" onClick={() => onRename(item.id)}>Rename</button>
+              <button type="button" onClick={() => onArchive(item.id, !item.archived)}>
+                {item.archived ? 'Unarchive' : 'Archive'}
+              </button>
+              <button type="button" onClick={() => onDelete(item.id)}>Delete</button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -55,7 +61,10 @@ export default function TournamentLibrary({
   return (
     <section className="card tournament-library">
       <h2>Tournament Library</h2>
-      <p>Each tournament is stored separately. Opening or renaming one will not change another.</p>
+      <p>Repository Step 3: the tournament list and current selection are read from the verified repository.</p>
+      {readOnly && (
+        <p className="tournament-library-meta">Rename, duplicate, archive, and delete are temporarily disabled until write integration is tested.</p>
+      )}
       <h3>Active Tournaments</h3>
       {active.length === 0 ? <p>No active tournaments.</p> : active.map(renderTournament)}
       {archived.length > 0 && (

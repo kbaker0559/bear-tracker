@@ -55,13 +55,20 @@ import {
   duplicateTournament,
   getTournament,
   initializeTournamentRepository,
-  listTournaments,
   renameTournament,
   saveTournament,
   setCurrentTournamentId,
   setTournamentArchived,
   type TournamentSummary
 } from './storage/tournamentRepository';
+import {
+  getRepositoryCurrentTournamentDocument,
+  getRepositoryCurrentTournamentId,
+  getRepositoryTournamentDocument,
+  initializeTournamentRepositoryReadBridge,
+  listRepositoryTournamentSummaries,
+  setRepositoryCurrentTournament
+} from './storage/tournamentRepositoryReadBridge';
 import type { Group, Player } from './types';
 import type { PlayerAccount } from './types/playerAccount';
 import type { Scorecard } from './types/scorecard';
@@ -244,18 +251,37 @@ export default function App() {
     setNavigationSection(undefined);
   }, []);
 
-  const [initialTournament] = useState(() =>
-    initializeTournamentRepository(() => ({
+  const [initialTournamentSelection] = useState(() => {
+    const legacyInitialTournament = initializeTournamentRepository(() => ({
       roundBundle: createEmptyRound(new Date().toISOString().slice(0, 10)),
       groups: [],
       playerAccounts: initialPlayers.map((player) => createPlayerAccount(player.id)),
       leaguePlayers: initialPlayers
-    }))
-  );
+    }));
 
+    initializeTournamentRepositoryReadBridge();
+    const summaries = listRepositoryTournamentSummaries();
+    const repositoryCurrentId = getRepositoryCurrentTournamentId();
+    const document = getRepositoryCurrentTournamentDocument() ?? legacyInitialTournament;
+    const repositorySummary = summaries.find((item) => item.id === repositoryCurrentId);
+
+    return {
+      document,
+      repositoryCurrentId: repositoryCurrentId ?? document.id,
+      displayName: repositorySummary?.name ?? document.name,
+      summaries
+    };
+  });
+
+  const initialTournament = initialTournamentSelection.document;
   const [currentTournamentId, setCurrentTournamentIdState] = useState(initialTournament.id);
-  const [currentTournamentName, setCurrentTournamentName] = useState(initialTournament.name);
-  const [tournamentSummaries, setTournamentSummaries] = useState<TournamentSummary[]>(() => listTournaments());
+  const [repositoryCurrentTournamentId, setRepositoryCurrentTournamentIdState] = useState(
+    initialTournamentSelection.repositoryCurrentId
+  );
+  const [currentTournamentName, setCurrentTournamentName] = useState(initialTournamentSelection.displayName);
+  const [tournamentSummaries, setTournamentSummaries] = useState<TournamentSummary[]>(
+    initialTournamentSelection.summaries
+  );
   const switchingTournamentRef = useRef(false);
 
   const [players, setPlayers] =
@@ -301,7 +327,7 @@ export default function App() {
       });
       setLastAutosavedAt(saved.updatedAt);
       setCurrentTournamentName(saved.name);
-      setTournamentSummaries(listTournaments());
+      setTournamentSummaries(listRepositoryTournamentSummaries());
     } catch (error) {
       console.error('Tournament autosave failed.', error);
     }
@@ -2014,23 +2040,32 @@ function completeRound() {
     }
   }
 
-  function applyTournamentDocument(id: string) {
-    const document = getTournament(id);
+  function applyTournamentDocument(repositoryId: string) {
+    const document = getRepositoryTournamentDocument(repositoryId);
+    const summary = listRepositoryTournamentSummaries().find(
+      (item) => item.id === repositoryId
+    );
+
     if (!document) {
       window.alert('That tournament could not be opened.');
       return;
     }
 
     switchingTournamentRef.current = true;
-    setCurrentTournamentId(id);
-    setCurrentTournamentIdState(id);
-    setCurrentTournamentName(document.name);
+    setRepositoryCurrentTournament(repositoryId);
+    setRepositoryCurrentTournamentIdState(repositoryId);
+
+    // Keep the legacy pointer and legacy document ID synchronized during the
+    // read-only bridge. The repository ID may be a temporary Step 3 test entry.
+    setCurrentTournamentId(document.id);
+    setCurrentTournamentIdState(document.id);
+    setCurrentTournamentName(summary?.name ?? document.name);
     setRoundBundle(document.data.roundBundle);
     setGroups(document.data.groups ?? []);
     setPlayerAccounts(document.data.playerAccounts ?? []);
     setPlayers(document.data.leaguePlayers ?? initialPlayers);
     setLastAutosavedAt(document.updatedAt);
-    setTournamentSummaries(listTournaments());
+    setTournamentSummaries(listRepositoryTournamentSummaries());
     setCurrentWorkspace('home');
   }
 
@@ -2050,12 +2085,12 @@ function completeRound() {
     if (!requestedName?.trim()) return;
     const updated = renameTournament(id, requestedName.trim());
     if (id === currentTournamentId) setCurrentTournamentName(updated.name);
-    setTournamentSummaries(listTournaments());
+    setTournamentSummaries(listRepositoryTournamentSummaries());
   }
 
   function archiveSavedTournament(id: string, archived: boolean) {
     setTournamentArchived(id, archived);
-    setTournamentSummaries(listTournaments());
+    setTournamentSummaries(listRepositoryTournamentSummaries());
   }
 
   function deleteSavedTournament(id: string) {
@@ -2063,7 +2098,7 @@ function completeRound() {
     if (!source) return;
     if (!window.confirm(`Delete ${source.name}? This cannot be undone.`)) return;
     const nextId = deleteTournament(id);
-    setTournamentSummaries(listTournaments());
+    setTournamentSummaries(listRepositoryTournamentSummaries());
     if (id === currentTournamentId && nextId) applyTournamentDocument(nextId);
   }
 
@@ -2857,12 +2892,13 @@ function completeRound() {
           </button>
           <TournamentLibrary
             tournaments={tournamentSummaries}
-            currentTournamentId={currentTournamentId}
+            currentTournamentId={repositoryCurrentTournamentId}
             onOpen={applyTournamentDocument}
             onDuplicate={duplicateSavedTournament}
             onRename={renameSavedTournament}
             onArchive={archiveSavedTournament}
             onDelete={deleteSavedTournament}
+            readOnly
           />
           <AIRecognitionSettings />
          <DeveloperTools
