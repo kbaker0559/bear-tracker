@@ -46,6 +46,7 @@ function clone<T>(value: T): T {
 export class TournamentRepositoryCore<TData> {
   private readonly indexKey: string;
   private readonly documentPrefix: string;
+  private readonly currentIdKey: string;
 
   constructor(
     private readonly storage: RepositoryStorage,
@@ -55,6 +56,7 @@ export class TournamentRepositoryCore<TData> {
   ) {
     this.indexKey = `${namespace}:index`;
     this.documentPrefix = `${namespace}:document:`;
+    this.currentIdKey = `${namespace}:current-id`;
   }
 
   create(input: CreateTournamentInput<TData>): TournamentRecord<TData> {
@@ -119,6 +121,39 @@ export class TournamentRepositoryCore<TData> {
     return clone(
       [...index.tournaments].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     );
+  }
+
+  setCurrent(id: string): TournamentRecord<TData> {
+    const normalizedId = id.trim();
+    if (!normalizedId) throw new Error('Current tournament ID cannot be empty.');
+
+    const tournament = this.load(normalizedId);
+    if (!tournament) {
+      throw new Error(`Tournament ${normalizedId} does not exist.`);
+    }
+
+    this.storage.setItem(this.currentIdKey, normalizedId);
+    return tournament;
+  }
+
+  getCurrentId(): string | null {
+    const storedId = this.storage.getItem(this.currentIdKey)?.trim();
+    if (!storedId) return null;
+
+    // A stale pointer must never cause Bear Tracker to invent or open a
+    // different tournament. Clear it and return null so the caller can ask
+    // the user which tournament to open.
+    if (!this.load(storedId)) {
+      this.storage.removeItem(this.currentIdKey);
+      return null;
+    }
+
+    return storedId;
+  }
+
+  getCurrent(): TournamentRecord<TData> | null {
+    const currentId = this.getCurrentId();
+    return currentId ? this.load(currentId) : null;
   }
 
   private requireText(value: string, label: string): string {

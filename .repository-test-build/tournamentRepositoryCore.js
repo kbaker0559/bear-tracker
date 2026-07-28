@@ -8,12 +8,14 @@ export class TournamentRepositoryCore {
     createId;
     indexKey;
     documentPrefix;
+    currentIdKey;
     constructor(storage, clock, createId, namespace = DEFAULT_NAMESPACE) {
         this.storage = storage;
         this.clock = clock;
         this.createId = createId;
         this.indexKey = `${namespace}:index`;
         this.documentPrefix = `${namespace}:document:`;
+        this.currentIdKey = `${namespace}:current-id`;
     }
     create(input) {
         const id = input.id?.trim() || this.createId();
@@ -72,6 +74,34 @@ export class TournamentRepositoryCore {
     list() {
         const index = this.readIndex();
         return clone([...index.tournaments].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+    }
+    setCurrent(id) {
+        const normalizedId = id.trim();
+        if (!normalizedId)
+            throw new Error('Current tournament ID cannot be empty.');
+        const tournament = this.load(normalizedId);
+        if (!tournament) {
+            throw new Error(`Tournament ${normalizedId} does not exist.`);
+        }
+        this.storage.setItem(this.currentIdKey, normalizedId);
+        return tournament;
+    }
+    getCurrentId() {
+        const storedId = this.storage.getItem(this.currentIdKey)?.trim();
+        if (!storedId)
+            return null;
+        // A stale pointer must never cause Bear Tracker to invent or open a
+        // different tournament. Clear it and return null so the caller can ask
+        // the user which tournament to open.
+        if (!this.load(storedId)) {
+            this.storage.removeItem(this.currentIdKey);
+            return null;
+        }
+        return storedId;
+    }
+    getCurrent() {
+        const currentId = this.getCurrentId();
+        return currentId ? this.load(currentId) : null;
     }
     requireText(value, label) {
         const trimmed = value.trim();

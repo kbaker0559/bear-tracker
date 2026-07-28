@@ -13,8 +13,6 @@ const typeScriptCompiler = resolve(
   'tsc'
 );
 
-// Use Node's filesystem API instead of platform-specific shell commands
-// such as `rm`, so this test runs the same way on Windows, macOS, and Linux.
 rmSync(buildDirectory, {
   recursive: true,
   force: true,
@@ -26,7 +24,7 @@ const compileResult = spawnSync(
     typeScriptCompiler,
     '--ignoreConfig',
     '--ignoreDeprecations',
-'6.0',
+    '6.0',
     'src/storage/tournamentRepositoryCore.ts',
     '--target',
     'ES2022',
