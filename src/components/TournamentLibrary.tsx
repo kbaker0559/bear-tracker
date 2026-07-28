@@ -9,6 +9,7 @@ type Props = {
   onArchive: (id: string, archived: boolean) => void;
   onDelete: (id: string) => void;
   readOnly?: boolean;
+  allowRename?: boolean;
 };
 
 export default function TournamentLibrary({
@@ -19,7 +20,8 @@ export default function TournamentLibrary({
   onRename,
   onArchive,
   onDelete,
-  readOnly = false
+  readOnly = false,
+  allowRename = false
 }: Props) {
   const active = tournaments.filter((item) => !item.archived);
   const archived = tournaments.filter((item) => item.archived);
@@ -43,10 +45,12 @@ export default function TournamentLibrary({
         </div>
         <div className="tournament-library-actions">
           {!current && <button type="button" onClick={() => onOpen(item.id)}>Open</button>}
+          {(allowRename || !readOnly) && (
+            <button type="button" onClick={() => onRename(item.id)}>Rename</button>
+          )}
           {!readOnly && (
             <>
               <button type="button" onClick={() => onDuplicate(item.id)}>Duplicate</button>
-              <button type="button" onClick={() => onRename(item.id)}>Rename</button>
               <button type="button" onClick={() => onArchive(item.id, !item.archived)}>
                 {item.archived ? 'Unarchive' : 'Archive'}
               </button>
@@ -63,7 +67,7 @@ export default function TournamentLibrary({
       <h2>Tournament Library</h2>
       <p>Repository Step 3: the tournament list and current selection are read from the verified repository.</p>
       {readOnly && (
-        <p className="tournament-library-meta">Rename, duplicate, archive, and delete are temporarily disabled until write integration is tested.</p>
+        <p className="tournament-library-meta">Rename now writes through the verified repository. Duplicate, archive, and delete remain disabled until their own acceptance tests.</p>
       )}
       <h3>Active Tournaments</h3>
       {active.length === 0 ? <p>No active tournaments.</p> : active.map(renderTournament)}

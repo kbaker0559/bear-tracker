@@ -54,11 +54,22 @@ const secondRestart = new TournamentRepositoryCore(storage, clock, createId, nam
 assert.equal(secondRestart.getCurrentId(), 'tournament-b');
 assert.equal(secondRestart.getCurrent()?.name, 'July 4, 2026 Saturday Game');
 
-const listed = secondRestart.list();
+const renamed = secondRestart.rename('tournament-b', 'July 4 OCR Test');
+assert.equal(renamed.id, 'tournament-b');
+assert.equal(renamed.name, 'July 4 OCR Test');
+assert.equal(renamed.tournamentDate, '2026-07-04');
+assert.equal(renamed.data.status, 'complete');
+
+const renameRestart = new TournamentRepositoryCore(storage, clock, createId, namespace);
+assert.equal(renameRestart.getCurrentId(), 'tournament-b');
+assert.equal(renameRestart.getCurrent()?.name, 'July 4 OCR Test');
+assert.equal(renameRestart.getCurrent()?.data.status, 'complete');
+
+const listed = renameRestart.list();
 assert.equal(listed.length, 2);
 assert.deepEqual(new Set(listed.map((item) => item.id)), new Set(['tournament-a', 'tournament-b']));
 
-const saved = secondRestart.save('tournament-a', {
+const saved = renameRestart.save('tournament-a', {
   data: { players: 23, cards: 6, status: 'one-card-imported' }
 });
 assert.equal(saved.name, 'July 18, 2026 Saturday Game');
@@ -66,16 +77,18 @@ assert.equal(saved.tournamentDate, '2026-07-18');
 assert.equal(saved.data.status, 'one-card-imported');
 
 assert.throws(
-  () => secondRestart.setCurrent('missing-tournament'),
+  () => renameRestart.setCurrent('missing-tournament'),
   /does not exist/
 );
-assert.equal(secondRestart.getCurrentId(), 'tournament-b');
+assert.equal(renameRestart.getCurrentId(), 'tournament-b');
 
-console.log('PASS Tournament Repository Step 2');
+console.log('PASS Tournament Repository AT-34.1');
 console.log('  ✓ create, persist, load, and list tournament documents');
 console.log('  ✓ set Tournament A as current');
 console.log('  ✓ restore Tournament A after repository restart');
 console.log('  ✓ switch current pointer to Tournament B');
 console.log('  ✓ restore Tournament B after second restart');
+console.log('  ✓ rename Tournament B without changing identity, date, or contents');
+console.log('  ✓ preserve renamed tournament after repository restart');
 console.log('  ✓ reject a pointer to a missing tournament');
 console.log('  ✓ preserve tournament identity, name, and date when saving');

@@ -103,6 +103,15 @@ export class TournamentRepositoryCore {
         const currentId = this.getCurrentId();
         return currentId ? this.load(currentId) : null;
     }
+    rename(id, name) {
+        const existing = this.load(id);
+        if (!existing)
+            throw new Error(`Tournament ${id} does not exist.`);
+        return this.save(id, {
+            name: this.requireText(name, 'Tournament name'),
+            data: existing.data
+        });
+    }
     requireText(value, label) {
         const trimmed = value.trim();
         if (!trimmed)

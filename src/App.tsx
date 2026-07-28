@@ -67,6 +67,7 @@ import {
   getRepositoryTournamentDocument,
   initializeTournamentRepositoryReadBridge,
   listRepositoryTournamentSummaries,
+  renameRepositoryTournament,
   setRepositoryCurrentTournament
 } from './storage/tournamentRepositoryReadBridge';
 import type { Group, Player } from './types';
@@ -2079,13 +2080,22 @@ function completeRound() {
   }
 
   function renameSavedTournament(id: string) {
-    const source = getTournament(id);
+    const source = listRepositoryTournamentSummaries().find((item) => item.id === id);
     if (!source) return;
+
     const requestedName = window.prompt('Tournament name:', source.name);
     if (!requestedName?.trim()) return;
-    const updated = renameTournament(id, requestedName.trim());
-    if (id === currentTournamentId) setCurrentTournamentName(updated.name);
-    setTournamentSummaries(listRepositoryTournamentSummaries());
+
+    try {
+      const updated = renameRepositoryTournament(id, requestedName.trim());
+      if (id === repositoryCurrentTournamentId) {
+        setCurrentTournamentName(updated.name);
+      }
+      setTournamentSummaries(listRepositoryTournamentSummaries());
+    } catch (error) {
+      console.error('Tournament rename failed.', error);
+      window.alert('The tournament could not be renamed.');
+    }
   }
 
   function archiveSavedTournament(id: string, archived: boolean) {
@@ -2899,6 +2909,7 @@ function completeRound() {
             onArchive={archiveSavedTournament}
             onDelete={deleteSavedTournament}
             readOnly
+            allowRename
           />
           <AIRecognitionSettings />
          <DeveloperTools

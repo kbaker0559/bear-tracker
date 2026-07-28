@@ -156,6 +156,16 @@ export class TournamentRepositoryCore<TData> {
     return currentId ? this.load(currentId) : null;
   }
 
+  rename(id: string, name: string): TournamentRecord<TData> {
+    const existing = this.load(id);
+    if (!existing) throw new Error(`Tournament ${id} does not exist.`);
+
+    return this.save(id, {
+      name: this.requireText(name, 'Tournament name'),
+      data: existing.data
+    });
+  }
+
   private requireText(value: string, label: string): string {
     const trimmed = value.trim();
     if (!trimmed) throw new Error(`${label} cannot be empty.`);

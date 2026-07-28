@@ -57,14 +57,14 @@ export function initializeTournamentRepositoryReadBridge(): void {
       continue;
     }
 
-    if (
-      existing.name !== tournament.name ||
-      existing.tournamentDate !== tournament.roundDate ||
-      existing.data.legacyTournamentId !== tournament.id
-    ) {
+    // Once a repository record exists, its name and tournament date are the
+    // authoritative metadata. Do not copy legacy metadata back over it during
+    // startup, because that would undo repository-backed renames. Only repair
+    // the compatibility pointer if it is ever out of sync.
+    if (existing.data.legacyTournamentId !== tournament.id) {
       repo.save(tournament.id, {
-        name: tournament.name,
-        tournamentDate: tournament.roundDate,
+        name: existing.name,
+        tournamentDate: existing.tournamentDate,
         data: pointerData
       });
     }
@@ -141,4 +141,23 @@ export function getRepositoryTournamentDocument(id: string): TournamentDocument 
 export function getRepositoryCurrentTournamentDocument(): TournamentDocument | null {
   const id = getRepositoryCurrentTournamentId();
   return id ? getRepositoryTournamentDocument(id) : null;
+}
+
+export function renameRepositoryTournament(id: string, name: string): TournamentSummary {
+  const renamed = repository().rename(id, name);
+  const legacy = getLegacyTournament(renamed.data.legacyTournamentId);
+  if (!legacy) {
+    throw new Error('The tournament data linked to this repository entry could not be found.');
+  }
+
+  return {
+    ...legacy,
+    id: renamed.id,
+    name: renamed.name,
+    roundDate: renamed.tournamentDate,
+    kind: renamed.id === STEP_3_TEST_TOURNAMENT_ID ? 'development' : legacy.kind,
+    archived: false,
+    createdAt: renamed.createdAt,
+    updatedAt: renamed.updatedAt
+  };
 }
