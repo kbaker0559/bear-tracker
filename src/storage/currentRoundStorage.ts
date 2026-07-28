@@ -5,6 +5,7 @@ import { createDefaultResultsSettings } from '../types/resultsSettings';
 import { createEmptyTreasuryReconciliation } from '../types/treasuryReconciliation';
 
 const STORAGE_KEY = 'glos-current-round';
+const SAVED_AT_KEY = 'glos-current-round-saved-at';
 
 export type SavedCurrentRound = {
   roundBundle: RoundBundle;
@@ -100,20 +101,38 @@ export function loadCurrentRound(): SavedCurrentRound | null {
 
 export function saveCurrentRound(
   value: SavedCurrentRound
-): void {
+): string | null {
   try {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(value)
-    );
+    // Image data URLs can exceed the browser's localStorage quota.
+    // Persist the complete tournament setup and OCR state, but omit the
+    // bulky photo bytes so a restart never loses pairings/check-in progress.
+    const safeValue: SavedCurrentRound = {
+      ...value,
+      roundBundle: {
+        ...value.roundBundle,
+        scorecardImports: value.roundBundle.scorecardImports.map((item) => ({
+          ...item,
+          imageUrl: undefined,
+          originalImageUrl: undefined
+        }))
+      }
+    };
+
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(safeValue));
+    const savedAt = new Date().toISOString();
+    window.localStorage.setItem(SAVED_AT_KEY, savedAt);
+    return savedAt;
   } catch (error) {
-    console.error(
-      'Could not save the current GLOS round.',
-      error
-    );
+    console.error('Could not save the current GLOS round.', error);
+    return null;
   }
+}
+
+export function loadCurrentRoundSavedAt(): string | null {
+  return window.localStorage.getItem(SAVED_AT_KEY);
 }
 
 export function clearSavedCurrentRound(): void {
   window.localStorage.removeItem(STORAGE_KEY);
+  window.localStorage.removeItem(SAVED_AT_KEY);
 }

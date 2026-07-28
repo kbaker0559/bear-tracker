@@ -39,6 +39,7 @@ export default function ScorecardPhotoPanel({
   const [reading, setReading] = useState(false);
   const [identityReading, setIdentityReading] = useState(false);
   const [identityReview, setIdentityReview] = useState<ScorecardIdentityReview | null>(null);
+  const [showOriginal, setShowOriginal] = useState(false);
   const cardNumber = scorecard.cardNumber;
 
   async function handleFile(file: File | undefined) {
@@ -55,6 +56,8 @@ export default function ScorecardPhotoPanel({
   }
 
   const imageUrl = scorecardImport?.imageUrl;
+  const originalImageUrl = scorecardImport?.originalImageUrl;
+  const displayedImageUrl = showOriginal && originalImageUrl ? originalImageUrl : imageUrl;
 
   return (
     <div className="scorecard-photo-panel">
@@ -73,11 +76,23 @@ export default function ScorecardPhotoPanel({
           >
             <img
               className="scorecard-photo-preview"
-              src={imageUrl}
+              src={displayedImageUrl}
               alt={`Paper scorecard for Card ${cardNumber}`}
             />
-            <span>View Full Size</span>
+            <span>{showOriginal ? 'View Original Full Size' : 'View AI-Prepared Full Size'}</span>
           </button>
+
+          {scorecardImport?.imagePreparation && (
+            <div className="scorecard-image-preparation">
+              <strong>AI image preparation</strong>
+              <span>{scorecardImport.imagePreparation.message}</span>
+              {originalImageUrl && originalImageUrl !== imageUrl && (
+                <button type="button" onClick={() => setShowOriginal((current) => !current)}>
+                  {showOriginal ? 'Show AI-Prepared Image' : 'Compare Original Photo'}
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="scorecard-photo-actions">
             <button
@@ -177,7 +192,7 @@ export default function ScorecardPhotoPanel({
 
       {viewerOpen && imageUrl && (
         <ScorecardViewer
-          imageUrl={imageUrl}
+          imageUrl={displayedImageUrl ?? imageUrl}
           cardNumber={cardNumber}
           onClose={() => setViewerOpen(false)}
         />

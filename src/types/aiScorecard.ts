@@ -18,6 +18,10 @@ export type RecognizedPlayer = {
   name: string;
   confidence: number;
   scores: RecognizedScore[];
+  netScores: RecognizedScore[];
+  handwrittenFrontNine: number | null;
+  handwrittenBackNine: number | null;
+  handwrittenTotal: number | null;
 };
 
 export type ScorecardRecognitionResult = {

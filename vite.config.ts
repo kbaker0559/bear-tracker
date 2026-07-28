@@ -178,8 +178,12 @@ function aiApiPlugin(apiKey: string, model: string): Plugin {
             'Read this Black Bear golf scorecard.',
             `The assigned players, in scorecard order, are: ${expectedPlayerNames.join(', ')}.`,
             'Return one player object for each assigned player and exactly 18 gross hole scores per player.',
-            'Use null when a score cannot be read. Confidence is from 0 to 1.',
-            'Do not use handwritten totals as hole scores. Do not calculate Stableford points.'
+            'For each player, also read exactly 18 NET scores from the NET row directly beneath that player when they are filled in. Use null for blank NET cells.',
+            'SCORE is gross. NET is never greater than SCORE and on these cards is either equal to SCORE or exactly one less.',
+            'Also read the handwritten OUT/front-nine total, IN/back-nine total, and 18-hole total for each player row when present.',
+            'Use null when a score or total cannot be read. Confidence is from 0 to 1.',
+            'Do not substitute totals for hole scores. Do not calculate Stableford points.',
+            'Preserve row order exactly as the assigned player list.'
           ].join('\n');
 
           const schema = {
@@ -191,11 +195,27 @@ function aiApiPlugin(apiKey: string, model: string): Plugin {
                 type: 'array',
                 items: {
                   type: 'object', additionalProperties: false,
-                  required: ['name', 'confidence', 'scores'],
+                  required: ['name', 'confidence', 'scores', 'netScores', 'handwrittenFrontNine', 'handwrittenBackNine', 'handwrittenTotal'],
                   properties: {
                     name: { type: 'string' },
                     confidence: { type: 'number', minimum: 0, maximum: 1 },
+                    handwrittenFrontNine: { type: ['integer', 'null'], minimum: 9, maximum: 135 },
+                    handwrittenBackNine: { type: ['integer', 'null'], minimum: 9, maximum: 135 },
+                    handwrittenTotal: { type: ['integer', 'null'], minimum: 18, maximum: 270 },
                     scores: {
+                      type: 'array', minItems: 18, maxItems: 18,
+                      items: {
+                        type: 'object', additionalProperties: false,
+                        required: ['holeNumber', 'score', 'confidence', 'reviewReason'],
+                        properties: {
+                          holeNumber: { type: 'integer', minimum: 1, maximum: 18 },
+                          score: { type: ['integer', 'null'], minimum: 1, maximum: 15 },
+                          confidence: { type: 'number', minimum: 0, maximum: 1 },
+                          reviewReason: { type: ['string', 'null'] }
+                        }
+                      }
+                    },
+                    netScores: {
                       type: 'array', minItems: 18, maxItems: 18,
                       items: {
                         type: 'object', additionalProperties: false,

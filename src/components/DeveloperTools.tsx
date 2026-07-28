@@ -13,13 +13,18 @@ type Props = {
   onDeleteBenchmark: (
     benchmarkId: string
   ) => void;
+
+  onResetOcrTestData: () => void;
+  autosaveStatus: string;
 };
 
 export default function DeveloperTools({
   benchmarks,
   onCreateBenchmark,
   onLoadBenchmark,
-  onDeleteBenchmark
+  onDeleteBenchmark,
+  onResetOcrTestData,
+  autosaveStatus
 }: Props) {
   const hasBenchmarks = useMemo(
     () => benchmarks.length > 0,
@@ -29,6 +34,23 @@ export default function DeveloperTools({
   return (
     <section className="card">
       <h2>Developer Tools</h2>
+
+
+      <div className="developer-autosave-status">
+        <strong>Session recovery:</strong> {autosaveStatus}
+      </div>
+
+      <button
+        type="button"
+        onClick={onResetOcrTestData}
+        style={{ marginTop: '0.75rem' }}
+      >
+        Reset OCR Test Data
+      </button>
+
+      <p style={{ fontSize: '0.9rem', opacity: 0.75 }}>
+        Clears scorecard photos, recognition results, validation decisions, and review corrections. Pairings, cards, handicaps, quotas, arrivals, and payments are preserved.
+      </p>
 
       <button
         type="button"

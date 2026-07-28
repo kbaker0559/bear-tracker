@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AppShell from './components/AppShell';
 import HomeWorkspace from './components/HomeWorkspace';
 import OperationsWorkspace from './components/OperationsWorkspace';
@@ -9,6 +9,7 @@ import FinalizeWorkspace from './components/FinalizeWorkspace';
 import QuotaWorkspace from './components/QuotaWorkspace';
 import DeveloperTools from './components/DeveloperTools';
 import AIRecognitionSettings from './components/AIRecognitionSettings';
+import TournamentLibrary from './components/TournamentLibrary';
 import { bearTrackerScoringSettings } from './config/bearTrackerScoring';
 import { initialPlayers } from './data/players';
 import { blackBearCourse } from './data/blackBearCourse';
@@ -47,11 +48,20 @@ import {
   updateGrossScore,
   updatePaperPlayerTotals
 } from './engine/scoreEntryEngine';
+import type { SavedCurrentRound } from './storage/currentRoundStorage';
 import {
-  clearSavedCurrentRound,
-  loadCurrentRound,
-  saveCurrentRound
-} from './storage/currentRoundStorage';
+  createTournamentDocument,
+  deleteTournament,
+  duplicateTournament,
+  getTournament,
+  initializeTournamentRepository,
+  listTournaments,
+  renameTournament,
+  saveTournament,
+  setCurrentTournamentId,
+  setTournamentArchived,
+  type TournamentSummary
+} from './storage/tournamentRepository';
 import type { Group, Player } from './types';
 import type { PlayerAccount } from './types/playerAccount';
 import type { Scorecard } from './types/scorecard';
@@ -74,6 +84,9 @@ import type { ScoreConfidence, ScorecardImportIssue } from './types/scorecardImp
 import { recognizeScorecard, recognizeScorecardIdentity } from './services/aiScorecardService';
 import { matchRecognizedPlayerName } from './services/playerNameMatching';
 import type { ScorecardIdentityReview } from './types/aiScorecard';
+import { runRecognitionValidation } from './engine/recognitionValidationEngine';
+import { createScorecardImport } from './engine/scorecardImportEngine';
+import { createScorecardEntry } from './engine/scoreEntryEngine';
 
 type Workspace =
   | 'home'
@@ -114,46 +127,102 @@ function createTournamentEvent(
   };
 }
 
-const SCORECARD_PHOTO_MAX_DIMENSION = 2200;
-const SCORECARD_PHOTO_QUALITY = 0.86;
+const SCORECARD_PHOTO_MAX_DIMENSION = 2400;
+const SCORECARD_PHOTO_QUALITY = 0.9;
 
-async function prepareScorecardPhoto(file: File): Promise<string> {
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Please choose an image file.');
+type PreparedScorecardPhoto = {
+  originalImageUrl: string;
+  imageUrl: string;
+  autoCropped: boolean;
+  rotated: boolean;
+  message: string;
+};
+
+function toJpeg(canvas: HTMLCanvasElement): string {
+  return canvas.toDataURL('image/jpeg', SCORECARD_PHOTO_QUALITY);
+}
+
+function findBrightCardBounds(source: HTMLCanvasElement) {
+  const maxSample = 420;
+  const factor = Math.min(1, maxSample / Math.max(source.width, source.height));
+  const sample = document.createElement('canvas');
+  sample.width = Math.max(1, Math.round(source.width * factor));
+  sample.height = Math.max(1, Math.round(source.height * factor));
+  const ctx = sample.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(source, 0, 0, sample.width, sample.height);
+  const data = ctx.getImageData(0, 0, sample.width, sample.height).data;
+  const w = sample.width, h = sample.height;
+  const mask = new Uint8Array(w * h);
+  for (let y = 0; y < h; y += 1) for (let x = 0; x < w; x += 1) {
+    const i = (y * w + x) * 4;
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    if (lum > 150 && Math.max(r, g, b) - Math.min(r, g, b) < 85) mask[y * w + x] = 1;
   }
+  const seen = new Uint8Array(mask.length);
+  let best: { minX: number; minY: number; maxX: number; maxY: number; count: number } | null = null;
+  const qx = new Int32Array(mask.length), qy = new Int32Array(mask.length);
+  for (let sy = 0; sy < h; sy += 1) for (let sx = 0; sx < w; sx += 1) {
+    const si = sy * w + sx;
+    if (!mask[si] || seen[si]) continue;
+    let head = 0, tail = 0, count = 0, minX = sx, maxX = sx, minY = sy, maxY = sy;
+    qx[tail] = sx; qy[tail] = sy; tail += 1; seen[si] = 1;
+    while (head < tail) {
+      const x = qx[head], y = qy[head]; head += 1; count += 1;
+      minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+      for (const [nx, ny] of [[x-1,y],[x+1,y],[x,y-1],[x,y+1]]) {
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const ni = ny * w + nx;
+        if (!mask[ni] || seen[ni]) continue;
+        seen[ni] = 1; qx[tail] = nx; qy[tail] = ny; tail += 1;
+      }
+    }
+    const boxArea = (maxX-minX+1)*(maxY-minY+1);
+    if (count > w*h*0.04 && count/boxArea > 0.22 && (!best || count > best.count)) best = {minX,minY,maxX,maxY,count};
+  }
+  if (!best) return null;
+  const padX = Math.max(4, Math.round((best.maxX-best.minX)*0.025));
+  const padY = Math.max(4, Math.round((best.maxY-best.minY)*0.04));
+  const x1 = Math.max(0,best.minX-padX), y1 = Math.max(0,best.minY-padY);
+  const x2 = Math.min(w-1,best.maxX+padX), y2 = Math.min(h-1,best.maxY+padY);
+  return { x: Math.round(x1/factor), y: Math.round(y1/factor), width: Math.round((x2-x1+1)/factor), height: Math.round((y2-y1+1)/factor) };
+}
 
+async function prepareScorecardPhoto(file: File): Promise<PreparedScorecardPhoto> {
+  if (!file.type.startsWith('image/')) throw new Error('Please choose an image file.');
   const objectUrl = URL.createObjectURL(file);
-
   try {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const candidate = new Image();
       candidate.onload = () => resolve(candidate);
-      candidate.onerror = () =>
-        reject(new Error('The selected image could not be opened.'));
+      candidate.onerror = () => reject(new Error('The selected image could not be opened.'));
       candidate.src = objectUrl;
     });
-
-    const scale = Math.min(
-      1,
-      SCORECARD_PHOTO_MAX_DIMENSION /
-        Math.max(image.naturalWidth, image.naturalHeight)
-    );
-    const width = Math.max(1, Math.round(image.naturalWidth * scale));
-    const height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-
-    const context = canvas.getContext('2d');
-    if (!context) {
-      throw new Error('The browser could not prepare the scorecard photo.');
+    const scale = Math.min(1, SCORECARD_PHOTO_MAX_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight));
+    const original = document.createElement('canvas');
+    original.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    original.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const originalCtx = original.getContext('2d');
+    if (!originalCtx) throw new Error('The browser could not prepare the scorecard photo.');
+    originalCtx.drawImage(image, 0, 0, original.width, original.height);
+    const originalImageUrl = toJpeg(original);
+    const bounds = findBrightCardBounds(original);
+    if (!bounds) return { originalImageUrl, imageUrl: originalImageUrl, autoCropped: false, rotated: false, message: 'Automatic crop was not confident; using the original photo.' };
+    const crop = document.createElement('canvas'); crop.width = bounds.width; crop.height = bounds.height;
+    const cropCtx = crop.getContext('2d');
+    if (!cropCtx) throw new Error('The browser could not crop the scorecard photo.');
+    cropCtx.drawImage(original, bounds.x, bounds.y, bounds.width, bounds.height, 0, 0, bounds.width, bounds.height);
+    let output = crop, rotated = false;
+    if (crop.height > crop.width) {
+      const r = document.createElement('canvas'); r.width = crop.height; r.height = crop.width;
+      const rctx = r.getContext('2d'); if (!rctx) throw new Error('The browser could not rotate the scorecard photo.');
+      rctx.translate(r.width, 0); rctx.rotate(Math.PI/2); rctx.drawImage(crop, 0, 0); output = r; rotated = true;
     }
-
-    context.drawImage(image, 0, 0, width, height);
-    return canvas.toDataURL('image/jpeg', SCORECARD_PHOTO_QUALITY);
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
+    const coverage = bounds.width*bounds.height/(original.width*original.height);
+    const autoCropped = coverage < 0.94 || rotated;
+    return { originalImageUrl, imageUrl: toJpeg(output), autoCropped, rotated, message: autoCropped ? `Prepared for AI: scorecard auto-cropped${rotated ? ' and rotated' : ''}.` : 'The scorecard already filled the image; no crop was needed.' };
+  } finally { URL.revokeObjectURL(objectUrl); }
 }
 
 export default function App() {
@@ -175,13 +244,23 @@ export default function App() {
     setNavigationSection(undefined);
   }, []);
 
-  const [savedCurrentRound] = useState(() =>
-    loadCurrentRound()
+  const [initialTournament] = useState(() =>
+    initializeTournamentRepository(() => ({
+      roundBundle: createEmptyRound(new Date().toISOString().slice(0, 10)),
+      groups: [],
+      playerAccounts: initialPlayers.map((player) => createPlayerAccount(player.id)),
+      leaguePlayers: initialPlayers
+    }))
   );
+
+  const [currentTournamentId, setCurrentTournamentIdState] = useState(initialTournament.id);
+  const [currentTournamentName, setCurrentTournamentName] = useState(initialTournament.name);
+  const [tournamentSummaries, setTournamentSummaries] = useState<TournamentSummary[]>(() => listTournaments());
+  const switchingTournamentRef = useRef(false);
 
   const [players, setPlayers] =
     useState<Player[]>(() =>
-      savedCurrentRound?.leaguePlayers ?? initialPlayers
+      initialTournament.data.leaguePlayers ?? initialPlayers
     );
 
   const [
@@ -193,32 +272,41 @@ export default function App() {
 
   const [roundBundle, setRoundBundle] =
     useState<RoundBundle>(() =>
-      savedCurrentRound?.roundBundle ??
-      createEmptyRound(
-        new Date().toISOString().slice(0, 10)
-      )
+      initialTournament.data.roundBundle
     );
 
   const [playerAccounts, setPlayerAccounts] =
     useState<PlayerAccount[]>(() =>
-      savedCurrentRound?.playerAccounts ??
-      initialPlayers.map((player) =>
-        createPlayerAccount(player.id)
-      )
+      initialTournament.data.playerAccounts
     );
 
   const [groups, setGroups] = useState<Group[]>(
-    () => savedCurrentRound?.groups ?? []
+    () => initialTournament.data.groups
   );
 
+  const [lastAutosavedAt, setLastAutosavedAt] = useState<string | null>(initialTournament.updatedAt);
+
   useEffect(() => {
-    saveCurrentRound({
-      roundBundle,
-      groups,
-      playerAccounts,
-      leaguePlayers: players
-    });
+    if (switchingTournamentRef.current) {
+      switchingTournamentRef.current = false;
+      return;
+    }
+
+    try {
+      const saved = saveTournament(currentTournamentId, {
+        roundBundle,
+        groups,
+        playerAccounts,
+        leaguePlayers: players
+      });
+      setLastAutosavedAt(saved.updatedAt);
+      setCurrentTournamentName(saved.name);
+      setTournamentSummaries(listTournaments());
+    } catch (error) {
+      console.error('Tournament autosave failed.', error);
+    }
   }, [
+    currentTournamentId,
     roundBundle,
     groups,
     playerAccounts,
@@ -1926,33 +2014,99 @@ function completeRound() {
     }
   }
 
-  function startNewRound() {
-    const confirmed =
-      window.confirm(
-        'Start a new round? This will clear the current saved round and all current arrival and score-entry progress.'
-      );
-
-    if (!confirmed) {
+  function applyTournamentDocument(id: string) {
+    const document = getTournament(id);
+    if (!document) {
+      window.alert('That tournament could not be opened.');
       return;
     }
 
-    const newRound =
-      createEmptyRound(
-        new Date()
-          .toISOString()
-          .slice(0, 10)
-      );
-
-    clearSavedCurrentRound();
-
-    setRoundBundle(newRound);
-    setGroups([]);
-    setPlayerAccounts(
-      initialPlayers.map((player) =>
-        createPlayerAccount(player.id)
-      )
-    );
+    switchingTournamentRef.current = true;
+    setCurrentTournamentId(id);
+    setCurrentTournamentIdState(id);
+    setCurrentTournamentName(document.name);
+    setRoundBundle(document.data.roundBundle);
+    setGroups(document.data.groups ?? []);
+    setPlayerAccounts(document.data.playerAccounts ?? []);
+    setPlayers(document.data.leaguePlayers ?? initialPlayers);
+    setLastAutosavedAt(document.updatedAt);
+    setTournamentSummaries(listTournaments());
     setCurrentWorkspace('home');
+  }
+
+  function duplicateSavedTournament(id: string) {
+    const source = getTournament(id);
+    if (!source) return;
+    const requestedName = window.prompt('Name for the duplicate:', `${source.name} OCR Test`);
+    if (!requestedName?.trim()) return;
+    const duplicate = duplicateTournament(id, requestedName.trim());
+    applyTournamentDocument(duplicate.id);
+  }
+
+  function renameSavedTournament(id: string) {
+    const source = getTournament(id);
+    if (!source) return;
+    const requestedName = window.prompt('Tournament name:', source.name);
+    if (!requestedName?.trim()) return;
+    const updated = renameTournament(id, requestedName.trim());
+    if (id === currentTournamentId) setCurrentTournamentName(updated.name);
+    setTournamentSummaries(listTournaments());
+  }
+
+  function archiveSavedTournament(id: string, archived: boolean) {
+    setTournamentArchived(id, archived);
+    setTournamentSummaries(listTournaments());
+  }
+
+  function deleteSavedTournament(id: string) {
+    const source = getTournament(id);
+    if (!source) return;
+    if (!window.confirm(`Delete ${source.name}? This cannot be undone.`)) return;
+    const nextId = deleteTournament(id);
+    setTournamentSummaries(listTournaments());
+    if (id === currentTournamentId && nextId) applyTournamentDocument(nextId);
+  }
+
+  function resetOcrTestData() {
+    const confirmed = window.confirm(
+      'Reset OCR test data for every card? Pairings, cards, handicaps, quotas, arrivals, and payments will be preserved.'
+    );
+
+    if (!confirmed) return;
+
+    setRoundBundle((current) => ({
+      ...current,
+      scorecardImports: current.scorecards.map((scorecard) =>
+        createScorecardImport(current.round.id, scorecard)
+      ),
+      scorecardEntries: current.scorecards.map((scorecard) =>
+        createScorecardEntry(current.round.id, scorecard, players)
+      ),
+      scoreCorrections: []
+    }));
+
+    setCurrentWorkspace('tournament');
+    window.alert(
+      'OCR test data and test scores reset. Pairings, cards, handicaps, quotas, arrivals, and payments were preserved.'
+    );
+  }
+
+  function startNewRound() {
+    const requestedDate = window.prompt(
+      'Tournament date (YYYY-MM-DD):',
+      new Date().toISOString().slice(0, 10)
+    );
+    if (!requestedDate?.trim()) return;
+
+    const newRound = createEmptyRound(requestedDate.trim());
+    const data: SavedCurrentRound = {
+      roundBundle: newRound,
+      groups: [],
+      playerAccounts: initialPlayers.map((player) => createPlayerAccount(player.id)),
+      leaguePlayers: players
+    };
+    const document = createTournamentDocument(data, { makeCurrent: true });
+    applyTournamentDocument(document.id);
   }
 
   function startRound() {
@@ -2101,7 +2255,7 @@ function completeRound() {
     scorecardId: string,
     file: File
   ): Promise<void> {
-    const imageUrl = await prepareScorecardPhoto(file);
+    const prepared = await prepareScorecardPhoto(file);
 
     setRoundBundle((current) => ({
       ...current,
@@ -2110,7 +2264,9 @@ function completeRound() {
           ? {
               ...scorecardImport,
               imageName: file.name,
-              imageUrl
+              originalImageUrl: prepared.originalImageUrl,
+              imageUrl: prepared.imageUrl,
+              imagePreparation: { autoCropped: prepared.autoCropped, rotated: prepared.rotated, message: prepared.message }
             }
           : scorecardImport
       )
@@ -2199,49 +2355,113 @@ function completeRound() {
             resolved: false
           }));
 
-          const cells = item.cells.map((cell) => {
+          const preliminaryCells = item.cells.map((cell) => {
             const playerIndex = assignedPlayers.findIndex((player) => player.playerId === cell.playerId);
             const recognizedPlayer = result.players[playerIndex];
             const recognizedScore = recognizedPlayer?.scores.find((score) => score.holeNumber === cell.holeNumber);
+            const recognizedNetScore = recognizedPlayer?.netScores?.find((score) => score.holeNumber === cell.holeNumber);
             const score = recognizedScore?.score ?? null;
+            const netScore = recognizedNetScore?.score ?? null;
             const numericConfidence = recognizedScore?.confidence ?? 0;
-            const confidence: ScoreConfidence = score === null
+            const validGolfScore = score !== null && score >= 1 && score <= 15;
+            const confidence: ScoreConfidence = !validGolfScore
               ? 'missing'
               : numericConfidence >= 0.9
                 ? 'high'
                 : numericConfidence >= 0.7
                   ? 'medium'
                   : 'low';
-            const requiresReview = score === null || confidence !== 'high';
-
-            if (requiresReview) {
-              issues.push({
-                id: crypto.randomUUID(),
-                type: score === null ? 'unreadable-score' as const : 'other' as const,
-                message: recognizedScore?.reviewReason || `${assignedPlayers[playerIndex]?.name ?? cell.playerId}, hole ${cell.holeNumber} needs review.`,
-                playerId: cell.playerId,
-                holeNumber: cell.holeNumber,
-                resolved: false
-              });
-            }
+            const requiresReview = !validGolfScore || confidence !== 'high';
 
             return {
               ...cell,
-              extractedScore: score,
+              rawExtractedScore: validGolfScore ? score : null,
+              extractedScore: validGolfScore ? score : null,
+              extractedNetScore: netScore !== null && netScore >= 1 && netScore <= 15 ? netScore : null,
+              recognitionConfidence: numericConfidence,
               confirmedScore: confidence === 'high' ? score : null,
               confidence,
               requiresReview,
-              reviewReason: requiresReview ? (recognizedScore?.reviewReason || 'AI confidence is below the automatic-confirmation threshold.') : undefined
+              reviewReason: requiresReview ? (recognizedScore?.reviewReason || 'AI confidence is below the automatic-confirmation threshold.') : undefined,
+              correctedByValidation: false,
+              validationNotes: []
             };
           });
+
+          const sumRange = (cells: typeof preliminaryCells, playerId: string, firstHole: number, lastHole: number): number | null => {
+            const range = cells.filter((cell) =>
+              cell.playerId === playerId && cell.holeNumber >= firstHole && cell.holeNumber <= lastHole
+            );
+            if (range.length !== lastHole - firstHole + 1 || range.some((cell) => cell.extractedScore === null)) return null;
+            return range.reduce((sum, cell) => sum + (cell.extractedScore ?? 0), 0);
+          };
+
+          const preliminaryTotals = assignedPlayers.map((player, playerIndex) => {
+            const recognizedPlayer = result.players[playerIndex];
+            const calculatedFrontNine = sumRange(preliminaryCells, player.playerId, 1, 9);
+            const calculatedBackNine = sumRange(preliminaryCells, player.playerId, 10, 18);
+            const calculatedTotal = calculatedFrontNine !== null && calculatedBackNine !== null
+              ? calculatedFrontNine + calculatedBackNine
+              : null;
+            const handwrittenFrontNine = recognizedPlayer?.handwrittenFrontNine ?? null;
+            const handwrittenBackNine = recognizedPlayer?.handwrittenBackNine ?? null;
+            const handwrittenTotal = recognizedPlayer?.handwrittenTotal ?? null;
+            return {
+              playerId: player.playerId,
+              calculatedFrontNine,
+              calculatedBackNine,
+              calculatedTotal,
+              handwrittenFrontNine,
+              handwrittenBackNine,
+              handwrittenTotal,
+              frontNineMatches: calculatedFrontNine === null || handwrittenFrontNine === null ? null : calculatedFrontNine === handwrittenFrontNine,
+              backNineMatches: calculatedBackNine === null || handwrittenBackNine === null ? null : calculatedBackNine === handwrittenBackNine,
+              totalMatches: calculatedTotal === null || handwrittenTotal === null ? null : calculatedTotal === handwrittenTotal
+            };
+          });
+
+          const validation = runRecognitionValidation({
+            cells: preliminaryCells,
+            totals: preliminaryTotals,
+            holes: blackBearCourse,
+            playerContexts: scorecard.players.map((scorecardPlayer) => ({
+              playerId: scorecardPlayer.playerId,
+              playerName: players.find((player) => player.id === scorecardPlayer.playerId)?.name ?? scorecardPlayer.playerId,
+              handicapAtPairing: scorecardPlayer.handicapAtPairing
+            }))
+          });
+
+          for (const cell of validation.cells) {
+            if (!cell.requiresReview) continue;
+            const playerName = assignedPlayers.find((player) => player.playerId === cell.playerId)?.name ?? cell.playerId;
+            issues.push({
+              id: crypto.randomUUID(),
+              type: cell.extractedScore === null ? 'unreadable-score' : 'other',
+              message: cell.reviewReason || `${playerName}, hole ${cell.holeNumber} needs review.`,
+              playerId: cell.playerId,
+              holeNumber: cell.holeNumber,
+              resolved: false
+            });
+          }
+
+          for (const message of validation.unresolvedMessages) {
+            issues.push({
+              id: crypto.randomUUID(),
+              type: 'other',
+              message,
+              resolved: false
+            });
+          }
 
           return {
             ...item,
             status: 'needs-review' as const,
             extractedAt: new Date().toISOString(),
-            cells,
+            cells: validation.cells,
             issues,
-            notes: `Read by ${result.provider} using ${result.model}.`
+            playerTotals: validation.totals,
+            recognitionDecisions: validation.decisions,
+            notes: `Read by ${result.provider} using ${result.model}. ${validation.decisions.length} score${validation.decisions.length === 1 ? '' : 's'} resolved automatically by golf validation.`
           };
         })
       }));
@@ -2291,7 +2511,9 @@ function completeRound() {
                 confirmedScore: score,
                 confidence,
                 requiresReview: score === null,
-                reviewReason: score === null ? 'No score has been confirmed.' : undefined
+                reviewReason: score === null ? 'No score has been confirmed.' : undefined,
+                correctedByValidation: false,
+                validationNotes: score === null ? [] : ['Manually confirmed during review.']
               }
             : cell
         );
@@ -2402,6 +2624,16 @@ function completeRound() {
           navigateToWorkspace(workspace)
         }
       />
+
+      <section className="current-tournament-banner">
+        <div>
+          <strong>Current tournament:</strong> {currentTournamentName}
+        </div>
+        <div>
+          {roundBundle.round.date} • {roundBundle.roundPlayers.length} players • {roundBundle.scorecards.length} cards
+          {lastAutosavedAt ? ` • Autosaved ${new Date(lastAutosavedAt).toLocaleTimeString()}` : ''}
+        </div>
+      </section>
 
       {currentWorkspace === 'home' && (
         <HomeWorkspace
@@ -2623,6 +2855,15 @@ function completeRound() {
           >
             Start New Round
           </button>
+          <TournamentLibrary
+            tournaments={tournamentSummaries}
+            currentTournamentId={currentTournamentId}
+            onOpen={applyTournamentDocument}
+            onDuplicate={duplicateSavedTournament}
+            onRename={renameSavedTournament}
+            onArchive={archiveSavedTournament}
+            onDelete={deleteSavedTournament}
+          />
           <AIRecognitionSettings />
          <DeveloperTools
   benchmarks={benchmarkSummaries}
@@ -2634,6 +2875,12 @@ function completeRound() {
   }
   onDeleteBenchmark={
     removeSavedBenchmark
+  }
+  onResetOcrTestData={resetOcrTestData}
+  autosaveStatus={
+    lastAutosavedAt
+      ? `Autosaved ${new Date(lastAutosavedAt).toLocaleTimeString()}. Saved to the current tournament document.`
+      : 'Waiting for the first autosave.'
   }
 /> 
         </section>

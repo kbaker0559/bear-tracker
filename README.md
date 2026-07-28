@@ -1,25 +1,7 @@
-# Bear Tracker Sprint 7 — Supabase Foundation
+# Bear Tracker Foundation F1 — Tournament Library
 
-This sprint adds the first live-database foundation while keeping the local scoring app intact.
+Copy the contents of this folder into the current Bear Tracker project and choose Merge/Replace when Windows asks.
 
-## Added
+After restarting, open **Administration → Tournament Library**. The previous single saved round is migrated into the library. Create a new tournament for July 18, or duplicate an existing tournament for OCR testing. Bear Tracker autosaves changes into the explicitly selected tournament rather than whichever legacy state happens to exist.
 
-- Supabase schema for players, courses, rounds, groups, group players, and scores
-- Black Bear course seed SQL
-- Live DB tab in the app
-- Supabase REST connection test
-- Push local players to Supabase
-- Setup notes in `docs/SUPABASE_SPRINT7.md`
-
-## Still local in this sprint
-
-Score entry, leaderboard, and skins still use browser storage. The next sprint should move scores into Supabase for true multi-phone live scoring.
-
-## Commands
-
-```bash
-npm install
-npm run dev
-npm run test:engine
-npm run build
-```
+Scorecard photo bytes remain excluded from browser storage to avoid localStorage quota failures.

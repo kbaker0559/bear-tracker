@@ -499,3 +499,177 @@ code { background: #f7f2e8; padding: 0.1rem 0.3rem; border-radius: 0.3rem; }
   .identity-summary-grid { grid-template-columns: 1fr; }
   .player-recognition-row { align-items: flex-start; }
 }
+
+.scorecard-import-total small {
+  display: block;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  font-weight: 600;
+  opacity: 0.78;
+}
+
+.scorecard-import-total.total-match {
+  outline: 2px solid rgba(21, 128, 61, 0.4);
+  outline-offset: -2px;
+}
+
+.scorecard-import-total.total-mismatch {
+  outline: 3px solid rgba(185, 28, 28, 0.75);
+  outline-offset: -3px;
+  background: rgba(254, 226, 226, 0.9);
+}
+
+.scorecard-import-total.total-unavailable {
+  background: rgba(241, 245, 249, 0.85);
+}
+
+.scorecard-import-issues {
+  margin-top: 0.9rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(185, 28, 28, 0.28);
+  border-radius: 0.65rem;
+  background: rgba(254, 242, 242, 0.85);
+}
+
+.scorecard-import-issues ul {
+  margin: 0.45rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.scorecard-import-issues li + li {
+  margin-top: 0.3rem;
+}
+
+.confidence-swatch.total-match {
+  background: rgba(21, 128, 61, 0.75);
+}
+
+.confidence-swatch.total-mismatch {
+  background: rgba(185, 28, 28, 0.85);
+}
+
+.scorecard-image-preparation {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid #d9d2bd;
+  border-radius: 10px;
+  background: #f8f6ef;
+}
+
+.scorecard-image-preparation span {
+  flex: 1 1 320px;
+}
+
+
+/* Recognition & Validation Engine */
+.rve-summary {
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid #86b89a;
+  border-radius: 10px;
+  background: #eef8f1;
+}
+.rve-summary p { margin: 0.35rem 0 0.65rem; }
+.rve-summary details ul { margin-bottom: 0; }
+.rve-corrected-cell { position: relative; outline: 2px solid #2f7d4a; outline-offset: -2px; }
+.rve-corrected-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  z-index: 1;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: #245f38;
+  color: white;
+  font-size: 0.55rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+
+.developer-autosave-status {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 0.75rem;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.current-tournament-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 0.75rem;
+  background: rgba(10, 24, 38, 0.72);
+}
+
+.current-tournament-banner > div:last-child {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  text-align: right;
+}
+
+.tournament-library {
+  margin-top: 1rem;
+}
+
+.tournament-library-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 0;
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+
+.tournament-library-title,
+.tournament-library-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tournament-library-meta {
+  margin-top: 0.25rem;
+  font-size: 0.88rem;
+  opacity: 0.72;
+}
+
+.tournament-current-badge,
+.tournament-development-badge {
+  display: inline-flex;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.tournament-current-badge {
+  background: rgba(65, 201, 129, 0.18);
+  color: #8ce7b8;
+}
+
+.tournament-development-badge {
+  background: rgba(245, 184, 73, 0.18);
+  color: #ffd287;
+}
+
+@media (max-width: 760px) {
+  .current-tournament-banner,
+  .tournament-library-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .current-tournament-banner > div:last-child {
+    text-align: left;
+  }
+}
