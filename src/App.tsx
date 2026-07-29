@@ -2209,8 +2209,12 @@ function completeRound() {
       playerAccounts: initialPlayers.map((player) => createPlayerAccount(player.id)),
       leaguePlayers: players
     };
-    const document = createTournamentDocument(data, { makeCurrent: true });
-    applyTournamentDocument(document.id);
+    const document = createRepositoryTournamentFromPairings(
+  data,
+  requestedDate.trim()
+);
+
+applyTournamentDocument(document.id);
   }
 
   function startRound() {
