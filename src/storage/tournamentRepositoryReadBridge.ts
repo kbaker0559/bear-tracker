@@ -5,7 +5,8 @@ import {
   defaultTournamentName,
   duplicateTournament as duplicateLegacyTournament,
   getTournament as getLegacyTournament,
-  listTournaments as listLegacyTournaments
+  listTournaments as listLegacyTournaments,
+saveTournament as saveLegacyTournament
 } from './tournamentRepository';
 import { TournamentRepositoryCore } from './tournamentRepositoryCore';
 
@@ -270,5 +271,60 @@ export function createRepositoryTournamentFromPairings(
     archived: false,
     createdAt: created.createdAt,
     updatedAt: created.updatedAt
+  };
+}
+export function updateRepositoryTournamentFromPairings(
+  repositoryId: string,
+  data: import('./currentRoundStorage').SavedCurrentRound,
+  tournamentDate: string
+): TournamentSummary {
+  const normalizedDate = tournamentDate.trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+    throw new Error(
+      'Choose a valid tournament date before applying pairings.'
+    );
+  }
+
+  const repo = repository();
+  const repositoryRecord = repo.load(repositoryId);
+
+  if (!repositoryRecord) {
+    throw new Error(
+      'The current repository tournament could not be found.'
+    );
+  }
+
+  if (repositoryRecord.tournamentDate !== normalizedDate) {
+    throw new Error(
+      'The imported pairings date does not match the current tournament.'
+    );
+  }
+
+  const updatedLegacyDocument = saveLegacyTournament(
+    repositoryRecord.data.legacyTournamentId,
+    data
+  );
+
+  const updatedRepositoryRecord = repo.save(repositoryId, {
+    name: repositoryRecord.name,
+    tournamentDate: normalizedDate,
+    data: {
+      legacyTournamentId:
+        repositoryRecord.data.legacyTournamentId
+    }
+  });
+
+  repo.setCurrent(repositoryId);
+
+  return {
+    ...updatedLegacyDocument,
+    id: updatedRepositoryRecord.id,
+    name: updatedRepositoryRecord.name,
+    roundDate: updatedRepositoryRecord.tournamentDate,
+    kind: updatedLegacyDocument.kind,
+    archived: false,
+    createdAt: updatedRepositoryRecord.createdAt,
+    updatedAt: updatedRepositoryRecord.updatedAt
   };
 }

@@ -14,7 +14,9 @@ export type PlayerMatch = {
 };
 
 const playerAliases: Record<string, string> = {
-  garypurdue: 'garypardue'
+  garypurdue: 'garypardue',
+  elvisbarthwaite: 'elvisbrathwaite',
+  neilself: 'nealself'
 };
 
 function normalizeName(value: string): string {

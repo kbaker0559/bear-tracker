@@ -31,6 +31,7 @@ type Props = {
   groups: Group[];
   weeklyPlayers: WeeklyPlayerSnapshot[];
   roundPlayers: RoundPlayer[];
+  roundDate: string;
   tournamentEvents: import('../types/tournamentEvent').TournamentEvent[];
 
   expectedCount: number;
@@ -107,6 +108,7 @@ export default function OperationsWorkspace({
   groups,
   weeklyPlayers,
   roundPlayers,
+  roundDate,
   tournamentEvents,
   expectedCount,
   checkedInCount,
@@ -268,19 +270,20 @@ export default function OperationsWorkspace({
   function handleApplyPairings(
   importedGroups: Group[],
   tournamentDate: string
-) {
+): boolean {
   const shouldContinue = onApplyPairings(
     importedGroups,
     tournamentDate
   );
 
   if (!shouldContinue) {
-    return;
-  }
+  return false;
+}
 
   window.setTimeout(() => {
     continueToWeeklyReview();
   }, 150);
+  return true;
 }
 
   function completePlayerStatusReview() {
@@ -360,9 +363,10 @@ export default function OperationsWorkspace({
 
         <div ref={pairingsRef} id="pairings-import">
           <PairingsImport
-            players={players}
-            onApplyPairings={handleApplyPairings}
-          />
+  players={players}
+  tournamentDate={roundDate}
+  onApplyPairings={handleApplyPairings}
+/>
         </div>
 
         <div ref={weeklyReviewRef} id="weekly-review">

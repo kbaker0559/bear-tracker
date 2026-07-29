@@ -244,9 +244,13 @@ function applyPairings(groups: Group[]) {
 )}
 {activeTab === 'pairings' && (
   <PairingsImport
-    players={state.players}
-    onApplyPairings={applyPairings}
-  />
+  players={state.players}
+  tournamentDate={currentRound.date}
+  onApplyPairings={(groups) => {
+    applyPairings(groups);
+    return true;
+  }}
+/>
 )}
 {activeTab === 'scorecards' && (
   <ScorecardBuilder

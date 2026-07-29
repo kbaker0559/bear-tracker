@@ -70,7 +70,8 @@ import {
   listRepositoryTournamentSummaries,
   renameRepositoryTournament,
   setRepositoryCurrentTournament,
-  suggestedRepositoryDuplicateName
+  suggestedRepositoryDuplicateName,
+  updateRepositoryTournamentFromPairings
 } from './storage/tournamentRepositoryReadBridge';
 import type { Group, Player } from './types';
 import type { PlayerAccount } from './types/playerAccount';
@@ -480,7 +481,10 @@ export default function App() {
   const existingTournament =
     findRepositoryTournamentByDate(tournamentDate);
 
-  if (existingTournament) {
+  if (
+  existingTournament &&
+  existingTournament.id !== repositoryCurrentTournamentId
+) {
     const openExisting = window.confirm(
       `A round already exists for ${tournamentDate}.\n\nOpen "${existingTournament.name}" instead?`
     );
@@ -548,7 +552,14 @@ export default function App() {
     };
 
     try {
-      const createdTournament = createRepositoryTournamentFromPairings(
+      const createdTournament =
+  repositoryCurrentTournamentId
+    ? updateRepositoryTournamentFromPairings(
+        repositoryCurrentTournamentId,
+        savedData,
+        tournamentDate
+      )
+    : createRepositoryTournamentFromPairings(
         savedData,
         tournamentDate
       );
@@ -2785,6 +2796,7 @@ applyTournamentDocument(document.id);
           groups={groups}
           weeklyPlayers={weeklyPlayers}
           roundPlayers={roundBundle.roundPlayers}
+          roundDate={roundBundle.round.date}
           tournamentEvents={roundBundle.tournamentEvents ?? []}
           expectedCount={
             expectedCount

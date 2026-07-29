@@ -1,19 +1,31 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Group, Player } from '../types';
 import { matchPlayer } from '../services/playerMatcher';
 import { parsePairingsEmail } from '../utils/parsePairings';
 
 type Props = {
   players: Player[];
-  onApplyPairings: (groups: Group[], tournamentDate: string) => void;
+  tournamentDate: string;
+  onApplyPairings: (
+    groups: Group[],
+    tournamentDate: string
+  ) => boolean;
 };
 
 export default function PairingsImport({
   players,
+  tournamentDate: initialTournamentDate,
   onApplyPairings
 }: Props) {
   const [text, setText] = useState('');
-  const [tournamentDate, setTournamentDate] = useState('');
+
+  const [tournamentDate, setTournamentDate] =
+    useState(initialTournamentDate);
+    
+    useEffect(() => {
+  setTournamentDate(initialTournamentDate);
+}, [initialTournamentDate]);
+
   const [acceptedMatches, setAcceptedMatches] = useState<
     Record<string, string>
   >({});
