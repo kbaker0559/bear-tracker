@@ -1,3 +1,4 @@
+import { resetBearTrackerStorage } from '../storage/developerTools';
 import { useMemo } from 'react';
 import type { BenchmarkSummary } from '../types/benchmark';
 
@@ -30,6 +31,26 @@ export default function DeveloperTools({
     () => benchmarks.length > 0,
     [benchmarks]
   );
+
+  function resetAllBearTrackerData() {
+  const confirmed = window.confirm(
+    'This will delete every Bear Tracker tournament and all saved Bear Tracker data from this browser. Continue?'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const confirmedAgain = window.confirm(
+    'Final warning: this cannot be undone unless you restore your downloaded backup. Delete everything?'
+  );
+
+  if (!confirmedAgain) {
+    return;
+  }
+
+  resetBearTrackerStorage();
+}
 
   return (
     <section className="card">
@@ -128,6 +149,25 @@ export default function DeveloperTools({
           </div>
         </div>
       ))}
+            <hr
+        style={{
+          margin: '1.5rem 0'
+        }}
+      />
+
+      <h3>Development Storage Reset</h3>
+
+      <p style={{ fontSize: '0.9rem', opacity: 0.75 }}>
+        Deletes every Bear Tracker tournament and all saved Bear Tracker data
+        from this browser. Make sure you've exported a backup first.
+      </p>
+
+      <button
+        type="button"
+        onClick={resetAllBearTrackerData}
+      >
+        Reset Bear Tracker Storage
+      </button>
     </section>
   );
 }

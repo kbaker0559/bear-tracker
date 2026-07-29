@@ -1,6 +1,8 @@
 import type { TournamentDocument, TournamentSummary } from './tournamentRepository';
 import {
   getCurrentTournamentId as getLegacyCurrentTournamentId,
+  createTournamentDocument as createLegacyTournamentDocument,
+  defaultTournamentName,
   duplicateTournament as duplicateLegacyTournament,
   getTournament as getLegacyTournament,
   listTournaments as listLegacyTournaments
@@ -12,7 +14,6 @@ type RepositoryPointerData = {
 };
 
 const REPOSITORY_NAMESPACE = 'bear-tracker:tournament-repository-ui-read:v1';
-const STEP_3_TEST_TOURNAMENT_ID = 'repository-step-3-test-b';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -71,24 +72,7 @@ export function initializeTournamentRepositoryReadBridge(): void {
     }
   }
 
-  // Step 3 needs two visible repository entries so the current-pointer UI can
-  // be tested before duplicate/write integration exists. The temporary B entry
-  // safely points to the same read-only legacy document as the first entry.
-  const repositoryRecords = repo.list();
-  if (
-    repositoryRecords.length === 1 &&
-    !repo.load(STEP_3_TEST_TOURNAMENT_ID)
-  ) {
-    const source = repo.load(repositoryRecords[0].id);
-    if (source) {
-      repo.create({
-        id: STEP_3_TEST_TOURNAMENT_ID,
-        name: `${source.name} — Repository Test B`,
-        tournamentDate: source.tournamentDate,
-        data: { legacyTournamentId: source.data.legacyTournamentId }
-      });
-    }
-  }
+  
 
   const currentId = repo.getCurrentId();
   if (currentId) return;
@@ -118,7 +102,7 @@ export function listRepositoryTournamentSummaries(): TournamentSummary[] {
       id: record.id,
       name: record.name,
       roundDate: record.tournamentDate,
-      kind: record.id === STEP_3_TEST_TOURNAMENT_ID ? 'development' : legacy.kind,
+      kind: legacy.kind,
       archived: false,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt
@@ -156,7 +140,7 @@ export function renameRepositoryTournament(id: string, name: string): Tournament
     id: renamed.id,
     name: renamed.name,
     roundDate: renamed.tournamentDate,
-    kind: renamed.id === STEP_3_TEST_TOURNAMENT_ID ? 'development' : legacy.kind,
+    kind: legacy.kind,
     archived: false,
     createdAt: renamed.createdAt,
     updatedAt: renamed.updatedAt
@@ -214,5 +198,77 @@ export function duplicateRepositoryTournament(id: string, name?: string): Tourna
     archived: false,
     createdAt: duplicate.createdAt,
     updatedAt: duplicate.updatedAt
+  };
+}
+
+export function findRepositoryTournamentByDate(
+  tournamentDate: string
+): TournamentSummary | null {
+  const normalizedDate = tournamentDate.trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+    return null;
+  }
+
+  const matching = listRepositoryTournamentSummaries().filter(
+    (summary) => summary.roundDate === normalizedDate
+  );
+
+  if (matching.length === 0) {
+    return null;
+  }
+
+  const currentId = repository().getCurrentId();
+
+  return (
+    matching.find((summary) => summary.id === currentId) ??
+    matching.find((summary) => summary.kind === 'official') ??
+    matching[0]
+  );
+}
+
+export function createRepositoryTournamentFromPairings(
+  data: import('./currentRoundStorage').SavedCurrentRound,
+  tournamentDate: string
+): TournamentSummary {
+  const normalizedDate = tournamentDate.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+    throw new Error('Choose a valid tournament date before applying pairings.');
+  }
+
+  const repo = repository();
+  const existingForDate = repo.list().find(
+    (item) => item.tournamentDate === normalizedDate
+  );
+  if (existingForDate) {
+    throw new Error(
+      `A repository tournament already exists for ${normalizedDate}. Open it before replacing its pairings.`
+    );
+  }
+
+  const name = defaultTournamentName(normalizedDate);
+  const legacyDocument = createLegacyTournamentDocument(data, {
+    name,
+    kind: 'official',
+    makeCurrent: true
+  });
+
+  const created = repo.create({
+    id: legacyDocument.id,
+    name,
+    tournamentDate: normalizedDate,
+    data: { legacyTournamentId: legacyDocument.id }
+  });
+  repo.setCurrent(created.id);
+
+  return {
+    ...legacyDocument,
+    id: created.id,
+    name: created.name,
+    roundDate: created.tournamentDate,
+    kind: 'official',
+    archived: false,
+    createdAt: created.createdAt,
+    updatedAt: created.updatedAt
   };
 }

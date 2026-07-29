@@ -60,7 +60,9 @@ import {
   type TournamentSummary
 } from './storage/tournamentRepository';
 import {
+  createRepositoryTournamentFromPairings,
   duplicateRepositoryTournament,
+  findRepositoryTournamentByDate,
   getRepositoryCurrentTournamentDocument,
   getRepositoryCurrentTournamentId,
   getRepositoryTournamentDocument,
@@ -471,13 +473,31 @@ export default function App() {
     });
 
   function applyPairings(
-    importedGroups: Group[]
-  ) {
-    const scorecards: Scorecard[] =
+  importedGroups: Group[],
+  tournamentDate: string
+): boolean {
+
+  const existingTournament =
+    findRepositoryTournamentByDate(tournamentDate);
+
+  if (existingTournament) {
+    const openExisting = window.confirm(
+      `A round already exists for ${tournamentDate}.\n\nOpen "${existingTournament.name}" instead?`
+    );
+
+    if (!openExisting) {
+      return false;
+    }
+
+    applyTournamentDocument(existingTournament.id);
+    return true;
+  }
+
+  const scorecards: Scorecard[] =
       importedGroups.map(
         (group, index) => ({
           id: group.id,
-          roundId: roundBundle.round.id,
+          roundId: `round-${tournamentDate}`,
           cardNumber: index + 1,
           teeTime: '',
           players: group.playerIds.map(
@@ -506,20 +526,49 @@ export default function App() {
 
     const createdRound =
       createRoundFromScorecards(
-        roundBundle.round.date,
+        tournamentDate,
         scorecards,
         players
       );
 
-    setGroups(importedGroups);
-    setRoundBundle({
+    const preparedRoundBundle = {
       ...createdRound,
       round: {
         ...createdRound.round,
         playerStatusReviewedAt: undefined,
         cardOrderReviewedAt: undefined
       }
-    });
+    };
+
+    const savedData: SavedCurrentRound = {
+      roundBundle: preparedRoundBundle,
+      groups: importedGroups,
+      playerAccounts,
+      leaguePlayers: players
+    };
+
+    try {
+      const createdTournament = createRepositoryTournamentFromPairings(
+        savedData,
+        tournamentDate
+      );
+
+      switchingTournamentRef.current = true;
+      setRepositoryCurrentTournamentIdState(createdTournament.id);
+      setCurrentTournamentIdState(createdTournament.id);
+      setCurrentTournamentName(createdTournament.name);
+      setGroups(importedGroups);
+      setRoundBundle(preparedRoundBundle);
+      setLastAutosavedAt(createdTournament.updatedAt);
+      setTournamentSummaries(listRepositoryTournamentSummaries());
+      return true;
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'The tournament could not be created from the pairings.';
+      window.alert(message);
+      return false;
+    }
   }
 
   function completePlayerStatusReview() {
@@ -600,6 +649,7 @@ function createCurrentRoundBenchmark() {
         : 'The benchmark could not be saved.';
 
     window.alert(message);
+    return false;
   }
 }
 
@@ -2477,7 +2527,11 @@ function completeRound() {
           const validation = runRecognitionValidation({
             cells: preliminaryCells,
             totals: preliminaryTotals,
-            holes: blackBearCourse,
+            holes: blackBearCourse.map((hole) => ({
+  number: hole.holeNumber,
+  par: hole.par,
+  strokeIndex: hole.strokeIndex
+})),
             playerContexts: scorecard.players.map((scorecardPlayer) => ({
               playerId: scorecardPlayer.playerId,
               playerName: players.find((player) => player.id === scorecardPlayer.playerId)?.name ?? scorecardPlayer.playerId,
@@ -2680,14 +2734,30 @@ function completeRound() {
       />
 
       <section className="current-tournament-banner">
-        <div>
-          <strong>Current tournament:</strong> {currentTournamentName}
-        </div>
-        <div>
-          {roundBundle.round.date} • {roundBundle.roundPlayers.length} players • {roundBundle.scorecards.length} cards
-          {lastAutosavedAt ? ` • Autosaved ${new Date(lastAutosavedAt).toLocaleTimeString()}` : ''}
-        </div>
-      </section>
+  {currentTournamentId ? (
+    <>
+      <div>
+        <strong>Current tournament:</strong> {currentTournamentName}
+      </div>
+
+      <div>
+        {roundBundle.round.date} • {roundBundle.roundPlayers.length} players •{' '}
+        {roundBundle.scorecards.length} cards
+        {lastAutosavedAt
+          ? ` • Autosaved ${new Date(lastAutosavedAt).toLocaleTimeString()}`
+          : ''}
+      </div>
+    </>
+  ) : (
+    <>
+      <div>
+        <strong>Current tournament:</strong>
+      </div>
+
+      <div>No tournament loaded.</div>
+    </>
+  )}
+</section>
 
       {currentWorkspace === 'home' && (
         <HomeWorkspace

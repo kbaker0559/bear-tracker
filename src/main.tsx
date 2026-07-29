@@ -244,8 +244,8 @@ function applyPairings(groups: Group[]) {
 )}
 {activeTab === 'pairings' && (
   <PairingsImport
+    players={state.players}
     onApplyPairings={applyPairings}
-    findPlayerIdByName={findPlayerIdByName}
   />
 )}
 {activeTab === 'scorecards' && (

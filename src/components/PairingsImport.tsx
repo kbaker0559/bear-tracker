@@ -5,7 +5,7 @@ import { parsePairingsEmail } from '../utils/parsePairings';
 
 type Props = {
   players: Player[];
-  onApplyPairings: (groups: Group[]) => void;
+  onApplyPairings: (groups: Group[], tournamentDate: string) => void;
 };
 
 export default function PairingsImport({
@@ -13,6 +13,7 @@ export default function PairingsImport({
   onApplyPairings
 }: Props) {
   const [text, setText] = useState('');
+  const [tournamentDate, setTournamentDate] = useState('');
   const [acceptedMatches, setAcceptedMatches] = useState<
     Record<string, string>
   >({});
@@ -95,9 +96,15 @@ export default function PairingsImport({
   }
 
   function applyPairings() {
-    if (unresolvedPlayers.length > 0) return;
-    onApplyPairings(groups);
+  if (unresolvedPlayers.length > 0) return;
+
+  if (!tournamentDate) {
+    window.alert('Select the Round Date before applying pairings.');
+    return;
   }
+
+  onApplyPairings(groups, tournamentDate);
+}
 
   return (
     <section className="card">
@@ -105,8 +112,23 @@ export default function PairingsImport({
 
       <p>
         Paste the pairings table, review every player match, and then
-        create the scorecards.
+        create the tournament and scorecards.
       </p>
+
+      <label style={{ display: 'block', marginBottom: '1rem' }}>
+  <strong>Round Date</strong>
+
+  <input
+    type="date"
+    value={tournamentDate}
+    onChange={(event) => setTournamentDate(event.target.value)}
+    style={{ display: 'block', marginTop: '0.35rem' }}
+  />
+
+  <small style={{ display: 'block', marginTop: '0.35rem' }}>
+    Select the Saturday these pairings will be played.
+  </small>
+</label>
 
       <textarea
         value={text}
@@ -123,7 +145,7 @@ export default function PairingsImport({
         <button
           onClick={applyPairings}
           disabled={
-            parsed.length === 0 || unresolvedPlayers.length > 0
+            !tournamentDate || parsed.length === 0 || unresolvedPlayers.length > 0
           }
         >
           Apply Pairings

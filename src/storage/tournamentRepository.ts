@@ -293,15 +293,30 @@ export function initializeTournamentRepository(
   }
 
   if (summaries.length === 0) {
-    const legacy = loadCurrentRound();
-    const migrated = createTournamentDocument(legacy ?? createInitialData(), {
-      name: legacy
-        ? defaultTournamentName(legacy.roundBundle.round.date)
-        : undefined,
+  const legacy = loadCurrentRound();
+
+  if (legacy) {
+    return createTournamentDocument(legacy, {
+      name: defaultTournamentName(
+        legacy.roundBundle.round.date
+      ),
       makeCurrent: true
     });
-    return migrated;
   }
+
+  return {
+    id: '',
+    name: '',
+    roundDate: '',
+    kind: 'development',
+    archived: false,
+    createdAt: '',
+    updatedAt: '',
+    playerCount: 0,
+    cardCount: 0,
+    data: createInitialData()
+  };
+}
 
   const currentId = getCurrentTournamentId();
   if (currentId) {
@@ -317,7 +332,18 @@ export function initializeTournamentRepository(
     return document;
   }
 
-  return createTournamentDocument(createInitialData(), { makeCurrent: true });
+  return {
+  id: '',
+  name: '',
+  roundDate: '',
+  kind: 'development',
+  archived: false,
+  createdAt: '',
+  updatedAt: '',
+  playerCount: 0,
+  cardCount: 0,
+  data: createInitialData()
+};
 }
 
 export function replaceTournamentDocument(document: TournamentDocument): void {

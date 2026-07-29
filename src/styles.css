@@ -609,12 +609,19 @@ code { background: #f7f2e8; padding: 0.1rem 0.3rem; border-radius: 0.3rem; }
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 0.75rem;
   background: rgba(10, 24, 38, 0.72);
+
+  color: #ffffff;
+}
+
+.current-tournament-banner strong {
+  color: #7dd3fc;
 }
 
 .current-tournament-banner > div:last-child {
   font-size: 0.9rem;
-  opacity: 0.8;
+  opacity: 0.9;
   text-align: right;
+  color: #d1d5db;
 }
 
 .tournament-library {

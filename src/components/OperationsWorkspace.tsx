@@ -41,7 +41,10 @@ type Props = {
   checkedInPlayerIds: string[];
   paidPlayerIds: string[];
 
-  onApplyPairings: (groups: Group[]) => void;
+  onApplyPairings: (
+  groups: Group[],
+  tournamentDate: string
+) => boolean;
   onSetInactiveStatus: (
     playerId: string,
     status: Extract<RoundPlayerStatus, 'dns' | 'withdrawn' | 'removed'>,
@@ -262,12 +265,23 @@ export default function OperationsWorkspace({
     }, 100);
   }
 
-  function handleApplyPairings(importedGroups: Group[]) {
-    onApplyPairings(importedGroups);
-    window.setTimeout(() => {
-      continueToWeeklyReview();
-    }, 150);
+  function handleApplyPairings(
+  importedGroups: Group[],
+  tournamentDate: string
+) {
+  const shouldContinue = onApplyPairings(
+    importedGroups,
+    tournamentDate
+  );
+
+  if (!shouldContinue) {
+    return;
   }
+
+  window.setTimeout(() => {
+    continueToWeeklyReview();
+  }, 150);
+}
 
   function completePlayerStatusReview() {
     onCompletePlayerStatusReview();
@@ -336,12 +350,12 @@ export default function OperationsWorkspace({
       </div>
 
       <section className="card">
-        <p className="eyebrow">Friday Preparation</p>
+        <p className="eyebrow">Thursday Preparation</p>
         <h2>Pairings and Weekly Player Values</h2>
 
         <p>
           Import the weekly pairings, then review handicap
-          and Points Needed values on Friday.
+          and Points Needed values before Saturday.
         </p>
 
         <div ref={pairingsRef} id="pairings-import">
