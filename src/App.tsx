@@ -8,12 +8,15 @@ import ResultsWorkspace from './components/ResultsWorkspace';
 import TreasurerWorkspace from './components/TreasurerWorkspace';
 import FinalizeWorkspace from './components/FinalizeWorkspace';
 import QuotaWorkspace from './components/QuotaWorkspace';
+import type { LeaguePlayer } from './types/leaguePlayer';
+import { loadLeaguePlayers } from './storage/leaguePlayerStore';
 import DeveloperTools from './components/DeveloperTools';
 import AIRecognitionSettings from './components/AIRecognitionSettings';
 import TournamentLibrary from './components/TournamentLibrary';
 import { bearTrackerScoringSettings } from './config/bearTrackerScoring';
 import { initialPlayers } from './data/players';
 import { blackBearCourse } from './data/blackBearCourse';
+import { ensureLeaguePlayersExist } from './storage/leaguePlayerBootstrap';
 import {
   createEmptyRound,
   createRoundFromScorecards,
@@ -238,10 +241,14 @@ async function prepareScorecardPhoto(file: File): Promise<PreparedScorecardPhoto
 }
 
 export default function App() {
+  ensureLeaguePlayersExist();
   const [currentWorkspace, setCurrentWorkspace] =
     useState<Workspace>('home');
   const [navigationSection, setNavigationSection] =
     useState<NavigationSection | undefined>(undefined);
+   const [leaguePlayers] = useState<LeaguePlayer[]>(
+  () => loadLeaguePlayers() ?? []
+); 
 
 
   const navigateToWorkspace = useCallback((
@@ -2991,7 +2998,7 @@ applyTournamentDocument(document.id);
             and system controls.
           </p>
 
-<LeaguePlayers players={players} />
+<LeaguePlayers players={leaguePlayers} />
 
           <button
             type="button"

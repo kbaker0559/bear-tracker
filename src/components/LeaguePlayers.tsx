@@ -1,15 +1,17 @@
-import type { Player } from '../types';
+import type { LeaguePlayer } from '../types/leaguePlayer';
+import { getLeaguePlayerName } from '../types/leaguePlayer';
 
 type Props = {
-  players: Player[];
+  players: LeaguePlayer[];
 };
 
 export default function LeaguePlayers({
   players
 }: Props) {
   const sortedPlayers = [...players].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
+  a.lastName.localeCompare(b.lastName) ||
+  a.firstName.localeCompare(b.firstName)
+);
 
   return (
     <section className="card">
@@ -67,7 +69,7 @@ export default function LeaguePlayers({
                 </td>
 
                 <td>
-                  <strong>{player.name}</strong>
+                  <strong>{getLeaguePlayerName(player)}</strong>
                 </td>
 
                 <td>—</td>
