@@ -16,7 +16,7 @@ const playerSeeds: PlayerSeed[] = [
   [30, 'Kevin Baker', 12, 19, 'Active'],
   [40, 'Chuck Blankenship', 12, 24, 'Active'],
   [50, 'Shawn Boone', 16, 15, 'Active'],
-  [60, 'Elvis Brathwaite', 11, 21, 'Inactive'],
+  [60, 'Elvis Brathwaite', 11, 21, 'Active'],
   [69, 'Tony Caisse', 9, 29, 'Active'],
   [70, 'Glenn Casselman', 12, 19, 'Active'],
   [80, 'Anthony Ciuzio', 4, 33, 'Active'],

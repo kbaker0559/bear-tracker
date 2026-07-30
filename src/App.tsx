@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AppShell from './components/AppShell';
 import HomeWorkspace from './components/HomeWorkspace';
 import OperationsWorkspace from './components/OperationsWorkspace';
+import LeaguePlayers from './components/LeaguePlayers';
 import TournamentWorkspace from './components/TournamentWorkspace';
 import ResultsWorkspace from './components/ResultsWorkspace';
 import TreasurerWorkspace from './components/TreasurerWorkspace';
@@ -293,6 +294,7 @@ export default function App() {
       initialTournament.data.leaguePlayers ?? initialPlayers
     );
 
+    
   const [
   benchmarkSummaries,
   setBenchmarkSummaries
@@ -2988,6 +2990,8 @@ applyTournamentDocument(document.id);
             courses, seasons, reports,
             and system controls.
           </p>
+
+<LeaguePlayers players={players} />
 
           <button
             type="button"
