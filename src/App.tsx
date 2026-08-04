@@ -8,8 +8,15 @@ import ResultsWorkspace from './components/ResultsWorkspace';
 import TreasurerWorkspace from './components/TreasurerWorkspace';
 import FinalizeWorkspace from './components/FinalizeWorkspace';
 import QuotaWorkspace from './components/QuotaWorkspace';
-import type { LeaguePlayer } from './types/leaguePlayer';
-import { loadLeaguePlayers } from './storage/leaguePlayerStore';
+import type {
+  LeaguePlayer,
+  PlayerAlias,
+} from './types/leaguePlayer';
+import type { Tee } from './types/tee';
+import {
+  loadLeaguePlayers,
+  saveLeaguePlayers
+} from './storage/leaguePlayerStore';
 import DeveloperTools from './components/DeveloperTools';
 import AIRecognitionSettings from './components/AIRecognitionSettings';
 import TournamentLibrary from './components/TournamentLibrary';
@@ -102,6 +109,7 @@ import type { ScorecardIdentityReview } from './types/aiScorecard';
 import { runRecognitionValidation } from './engine/recognitionValidationEngine';
 import { createScorecardImport } from './engine/scorecardImportEngine';
 import { createScorecardEntry } from './engine/scoreEntryEngine';
+import { AddLeaguePlayerDialog } from './components/AddLeaguePlayerDialog';
 
 type Workspace =
   | 'home'
@@ -246,10 +254,15 @@ export default function App() {
     useState<Workspace>('home');
   const [navigationSection, setNavigationSection] =
     useState<NavigationSection | undefined>(undefined);
-   const [leaguePlayers] = useState<LeaguePlayer[]>(
-  () => loadLeaguePlayers() ?? []
-); 
+   const [leaguePlayers, setLeaguePlayers] =
+  useState<LeaguePlayer[]>(
+    () => loadLeaguePlayers() ?? []
+  );
 
+const [isAddPlayerDialogOpen, setIsAddPlayerDialogOpen] =
+  useState(false);
+const [playerBeingEdited, setPlayerBeingEdited] =
+  useState<LeaguePlayer | null>(null);  
 
   const navigateToWorkspace = useCallback((
     workspace: Workspace,
@@ -2716,7 +2729,7 @@ applyTournamentDocument(document.id);
       }
     });
   }
-  function removeScorecardPhoto(scorecardId: string) {
+    function removeScorecardPhoto(scorecardId: string) {
     setRoundBundle((current) => ({
       ...current,
       scorecardImports: current.scorecardImports.map((scorecardImport) =>
@@ -2731,6 +2744,51 @@ applyTournamentDocument(document.id);
     }));
   }
 
+  function handleAddPlayer() {
+  setIsAddPlayerDialogOpen(true);
+};
+function handleEditPlayer(player: LeaguePlayer) {
+  setPlayerBeingEdited(player);
+  setIsAddPlayerDialogOpen(true);
+}
+function handleSaveLeaguePlayer(player: {
+  firstName: string;
+  lastName: string;
+  active: boolean;
+  preferredTee?: Tee;
+  aliases: PlayerAlias[];
+}) {
+  const updatedPlayers = playerBeingEdited
+    ? leaguePlayers.map((existingPlayer) =>
+        existingPlayer.id === playerBeingEdited.id
+          ? {
+  ...existingPlayer,
+  firstName: player.firstName,
+  lastName: player.lastName,
+  active: player.active,
+  preferredTee: player.preferredTee,
+  aliases: player.aliases,
+}
+          : existingPlayer
+      )
+    : [
+        ...leaguePlayers,
+        {
+  id: crypto.randomUUID(),
+  firstName: player.firstName,
+  lastName: player.lastName,
+  active: player.active,
+  aliases: player.aliases,
+  preferredTee: player.preferredTee,
+},
+      ];
+
+  setLeaguePlayers(updatedPlayers);
+  saveLeaguePlayers(updatedPlayers);
+  setPlayerBeingEdited(null);
+  setIsAddPlayerDialogOpen(false);
+}
+    
   return (
     <main className="app">
       <header className="hero">
@@ -2998,7 +3056,11 @@ applyTournamentDocument(document.id);
             and system controls.
           </p>
 
-<LeaguePlayers players={leaguePlayers} />
+<LeaguePlayers
+  players={leaguePlayers}
+  onAddPlayer={handleAddPlayer}
+  onEditPlayer={handleEditPlayer}
+/>
 
           <button
             type="button"
@@ -3021,6 +3083,7 @@ applyTournamentDocument(document.id);
           <AIRecognitionSettings />
          <DeveloperTools
   benchmarks={benchmarkSummaries}
+  leaguePlayers={leaguePlayers}
   onCreateBenchmark={
     createCurrentRoundBenchmark
   }
@@ -3038,7 +3101,17 @@ applyTournamentDocument(document.id);
   }
 /> 
         </section>
-      )}
+            )}
+
+      <AddLeaguePlayerDialog
+  isOpen={isAddPlayerDialogOpen}
+  player={playerBeingEdited}
+  onCancel={() => {
+    setPlayerBeingEdited(null);
+    setIsAddPlayerDialogOpen(false);
+  }}
+  onSave={handleSaveLeaguePlayer}
+/>
     </main>
   );
 }

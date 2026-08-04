@@ -1,11 +1,15 @@
 import { resetBearTrackerStorage } from '../storage/developerTools';
 import { useMemo } from 'react';
 import type { BenchmarkSummary } from '../types/benchmark';
+import type { LeaguePlayer } from '../types/leaguePlayer';
+import IdentityEngineTest from './IdentityEngineTest';
 
 type Props = {
   benchmarks: BenchmarkSummary[];
 
   onCreateBenchmark: () => void;
+
+  leaguePlayers: LeaguePlayer[];
 
   onLoadBenchmark: (
     benchmarkId: string
@@ -21,6 +25,7 @@ type Props = {
 
 export default function DeveloperTools({
   benchmarks,
+  leaguePlayers,
   onCreateBenchmark,
   onLoadBenchmark,
   onDeleteBenchmark,
@@ -60,6 +65,8 @@ export default function DeveloperTools({
       <div className="developer-autosave-status">
         <strong>Session recovery:</strong> {autosaveStatus}
       </div>
+
+      <IdentityEngineTest players={leaguePlayers} />
 
       <button
         type="button"

@@ -3,10 +3,14 @@ import { getLeaguePlayerName } from '../types/leaguePlayer';
 
 type Props = {
   players: LeaguePlayer[];
+  onAddPlayer: () => void;
+  onEditPlayer: (player: LeaguePlayer) => void;
 };
 
 export default function LeaguePlayers({
-  players
+  players,
+  onAddPlayer,
+  onEditPlayer
 }: Props) {
   const sortedPlayers = [...players].sort((a, b) =>
   a.lastName.localeCompare(b.lastName) ||
@@ -40,12 +44,11 @@ export default function LeaguePlayers({
         </div>
 
         <button
-          type="button"
-          disabled
-          title="Player editing will be added in the next milestone."
-        >
-          Add Player
-        </button>
+  type="button"
+  onClick={onAddPlayer}
+>
+  Add Player
+</button>
       </div>
 
       <div style={{ overflowX: 'auto' }}>
@@ -55,8 +58,7 @@ export default function LeaguePlayers({
               <th>Active</th>
               <th>Player</th>
               <th>Aliases</th>
-              <th>GHIN</th>
-              <th>Default Tee</th>
+<th>Default Tee</th>
               <th />
             </tr>
           </thead>
@@ -72,18 +74,20 @@ export default function LeaguePlayers({
                   <strong>{getLeaguePlayerName(player)}</strong>
                 </td>
 
-                <td>—</td>
-                <td>—</td>
-                <td>—</td>
+                <td>
+  {player.aliases.length > 0
+    ? player.aliases.map((alias) => alias.value).join(', ')
+    : '—'}
+</td>
+<td>{player.preferredTee ?? '—'}</td>
 
                 <td>
                   <button
-                    type="button"
-                    disabled
-                    title="Player editing will be added in the next milestone."
-                  >
-                    Edit
-                  </button>
+  type="button"
+  onClick={() => onEditPlayer(player)}
+>
+  Edit
+</button>
                 </td>
               </tr>
             ))}
